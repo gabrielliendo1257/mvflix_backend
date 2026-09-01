@@ -126,6 +126,7 @@ class AddMediaE2ETest {
     return await().atMost(Duration.ofSeconds(90)).pollInterval(Duration.ofMillis(500)).until(
         () -> {
           HttpResponse<String> response = request("GET", BFF + "/web/add-media/" + id, token, null, null);
+          failImmediatelyOnClientError(response);
           if (response.statusCode() != 200) return null;
           JsonNode value = JSON.readTree(response.body());
           return phase.equals(value.path("phase").asText()) ? value : null;
@@ -139,6 +140,7 @@ class AddMediaE2ETest {
             HttpResponse<String> response = request("GET",
                 env("MEDIA_INGESTION_URL", "http://localhost:17080") + "/api/v1/ingestions/" + id,
                 token, null, null);
+            failImmediatelyOnClientError(response);
             if (response.statusCode() != 200) return null;
             JsonNode value = JSON.readTree(response.body());
             return phases.contains(value.path("phase").asText()) ? value : null;
@@ -154,6 +156,7 @@ class AddMediaE2ETest {
           try {
             HttpResponse<String> response = request("GET", BFF + "/web/activity?limit=100",
                 token, null, null);
+            failImmediatelyOnClientError(response);
             if (response.statusCode() != 200) return null;
             for (JsonNode entry : JSON.readTree(response.body()).path("items")) {
               if (correlationId.equals(entry.path("correlationId").asText())
@@ -164,6 +167,13 @@ class AddMediaE2ETest {
             return null;
           }
         }, value -> value != null);
+  }
+
+  private static void failImmediatelyOnClientError(HttpResponse<String> response) {
+    if (response.statusCode() >= 400 && response.statusCode() < 500) {
+      throw new AssertionError("Unexpected client error " + response.statusCode()
+          + ": " + response.body());
+    }
   }
 
   private static void upload(JsonNode upload) throws Exception {
