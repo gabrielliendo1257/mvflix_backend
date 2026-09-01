@@ -35,7 +35,8 @@ public class ActivityWebClientAdapter implements ActivityProjection {
         .map(entries -> {
           boolean hasMore = entries.size() > limit;
           List<ActivityEntry> items = hasMore ? entries.subList(0, limit) : entries;
-          String nextCursor = items.isEmpty() ? null : items.get(items.size() - 1).cursor();
+          String nextCursor = hasMore && !items.isEmpty()
+              ? items.get(items.size() - 1).cursor() : null;
           return new ActivityPage(items, nextCursor, hasMore);
         });
   }

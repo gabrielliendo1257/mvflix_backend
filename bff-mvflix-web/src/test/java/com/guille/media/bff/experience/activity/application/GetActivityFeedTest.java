@@ -19,7 +19,7 @@ class GetActivityFeedTest {
     var entry = new GetActivityFeed.ActivityEntry(UUID.randomUUID(), UUID.randomUUID(),
         "MEDIA_INGESTION", "COMPLETED", null, null, null, null, null, "next");
     when(projection.feed("abc", 100)).thenReturn(Mono.just(new GetActivityFeed.ActivityPage(
-        java.util.List.of(entry), "next", false)));
+        java.util.List.of(entry), null, false)));
 
     StepVerifier.create(useCase.execute("  abc ", 500))
         .assertNext(page -> org.assertj.core.api.Assertions.assertThat(page.items())
