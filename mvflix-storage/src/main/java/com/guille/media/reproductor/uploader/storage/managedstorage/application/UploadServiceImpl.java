@@ -260,10 +260,10 @@ public class UploadServiceImpl implements UploadService {
               // esperara FAILED el CAS nunca matchearía. Transición y liberación
               // comparten transacción: o ambas, o ninguna (MinIO ya eliminó el
               // blob; este evento es la reconciliación de ese borrado).
-              return this.terminalTransition.transitionAndRelease(
-                  object, StorageSessionStatus.PENDING);
-            })
-        .doOnNext(failed -> this.publishFailed(failed, new StorageObjectRemovedException()))
+               return this.terminalTransition.transitionAndRelease(
+                   object, StorageSessionStatus.PENDING,
+                   failed -> this.publishFailed(failed, new StorageObjectRemovedException()));
+             })
         .onErrorResume(
             error -> {
               log.warn(
@@ -301,51 +301,32 @@ public class UploadServiceImpl implements UploadService {
         .getAuthenticatedUser()
         .switchIfEmpty(
             Mono.error(new AuthenticationCredentialsNotFoundException("No authenticated user")))
-        .flatMap(
-            user ->
-                this.storageRepository
-                    .findById(uploadId)
-                    .switchIfEmpty(
-                        Mono.error(new StorageObjectNotAvailable(
-                            "Storage object not available: " + uploadId)))
-                    .doOnNext(object -> object.ensureOwnedBy(user.subject()))
-                    .flatMap(
-                        object -> {
-                          if (object.getStorageObjectStatus() != StorageSessionStatus.PENDING) {
+        .flatMap(user -> this.storageRepository
+            .findById(uploadId)
+            .switchIfEmpty(Mono.error(new StorageObjectNotAvailable(
+                "Storage object not available: " + uploadId)))
+            .doOnNext(object -> object.ensureOwnedBy(user.subject()))
+            .flatMap(object -> {
+              if (object.getStorageObjectStatus() != StorageSessionStatus.PENDING) {
                 log.info(
                     "Upload is no longer cancellable (not PENDING), skipping: uploadId={}, status={}",
-                    uploadId,
-                    object.getStorageObjectStatus());
+                    uploadId, object.getStorageObjectStatus());
                 return Mono.<StorageObject>empty();
               }
-                          object.markFailed();
-                          return this.userStorageRepository
-                              .findByOwnerUsername(object.getOwnerUsername())
-                              .flatMap(
-                                  userStorage ->
-                                      // Transición + liberación atómicas (ver
-                                      // TerminalUploadTransition); el blob se borra
-                                      // después del commit, best effort.
-                                      this.terminalTransition
-                                          .transitionAndRelease(object, StorageSessionStatus.PENDING)
-                                          .flatMap(
-                                              failed ->
-                                                  this.deleteObjectBestEffort(
-                                                          failed, userStorage.getBucketName())
-                                                      .thenReturn(failed)))
-                  .onErrorResume(
-                      IllegalStateTransitionException.class,
-                      race -> {
-                        log.warn(
-                            "Cancel lost a concurrent transition, skipping: uploadId={}, status={}",
-                            uploadId,
-                            object.getStorageObjectStatus());
-                        return Mono.empty();
-                      });
-                        })
-                    .doOnNext(
-                        failed ->
-                            this.publishFailed(failed, new UploadCancelledByUserException())))
+              object.markFailed();
+              return this.userStorageRepository.findByOwnerUsername(object.getOwnerUsername())
+                  .flatMap(userStorage -> this.terminalTransition.transitionAndRelease(
+                      object, StorageSessionStatus.PENDING,
+                      failed -> this.publishFailed(failed, new UploadCancelledByUserException()))
+                      .flatMap(failed -> this.deleteObjectBestEffort(
+                          failed, userStorage.getBucketName()).thenReturn(failed)))
+                  .onErrorResume(IllegalStateTransitionException.class, race -> {
+                    log.warn(
+                        "Cancel lost a concurrent transition, skipping: uploadId={}, status={}",
+                        uploadId, object.getStorageObjectStatus());
+                    return Mono.empty();
+                  });
+            }))
         .then();
   }
 
@@ -596,9 +577,9 @@ public class UploadServiceImpl implements UploadService {
           // después y best effort: un blob huérfano es reconciliable, una
           // cuota descontada dos veces no.
           return this.terminalTransition
-              .transitionAndRelease(object, StorageSessionStatus.PENDING)
+              .transitionAndRelease(object, StorageSessionStatus.PENDING,
+                  failed -> this.publishFailed(failed, error))
               .flatMap(failed -> this.deleteObjectBestEffort(failed, bucket).thenReturn(failed))
-               .flatMap(failed -> this.publishFailed(failed, error).thenReturn(failed))
               .onErrorResume(
                   IllegalStateTransitionException.class,
                   race -> {
@@ -613,18 +594,15 @@ public class UploadServiceImpl implements UploadService {
 
   private Mono<Void> publishFailed(StorageObject failed, RuntimeException error) {
     UUID eventId = UUID.randomUUID();
-    this.eventPublisher.publish(
-        new UploadFailedEvent(
-            failed.getStorageId(),
-            failed.getOwnerUsername(),
-            failed.getStorageKey().key(),
-            error.getMessage(),
-            Instant.now()));
+    UploadFailedEvent domainEvent = new UploadFailedEvent(
+        failed.getStorageId(), failed.getOwnerUsername(), failed.getStorageKey().key(),
+        error.getMessage(), Instant.now());
     return this.storageOutbox.append(new UploadFailedIntegrationEvent(
         eventId, 1, Instant.now(), "system", failed.getOwnerUsername(), eventId,
         String.valueOf(failed.getStorageId()), new UploadFailedIntegrationEvent.UploadFailedPayload(
             failed.getStorageId(), failed.getOwnerUsername(), failed.getStorageKey().key(),
-            error.getMessage())));
+            error.getMessage())))
+        .doOnSuccess(ignored -> this.eventPublisher.publish(domainEvent));
   }
 
   /**

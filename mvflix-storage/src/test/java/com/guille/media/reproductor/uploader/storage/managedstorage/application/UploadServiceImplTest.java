@@ -253,8 +253,10 @@ class UploadServiceImplTest {
         .expectError(InvalidObjectContentError.class)
         .verify();
 
-    verify(this.objectStoragePort)
-        .delete(new StorageLocation(BucketName.of("movies"), pending.getStorageKey()));
+     var order = org.mockito.Mockito.inOrder(this.storageOutbox, this.objectStoragePort);
+     order.verify(this.storageOutbox).append(any(UploadFailedIntegrationEvent.class));
+     order.verify(this.objectStoragePort)
+         .delete(new StorageLocation(BucketName.of("movies"), pending.getStorageKey()));
     verify(this.userStorageRepository).releaseStorage("pepe", 1024L);
     verify(this.storageRepository).updateStatus(any(StorageObject.class), any(StorageSessionStatus.class));
     verify(this.eventPublisher).publish(any(UploadFailedEvent.class));
