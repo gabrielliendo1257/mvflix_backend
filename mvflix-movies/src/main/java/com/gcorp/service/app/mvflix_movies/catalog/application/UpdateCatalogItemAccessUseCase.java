@@ -57,7 +57,7 @@ public class UpdateCatalogItemAccessUseCase {
                             CatalogItem updated = movie.withAccess(visibility, Set.copyOf(clean));
                             return this.movieRepository.updateAccess(updated)
                                     .flatMap(saved -> this.outbox.append(new CatalogItemAccessChanged(
-                                            UUID.randomUUID(), Instant.now(), user.subject(),
+                                            UUID.randomUUID(), Instant.now(), user.subject(), user.subject(),
                                             UUID.randomUUID(), saved.getId().value(), saved.getKind().name(),
                                             saved.getTitle(), movie.getVisibility(), saved.getVisibility(),
                                             movie.getSharedWith().size(), saved.getSharedWith().size()))

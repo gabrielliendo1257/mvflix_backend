@@ -10,6 +10,7 @@ public interface CatalogSemanticEvent {
     int eventVersion();
     Instant occurredAt();
     String actorId();
+    default String audienceId() { return actorId(); }
     UUID correlationId();
     String aggregateType();
     String aggregateId();

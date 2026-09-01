@@ -48,7 +48,7 @@ public class UpdateVisibilityUseCase {
                             CatalogItem changed = movie.withAccess(visibility, movie.getSharedWith());
                             return this.movieRepository.updateAccess(changed)
                                     .flatMap(updated -> this.outbox.append(new CatalogItemAccessChanged(
-                                            UUID.randomUUID(), Instant.now(), user.subject(), UUID.randomUUID(),
+                                            UUID.randomUUID(), Instant.now(), user.subject(), user.subject(), UUID.randomUUID(),
                                             updated.getId().value(), updated.getKind().name(), updated.getTitle(),
                                             previous, updated.getVisibility(), movie.getSharedWith().size(),
                                             updated.getSharedWith().size()))

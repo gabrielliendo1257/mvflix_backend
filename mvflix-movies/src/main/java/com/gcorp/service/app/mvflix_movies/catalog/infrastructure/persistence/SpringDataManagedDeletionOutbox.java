@@ -42,6 +42,7 @@ public class SpringDataManagedDeletionOutbox implements ManagedDeletionOutbox {
                     "eventVersion", event.eventVersion(),
                     "occurredAt", event.occurredAt(),
                     "actorId", event.actorId(),
+                    "audienceId", event.audienceId(),
                     "correlationId", event.correlationId(),
                     "producer", "mvflix-movies",
                     "aggregate", Map.of("type", event.aggregateType(), "id", event.aggregateId()),

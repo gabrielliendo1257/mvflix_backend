@@ -9,6 +9,7 @@ public record CatalogItemAccessChanged(
         UUID eventId,
         Instant occurredAt,
         String actorId,
+        String audienceId,
         UUID correlationId,
         long catalogItemId,
         String kind,

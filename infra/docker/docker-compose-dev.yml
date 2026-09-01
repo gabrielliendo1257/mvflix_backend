@@ -151,7 +151,8 @@ services:
            mvflix.media-ingestion-started.v1 \
            mvflix.media-ingestion-completed.v1 \
            mvflix.media-ingestion-failed.v1 \
-           mvflix.media-ingestion-cancelled.v1; do
+           mvflix.media-ingestion-cancelled.v1 \
+           mvflix.catalog-item-access-changed.v1; do
           /opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:9092 --create --if-not-exists \
             --topic "$${topic}" --partitions ${KAFKA_NUM_PARTITIONS:-1} --replication-factor 1 \
             --config retention.ms=${KAFKA_LOG_RETENTION_MS:-604800000} \
