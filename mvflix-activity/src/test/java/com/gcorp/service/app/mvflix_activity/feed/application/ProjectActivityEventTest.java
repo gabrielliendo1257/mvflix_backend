@@ -20,9 +20,10 @@ class ProjectActivityEventTest {
     when(inbox.isCompleted(any())).thenReturn(Mono.just(true));
     when(tx.transactional(any(Mono.class))).thenAnswer(invocation -> invocation.getArgument(0));
     var projector = new ProjectActivityEvent(inbox, projection, tx);
+    var ingestionId = UUID.randomUUID();
     var event = new ProjectActivityCommand(
-        UUID.randomUUID(), "MediaIngestionCompleted", 1, Instant.now(), "producer", "actor",
-         "audience", UUID.randomUUID(), "MediaIngestion", "id", "movie.mp4", null, null);
+        UUID.randomUUID(), "MediaIngestionCompleted", 1, Instant.now(), "mvflix-media-ingestion", "actor",
+         "audience", ingestionId, "MediaIngestion", ingestionId.toString(), "movie.mp4", null, null);
 
     projector.handle(event).block();
 

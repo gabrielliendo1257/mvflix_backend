@@ -112,7 +112,7 @@ class ActivityFeedIntegrationTest {
   }
 
   private static ProjectActivityCommand event(String type, UUID correlation, String audience, Instant occurred) {
-    return new ProjectActivityCommand(UUID.randomUUID(), type, 1, occurred, "producer", "actor", audience,
+    return new ProjectActivityCommand(UUID.randomUUID(), type, 1, occurred, "mvflix-media-ingestion", "actor", audience,
         correlation, "MediaIngestion", correlation.toString(), "movie.mp4", 42L, null);
   }
 }

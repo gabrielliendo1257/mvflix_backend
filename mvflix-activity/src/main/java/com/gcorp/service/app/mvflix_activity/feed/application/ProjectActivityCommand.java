@@ -21,6 +21,9 @@ public record ProjectActivityCommand(
     if (eventId == null || eventType == null || eventType.isBlank() || eventVersion != 1
         || occurredAt == null || actorId == null || actorId.isBlank()
         || audienceId == null || audienceId.isBlank() || correlationId == null
+        || !"mvflix-media-ingestion".equals(producer)
+        || !"MediaIngestion".equals(aggregateType)
+        || aggregateId == null || !aggregateId.equals(correlationId.toString())
         || !eventType.startsWith("MediaIngestion")) {
       throw new IllegalArgumentException("Invalid activity event");
     }
