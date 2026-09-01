@@ -7,6 +7,7 @@ import com.guille.media.reproductor.uploader.storage.managedstorage.application.
 import com.guille.media.reproductor.uploader.storage.shared.security.UserProvider;
 import com.guille.media.reproductor.uploader.storage.managedstorage.domain.event.UploadCompletedEvent;
 import com.guille.media.reproductor.uploader.storage.managedstorage.domain.event.UploadFailedEvent;
+import com.guille.media.reproductor.uploader.storage.managedstorage.application.UploadFailedIntegrationEvent;
 import com.guille.media.reproductor.uploader.storage.managedstorage.domain.exception.BucketNotFoundException;
 import com.guille.media.reproductor.uploader.storage.managedstorage.domain.exception.ExceededQuotaException;
 import com.guille.media.reproductor.uploader.storage.managedstorage.domain.exception.IllegalStateTransitionException;
@@ -44,6 +45,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.time.Instant;
+import java.util.UUID;
 
 @Slf4j
 @Service
@@ -59,6 +61,7 @@ public class UploadServiceImpl implements UploadService {
   private final TransactionalOperator transactionalOperator;
   private final TerminalUploadTransition terminalTransition;
   private final UploadCompletionTransaction uploadCompletionTransaction;
+  private final StorageOutbox storageOutbox;
 
   public UploadServiceImpl(
       ObjectStorageService objectStorageService,
@@ -70,7 +73,8 @@ public class UploadServiceImpl implements UploadService {
       StorageEventPublisher eventPublisher,
       TransactionalOperator transactionalOperator,
       TerminalUploadTransition terminalTransition,
-      UploadCompletionTransaction uploadCompletionTransaction) {
+      UploadCompletionTransaction uploadCompletionTransaction,
+      StorageOutbox storageOutbox) {
     this.objectStoragePort = objectStorageService;
     this.storageKeyGenerator = storageKeyGenerator;
     this.uploadPolicy = uploadPolicy;
@@ -81,6 +85,7 @@ public class UploadServiceImpl implements UploadService {
     this.transactionalOperator = transactionalOperator;
     this.terminalTransition = terminalTransition;
     this.uploadCompletionTransaction = uploadCompletionTransaction;
+    this.storageOutbox = storageOutbox;
   }
 
   @Override
@@ -593,7 +598,7 @@ public class UploadServiceImpl implements UploadService {
           return this.terminalTransition
               .transitionAndRelease(object, StorageSessionStatus.PENDING)
               .flatMap(failed -> this.deleteObjectBestEffort(failed, bucket).thenReturn(failed))
-              .doOnNext(failed -> this.publishFailed(failed, error))
+               .flatMap(failed -> this.publishFailed(failed, error).thenReturn(failed))
               .onErrorResume(
                   IllegalStateTransitionException.class,
                   race -> {
@@ -606,7 +611,8 @@ public class UploadServiceImpl implements UploadService {
         });
   }
 
-  private void publishFailed(StorageObject failed, RuntimeException error) {
+  private Mono<Void> publishFailed(StorageObject failed, RuntimeException error) {
+    UUID eventId = UUID.randomUUID();
     this.eventPublisher.publish(
         new UploadFailedEvent(
             failed.getStorageId(),
@@ -614,6 +620,11 @@ public class UploadServiceImpl implements UploadService {
             failed.getStorageKey().key(),
             error.getMessage(),
             Instant.now()));
+    return this.storageOutbox.append(new UploadFailedIntegrationEvent(
+        eventId, 1, Instant.now(), "system", failed.getOwnerUsername(), eventId,
+        String.valueOf(failed.getStorageId()), new UploadFailedIntegrationEvent.UploadFailedPayload(
+            failed.getStorageId(), failed.getOwnerUsername(), failed.getStorageKey().key(),
+            error.getMessage())));
   }
 
   /**

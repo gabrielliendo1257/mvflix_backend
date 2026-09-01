@@ -4,7 +4,8 @@ import java.time.Instant;
 import java.util.UUID;
 
 public sealed interface StorageIntegrationEvent<T>
-    permits StoredObjectDeletedIntegrationEvent, UploadCompletedIntegrationEvent {
+    permits StoredObjectDeletedIntegrationEvent, UploadCompletedIntegrationEvent,
+    UploadFailedIntegrationEvent {
   UUID eventId();
   String eventType();
   int eventVersion();
@@ -15,5 +16,6 @@ public sealed interface StorageIntegrationEvent<T>
 
   /** Storage no recibe identidad de usuario en los caminos internos; se conserva explícitamente. */
   default String actorId() { return "system"; }
+  default String audienceId() { return actorId(); }
   default UUID correlationId() { return eventId(); }
 }

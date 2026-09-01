@@ -82,7 +82,8 @@ class UploadServiceImplTest {
           eventPublisher,
           transactionalOperator,
            terminalTransition,
-           new UploadCompletionTransaction(storageRepository, storageOutbox, transactionalOperator));
+           new UploadCompletionTransaction(storageRepository, storageOutbox, transactionalOperator),
+           storageOutbox);
 
   @BeforeEach
   void passThroughTransaction() {

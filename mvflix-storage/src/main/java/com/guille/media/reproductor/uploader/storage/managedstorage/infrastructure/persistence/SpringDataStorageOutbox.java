@@ -39,6 +39,7 @@ public class SpringDataStorageOutbox implements StorageOutbox {
           "eventVersion", event.eventVersion(),
            "occurredAt", event.occurredAt(),
            "actorId", event.actorId(),
+           "audienceId", event.audienceId(),
            "correlationId", event.correlationId(),
            "producer", "mvflix-storage",
           "aggregate", Map.of("type", event.aggregateType(), "id", event.aggregateId()),
