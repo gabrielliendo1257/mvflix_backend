@@ -2,10 +2,11 @@ package com.guille.media.bff.experience.activity.application;
 
 import com.guille.media.bff.experience.activity.application.port.ActivityProjection;
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 @Service
 @RequiredArgsConstructor
@@ -15,7 +16,7 @@ public class GetActivityFeed {
 
   private final ActivityProjection projection;
 
-  public Flux<ActivityEntry> execute(String cursor, Integer limit) {
+  public Mono<ActivityPage> execute(String cursor, Integer limit) {
     int safeLimit = limit == null || limit < 1 ? DEFAULT_LIMIT : Math.min(limit, MAX_LIMIT);
     return projection.feed(blankToNull(cursor), safeLimit);
   }
@@ -32,7 +33,9 @@ public class GetActivityFeed {
       Instant startedAt,
       Instant lastOccurredAt,
       String fileName,
-      Long catalogItemId,
-      String failureCode,
-      String cursor) {}
+       Long catalogItemId,
+       String failureCode,
+       String cursor) {}
+
+  public record ActivityPage(List<ActivityEntry> items, String nextCursor, boolean hasMore) {}
 }

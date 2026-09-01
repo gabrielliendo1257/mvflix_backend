@@ -27,14 +27,14 @@ public class ActivityController {
   @GetMapping("/history")
   public Flux<ActivityRecord> history(
       @AuthenticationPrincipal Jwt jwt,
-      @RequestParam(defaultValue = "20") @Min(1) @Max(100) int limit) {
+       @RequestParam(defaultValue = "20") @Min(1) @Max(100) int limit) {
     return service.history(owner(jwt), limit);
   }
 
   @GetMapping("/continue-watching")
   public Flux<ActivityRecord> continueWatching(
       @AuthenticationPrincipal Jwt jwt,
-      @RequestParam(defaultValue = "20") @Min(1) @Max(100) int limit) {
+       @RequestParam(defaultValue = "20") @Min(1) @Max(100) int limit) {
     return service.continueWatching(owner(jwt), limit);
   }
 
@@ -48,7 +48,7 @@ public class ActivityController {
   public Flux<ActivityEntry> feed(
       @AuthenticationPrincipal Jwt jwt,
       @RequestParam(required = false) String cursor,
-      @RequestParam(defaultValue = "20") @Min(1) @Max(100) int limit) {
+       @RequestParam(defaultValue = "20") @Min(1) @Max(101) int limit) {
     return this.feed.execute(owner(jwt), cursor, limit);
   }
 

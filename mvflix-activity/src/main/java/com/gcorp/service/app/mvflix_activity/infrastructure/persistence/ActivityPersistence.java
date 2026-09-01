@@ -90,7 +90,7 @@ public class ActivityPersistence implements ActivityInbox, WatchActivityReposito
   }
 
   public Flux<ActivityEntry> feed(String audience, String cursor, int limit) {
-    int safeLimit = limit <= 0 ? 20 : Math.min(limit, 100);
+    int safeLimit = limit <= 0 ? 20 : Math.min(limit, 101);
     var sql = new StringBuilder("SELECT * FROM activity_feed WHERE audience_id=:audience");
     Cursor before = Cursor.parse(cursor);
     if (before != null) sql.append(" AND (last_occurred_at,last_event_id) < (:beforeAt,:beforeId)");

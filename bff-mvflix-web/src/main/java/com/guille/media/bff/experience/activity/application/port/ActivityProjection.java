@@ -1,8 +1,8 @@
 package com.guille.media.bff.experience.activity.application.port;
 
-import com.guille.media.bff.experience.activity.application.GetActivityFeed.ActivityEntry;
-import reactor.core.publisher.Flux;
+import com.guille.media.bff.experience.activity.application.GetActivityFeed.ActivityPage;
+import reactor.core.publisher.Mono;
 
 public interface ActivityProjection {
-  Flux<ActivityEntry> feed(String cursor, int limit);
+  Mono<ActivityPage> feed(String cursor, int limit);
 }

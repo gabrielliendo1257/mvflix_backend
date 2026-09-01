@@ -155,7 +155,7 @@ class AddMediaE2ETest {
             HttpResponse<String> response = request("GET", BFF + "/web/activity?limit=100",
                 token, null, null);
             if (response.statusCode() != 200) return null;
-            for (JsonNode entry : JSON.readTree(response.body())) {
+            for (JsonNode entry : JSON.readTree(response.body()).path("items")) {
               if (correlationId.equals(entry.path("correlationId").asText())
                   && "COMPLETED".equals(entry.path("status").asText())) return entry;
             }
