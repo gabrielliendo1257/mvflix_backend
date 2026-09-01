@@ -183,7 +183,7 @@ components:
         $ref: '#/components/schemas/CatalogItemDeletedEnvelope'
       examples:
         - name: catalog-item-deleted-v1
-           payload: {eventId: 33333333-3333-4333-8333-333333333333, eventType: CatalogItemDeleted, eventVersion: 1, occurredAt: '2026-08-28T12:00:00Z', actorId: Javier, correlationId: 44444444-4444-4444-8444-444444444444, producer: mvflix-movies, aggregate: {type: CatalogItem, id: '101'}, payload: {movieId: 101, ownerUsername: Javier}}
+          payload: {eventId: 33333333-3333-4333-8333-333333333333, eventType: CatalogItemDeleted, eventVersion: 1, occurredAt: '2026-08-28T12:00:00Z', actorId: Javier, correlationId: 44444444-4444-4444-8444-444444444444, producer: mvflix-movies, aggregate: {type: CatalogItem, id: '101'}, payload: {movieId: 101, ownerUsername: Javier}}
 
     CatalogItemAccessChanged:
       name: CatalogItemAccessChanged
