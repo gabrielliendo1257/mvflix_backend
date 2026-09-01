@@ -175,11 +175,12 @@ class ManagedDeletionE2ETest {
     private record UploadCompletedEnvelope(
         String eventId,
         String eventType,
-        int eventVersion,
-        String occurredAt,
-        String producer,
-        String actorId,
-        String correlationId,
+         int eventVersion,
+         String occurredAt,
+         String producer,
+         String actorId,
+         String audienceId,
+         String correlationId,
         AggregateReference aggregate,
         UploadCompletedPayload payload) {}
 

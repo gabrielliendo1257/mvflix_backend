@@ -77,7 +77,17 @@ services:
            mvflix.media-ingestion-started.v1 \
            mvflix.media-ingestion-completed.v1 \
            mvflix.media-ingestion-failed.v1 \
-           mvflix.media-ingestion-cancelled.v1; do
+           mvflix.media-ingestion-cancelled.v1 \
+           mvflix.catalog-item-access-changed.v1 \
+           mvflix.catalog-item-access-changed.v1.retry-0 \
+           mvflix.catalog-item-access-changed.v1.retry-1 \
+           mvflix.catalog-item-access-changed.v1.retry-2 \
+           mvflix.catalog-item-access-changed.v1.DLT \
+           mvflix.upload-failed.v1 \
+           mvflix.upload-failed.v1.retry-0 \
+           mvflix.upload-failed.v1.retry-1 \
+           mvflix.upload-failed.v1.retry-2 \
+           mvflix.upload-failed.v1.DLT; do
           /opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:9092 --create --if-not-exists --topic "$${topic}" --partitions 1 --replication-factor 1
           done
 
