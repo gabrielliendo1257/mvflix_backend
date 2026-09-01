@@ -2,6 +2,8 @@ package com.gcorp.service.app.mvflix_activity.infrastructure.web;
 
 import com.gcorp.service.app.mvflix_activity.application.ActivityQueryService;
 import com.gcorp.service.app.mvflix_activity.application.ActivityQueryService.ActivityRecord;
+import com.gcorp.service.app.mvflix_activity.feed.application.GetActivityFeed;
+import com.gcorp.service.app.mvflix_activity.feed.domain.ActivityEntry;
 import jakarta.validation.constraints.*;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -15,9 +17,11 @@ import reactor.core.publisher.Mono;
 @RequestMapping("/api/v1/activity")
 public class ActivityController {
   private final ActivityQueryService service;
+  private final GetActivityFeed feed;
 
-  public ActivityController(ActivityQueryService service) {
+  public ActivityController(ActivityQueryService service, GetActivityFeed feed) {
     this.service = service;
+    this.feed = feed;
   }
 
   @GetMapping("/history")
@@ -38,6 +42,14 @@ public class ActivityController {
   public Mono<ActivityRecord> movie(
       @AuthenticationPrincipal Jwt jwt, @PathVariable @Positive long movieId) {
     return service.movie(owner(jwt), movieId);
+  }
+
+  @GetMapping("/feed")
+  public Flux<ActivityEntry> feed(
+      @AuthenticationPrincipal Jwt jwt,
+      @RequestParam(required = false) String cursor,
+      @RequestParam(defaultValue = "20") @Min(1) @Max(100) int limit) {
+    return this.feed.execute(owner(jwt), cursor, limit);
   }
 
   private String owner(Jwt jwt) {

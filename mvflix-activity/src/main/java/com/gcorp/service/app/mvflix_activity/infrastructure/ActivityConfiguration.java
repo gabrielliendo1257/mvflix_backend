@@ -2,6 +2,10 @@ package com.gcorp.service.app.mvflix_activity.infrastructure;
 
 import com.gcorp.service.app.mvflix_activity.application.*;
 import com.gcorp.service.app.mvflix_activity.application.port.*;
+import com.gcorp.service.app.mvflix_activity.feed.application.GetActivityFeed;
+import com.gcorp.service.app.mvflix_activity.feed.application.ProjectActivityEvent;
+import com.gcorp.service.app.mvflix_activity.feed.application.port.ActivityFeedInbox;
+import com.gcorp.service.app.mvflix_activity.feed.application.port.ActivityProjection;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.transaction.reactive.TransactionalOperator;
@@ -14,4 +18,7 @@ public class ActivityConfiguration {
   @Bean TransactionalOperator transactionalOperator(R2dbcTransactionManager tm) { return TransactionalOperator.create(tm); }
   @Bean ActivityProcessor activityProcessor(ActivityInbox inbox, WatchActivityRepository projection, TransactionalOperator tx) { return new ActivityProcessor(inbox, projection, tx); }
   @Bean ActivityQueryService activityQueryService(WatchActivityRepository repository) { return new ActivityQueryService(repository); }
+  @Bean ProjectActivityEvent projectActivityEvent(ActivityFeedInbox inbox, ActivityProjection projection,
+      TransactionalOperator tx) { return new ProjectActivityEvent(inbox, projection, tx); }
+  @Bean GetActivityFeed getActivityFeed(ActivityProjection projection) { return new GetActivityFeed(projection); }
 }
