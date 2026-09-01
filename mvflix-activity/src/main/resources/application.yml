@@ -30,3 +30,5 @@ mvflix:
   messaging.kafka.enabled: ${MVFLIX_MESSAGING_KAFKA_ENABLED:false}
   messaging.kafka.playback-progressed-topic: ${MVFLIX_PLAYBACK_PROGRESS_TOPIC:mvflix.playback-progressed.v1}
   messaging.kafka.consumer-group: ${MVFLIX_ACTIVITY_KAFKA_GROUP:mvflix-activity}
+  messaging.kafka.media-ingestion-topics: ${MVFLIX_MEDIA_INGESTION_ACTIVITY_TOPICS:mvflix.media-ingestion-started.v1,mvflix.media-ingestion-completed.v1,mvflix.media-ingestion-failed.v1,mvflix.media-ingestion-cancelled.v1}
+  messaging.kafka.feed-consumer-group: ${MVFLIX_ACTIVITY_FEED_KAFKA_GROUP:mvflix-activity-feed}
