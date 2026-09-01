@@ -10,9 +10,11 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
+import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Mono;
 
 @Component
+@Slf4j
 public class MediaIngestionWebClientAdapter implements MediaIngestionClient {
   private static final String API = "/api/v1/ingestions";
   private final WebClient client;
@@ -70,11 +72,17 @@ public class MediaIngestionWebClientAdapter implements MediaIngestionClient {
         ex.getStatusCode().is5xxServerError()
             ? Mono.error(new com.guille.media.bff.experience.addmedia.application.DownstreamUnavailableException(
                 ex.getStatusCode().value(), "DOWNSTREAM_UNAVAILABLE", ex.getMessage()))
-             : Mono.error(new com.guille.media.bff.experience.addmedia.application.DownstreamRejectionException(
-                 ex.getStatusCode().value(), ex.getMessage() + " body=" + ex.getResponseBodyAsString())))
+             : reject(ex))
         .onErrorResume(org.springframework.web.reactive.function.client.WebClientRequestException.class, ex ->
             Mono.error(new com.guille.media.bff.experience.addmedia.application.DownstreamUnavailableException(
                 503, "DOWNSTREAM_UNREACHABLE", ex.getMessage())));
+  }
+
+  private static <T> Mono<T> reject(org.springframework.web.reactive.function.client.WebClientResponseException ex) {
+    log.warn("Downstream rejected media ingestion: status={} message={} body={}",
+        ex.getStatusCode().value(), ex.getMessage(), ex.getResponseBodyAsString());
+    return Mono.error(new com.guille.media.bff.experience.addmedia.application.DownstreamRejectionException(
+        ex.getStatusCode().value(), "downstream request rejected"));
   }
 
   private record CreateFile(String filename, @JsonProperty("file_size") long fileSize,

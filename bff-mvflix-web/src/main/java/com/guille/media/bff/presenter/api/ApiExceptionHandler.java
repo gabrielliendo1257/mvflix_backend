@@ -153,18 +153,19 @@ public class ApiExceptionHandler {
 
   /**
    * Rechazo 4xx de un servicio aguas abajo (validación, no encontrado,
-   * conflicto): se propaga el status y el mensaje para que el front sepa
-   * QUÉ corregir, en lugar de un 500 opaco.
+    * conflicto): se propaga el status con un mensaje estable sin filtrar
+    * detalles internos.
    */
   @ExceptionHandler(DownstreamRejectionException.class)
   public Mono<ResponseEntity<OrchestrationError>> downstreamRejection(
       DownstreamRejectionException ex) {
-    log.warn("Aguas abajo rechazó la petición: status={} message={}", ex.status(), ex.getMessage());
+    log.warn("Aguas abajo rechazó la petición: status={}", ex.status());
     return Mono.just(
         ResponseEntity.status(ex.status())
             .contentType(MediaType.APPLICATION_JSON)
             .body(new OrchestrationError(
-                ex.status(), "DOWNSTREAM_REJECTED", ex.getMessage())));
+                ex.status(), "DOWNSTREAM_REJECTED",
+                "La solicitud fue rechazada por un servicio dependiente")));
   }
 
   /** Caída reintentable de un servicio aguas abajo. */
