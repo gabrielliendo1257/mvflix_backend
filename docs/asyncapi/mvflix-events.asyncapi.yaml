@@ -96,6 +96,17 @@ channels:
       message:
         $ref: '#/components/messages/UploadCompleted'
 
+  mvflix.upload-failed.v1:
+    description: Storage informa de una subida que terminó en FAILED.
+    publish:
+      operationId: publishUploadFailed
+      x-owner: mvflix-storage
+      x-consumer: mvflix-activity
+      x-delivery: at-least-once
+      x-partition-key: aggregate.id
+      message:
+        $ref: '#/components/messages/UploadFailed'
+
   mvflix.playback-progressed.v1:
     description: Playback publica el progreso para construir la proyección de actividad.
     publish:
@@ -263,6 +274,13 @@ components:
           key:
             type: string
             description: storageId serializado como string.
+
+    UploadFailed:
+      name: UploadFailed
+      title: Upload failed
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/UploadFailedEnvelope'
 
     PlaybackProgressed:
       name: PlaybackProgressed
@@ -459,6 +477,21 @@ components:
             payload:
               $ref: '#/components/schemas/UploadCompletedPayload'
 
+    UploadFailedEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/EventEnvelope'
+        - type: object
+          properties:
+            eventType: {type: string, enum: [UploadFailed]}
+            eventVersion: {type: integer, enum: [1]}
+            producer: {type: string, enum: [mvflix-storage]}
+            aggregate:
+              allOf:
+                - $ref: '#/components/schemas/AggregateReference'
+                - type: object
+                  properties: {type: {type: string, enum: [ManagedObject]}}
+            payload: {$ref: '#/components/schemas/UploadFailedPayload'}
+
     PlaybackProgressedEnvelope:
       allOf:
         - $ref: '#/components/schemas/EventEnvelope'
@@ -613,6 +646,16 @@ components:
         - objectKey
         - contentType
         - contentLength
+
+    UploadFailedPayload:
+      type: object
+      additionalProperties: false
+      properties:
+        storageId: {type: integer, format: int64, minimum: 1}
+        ownerUsername: {type: string}
+        objectKey: {type: string}
+        reason: {type: string}
+      required: [storageId, ownerUsername, objectKey, reason]
 
     PlaybackProgressedPayload:
       type: object
