@@ -47,14 +47,14 @@ class AddMediaE2ETest {
     assertNotNull(first.get("upload").get("storageKey"), first.toString());
     upload(first.get("upload"));
     complete(token, first.get("addMediaId").asText(), 202, 200);
-     JsonNode completed = awaitStatus(token, first.get("addMediaId").asText(), "READY");
+    JsonNode completed = awaitStatus(token, first.get("addMediaId").asText(), "READY");
 
-     JsonNode replay = start(token, key, body, 201);
+    JsonNode replay = start(token, key, body, 201);
     assertEquals(first.get("addMediaId"), replay.get("addMediaId"));
-     assertEquals(first.get("movieId"), replay.get("movieId"));
-     assertEquals(first.get("uploadId"), replay.get("uploadId"));
-     assertEquals(completed.get("phase"), replay.get("phase"));
-     assertEquals("READY", replay.path("phase").asText());
+    assertEquals(first.get("movieId"), replay.get("movieId"));
+    assertEquals(first.get("uploadId"), replay.get("uploadId"));
+    assertEquals(completed.get("phase"), replay.get("phase"));
+    assertEquals("READY", replay.path("phase").asText());
   }
 
   @Test
@@ -78,13 +78,21 @@ class AddMediaE2ETest {
     JsonNode started = start(token, key, request("restart.mp4", 4, "restart movie"), 201);
     String id = started.get("addMediaId").asText();
     upload(started.get("upload"));
-    compose("stop", "movies");
-    complete(token, id, 202, 200);
+    boolean moviesRunning = false;
+    try {
+      compose("stop", "movies");
+      complete(token, id, 202, 200);
+      awaitIngestionPhase(token, id, Set.of("RECONCILIATION_REQUIRED"));
 
-    restartIngestion();
-    awaitIngestionPhase(token, id, Set.of("RECONCILIATION_REQUIRED", "FINALIZING_CATALOG"));
-    compose("up", "-d", "--wait", "movies");
-    awaitIngestionPhase(token, id, Set.of("COMPLETED"));
+      restartIngestion();
+      awaitIngestionPhase(token, id, Set.of("RECONCILIATION_REQUIRED"));
+
+      compose("up", "-d", "--wait", "movies");
+      moviesRunning = true;
+      awaitIngestionPhase(token, id, Set.of("COMPLETED"));
+    } finally {
+      if (!moviesRunning) compose("up", "-d", "--wait", "movies");
+    }
   }
 
   private static JsonNode start(String token, String key, String body, int expected) throws Exception {
