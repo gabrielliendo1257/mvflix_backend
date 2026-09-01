@@ -5,6 +5,8 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.gcorp.service.app.mvflix_activity.feed.application.ProjectActivityCommand;
 import com.gcorp.service.app.mvflix_activity.feed.application.ProjectActivityEvent;
+import com.gcorp.service.app.mvflix_activity.feed.application.CatalogItemAccessChangedCommand;
+import com.gcorp.service.app.mvflix_activity.feed.application.ProjectCatalogItemAccessChanged;
 import java.time.Instant;
 import java.util.UUID;
 import org.junit.jupiter.api.AfterEach;
@@ -42,6 +44,7 @@ class ActivityFeedIntegrationTest {
 
   @Autowired ActivityPersistence persistence;
   @Autowired ProjectActivityEvent projector;
+  @Autowired ProjectCatalogItemAccessChanged catalogAccessProjector;
   @Autowired DatabaseClient database;
   @MockBean ReactiveJwtDecoder jwtDecoder;
 
@@ -109,6 +112,28 @@ class ActivityFeedIntegrationTest {
     assertThat(persistence.feed("audience", null, 20).collectList().block()).isEmpty();
     assertThat(database.sql("SELECT status FROM activity_inbox WHERE event_id=:id").bind("id", event.eventId())
         .map((row, metadata) -> row.get("status", String.class)).one().block()).isEqualTo("FAILED");
+  }
+
+  @Test
+  void projectsCatalogAccessDetailsIntoTheFeed() {
+    UUID eventId = UUID.randomUUID();
+    var event = new CatalogItemAccessChangedCommand(eventId, "CatalogItemAccessChanged", 1,
+        Instant.parse("2026-09-01T16:00:00Z"), "mvflix-movies", "user-123", "user-123",
+        UUID.randomUUID(), "CatalogItem", "42", 42L, "MOVIE", "Interstellar", "PRIVATE",
+        "SHARED", 0, 3);
+
+    catalogAccessProjector.handle(event).block();
+
+    var entry = persistence.feed("user-123", null, 20).collectList().block();
+    assertThat(entry).singleElement().satisfies(activity -> {
+      assertThat(activity.type()).isEqualTo("CATALOG_ACCESS");
+      assertThat(activity.status()).isEqualTo("ACCESS_CHANGED");
+      assertThat(activity.category()).isEqualTo("CATALOG");
+      assertThat(activity.resourceType()).isEqualTo("CatalogItem");
+      assertThat(activity.resourceId()).isEqualTo("42");
+      assertThat(activity.resourceTitle()).isEqualTo("Interstellar");
+      assertThat(activity.details()).contains("previousSharedCount", "sharedCount");
+    });
   }
 
   private static ProjectActivityCommand event(String type, UUID correlation, String audience, Instant occurred) {
