@@ -34,6 +34,7 @@ public class BulkVisibilityUseCase {
     private final CatalogItemRepository movieRepository;
     private final LibraryMovieIds libraryMovieIds;
     private final UserProvider userProvider;
+    private final PersistCatalogAccessChange persistAccessChange;
 
     public Mono<BulkVisibilityResult> execute(
             List<CatalogItemId> movieIds, List<Long> libraryIds,
@@ -85,6 +86,6 @@ public class BulkVisibilityUseCase {
     private Mono<CatalogItem> applyVisibility(
             CatalogItem movie, Visibility visibility, List<String> usernames) {
         CatalogItem access = movie.withAccess(visibility, Set.copyOf(usernames));
-        return this.movieRepository.updateAccess(access);
+        return this.persistAccessChange.execute(movie, access, movie.getOwnerUsername());
     }
 }

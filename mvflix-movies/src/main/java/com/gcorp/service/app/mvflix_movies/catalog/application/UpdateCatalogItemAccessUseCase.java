@@ -6,8 +6,6 @@ import com.gcorp.service.app.mvflix_movies.catalog.domain.item.CatalogItemAccess
 import com.gcorp.service.app.mvflix_movies.catalog.domain.item.CatalogItemId;
 import com.gcorp.service.app.mvflix_movies.catalog.domain.item.CatalogItemRepository;
 import com.gcorp.service.app.mvflix_movies.catalog.domain.access.Visibility;
-import com.gcorp.service.app.mvflix_movies.catalog.application.port.CatalogItemAccessChanged;
-import com.gcorp.service.app.mvflix_movies.catalog.application.port.CatalogSemanticOutbox;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -18,8 +16,6 @@ import reactor.core.publisher.Mono;
 
 import java.util.List;
 import java.util.Set;
-import java.time.Instant;
-import java.util.UUID;
 
 /**
  * Acceso completo de una película en UNA decisión transaccional:
@@ -34,7 +30,7 @@ public class UpdateCatalogItemAccessUseCase {
 
     private final CatalogItemRepository movieRepository;
     private final UserProvider userProvider;
-    private final CatalogSemanticOutbox outbox;
+    private final PersistCatalogAccessChange persistAccessChange;
 
     @org.springframework.transaction.annotation.Transactional("connectionFactoryTransactionManager")
     public Mono<CatalogItem> execute(CatalogItemId id, Visibility visibility, List<String> sharedWith) {
@@ -55,13 +51,7 @@ public class UpdateCatalogItemAccessUseCase {
                                 "CatalogItem not owned: " + id.value())))
                         .flatMap(movie -> {
                             CatalogItem updated = movie.withAccess(visibility, Set.copyOf(clean));
-                            return this.movieRepository.updateAccess(updated)
-                                    .flatMap(saved -> this.outbox.append(new CatalogItemAccessChanged(
-                                            UUID.randomUUID(), Instant.now(), user.subject(), user.subject(),
-                                            UUID.randomUUID(), saved.getId().value(), saved.getKind().name(),
-                                            saved.getTitle(), movie.getVisibility(), saved.getVisibility(),
-                                            movie.getSharedWith().size(), saved.getSharedWith().size()))
-                                    .thenReturn(saved));
+                            return this.persistAccessChange.execute(movie, updated, user.subject());
                         })
                         .doOnNext(updated -> log.info(
                                 "CatalogItem {} acceso -> {} compartidos={}",

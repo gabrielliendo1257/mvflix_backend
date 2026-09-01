@@ -16,8 +16,6 @@ import com.gcorp.service.app.mvflix_movies.catalog.domain.item.CatalogItemId;
 import com.gcorp.service.app.mvflix_movies.catalog.domain.item.CatalogItemRepository;
 import com.gcorp.service.app.mvflix_movies.catalog.domain.item.CatalogItemStatus;
 import com.gcorp.service.app.mvflix_movies.catalog.domain.access.Visibility;
-import com.gcorp.service.app.mvflix_movies.catalog.application.port.CatalogSemanticOutbox;
-import com.gcorp.service.app.mvflix_movies.catalog.application.port.CatalogSemanticEvent;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -29,14 +27,13 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
-import java.util.Map;
 
 @ExtendWith(MockitoExtension.class)
 class UpdateVisibilityUseCaseTest {
 
     @Mock private CatalogItemRepository movieRepository;
     @Mock private UserProvider userProvider;
-    @Mock private CatalogSemanticOutbox outbox;
+    @Mock private PersistCatalogAccessChange persistAccessChange;
 
     @InjectMocks private UpdateVisibilityUseCase useCase;
 
@@ -57,7 +54,8 @@ class UpdateVisibilityUseCaseTest {
                 .thenReturn(Mono.just(movie));
         when(this.movieRepository.updateAccess(any(CatalogItem.class)))
                 .thenReturn(Mono.just(published));
-        when(this.outbox.append(any(CatalogSemanticEvent.class))).thenReturn(Mono.empty());
+        when(this.persistAccessChange.execute(any(), any(), any()))
+                .thenAnswer(invocation -> this.movieRepository.updateAccess(invocation.getArgument(1)));
 
         StepVerifier.create(this.useCase.execute(CatalogItemId.of(1L), Visibility.PUBLIC))
                 .expectNextMatches(m -> m.getVisibility() == Visibility.PUBLIC)
@@ -67,12 +65,7 @@ class UpdateVisibilityUseCaseTest {
         verify(this.movieRepository).updateAccess(captor.capture());
         assertThat(captor.getValue().getId()).isEqualTo(CatalogItemId.of(1L));
         assertThat(captor.getValue().getVisibility()).isEqualTo(Visibility.PUBLIC);
-        ArgumentCaptor<CatalogSemanticEvent> eventCaptor = ArgumentCaptor.forClass(CatalogSemanticEvent.class);
-        verify(this.outbox).append(eventCaptor.capture());
-        assertThat(eventCaptor.getValue().payload()).isEqualTo(Map.of(
-                "catalogItemId", 1L, "kind", "MOVIE", "title", "Dune",
-                "previousVisibility", "PRIVATE", "visibility", "PUBLIC",
-                "previousSharedCount", 0, "sharedCount", 0));
+        verify(this.persistAccessChange).execute(any(), any(), org.mockito.ArgumentMatchers.eq("Javier"));
     }
 
     @Test

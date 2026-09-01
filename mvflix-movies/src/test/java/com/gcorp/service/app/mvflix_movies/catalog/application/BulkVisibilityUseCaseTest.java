@@ -38,8 +38,15 @@ class BulkVisibilityUseCaseTest {
     @Mock private CatalogItemRepository movieRepository;
     @Mock private LibraryMovieIds libraryMovieIds;
     @Mock private UserProvider userProvider;
+    @Mock private PersistCatalogAccessChange persistAccessChange;
 
     @InjectMocks private BulkVisibilityUseCase useCase;
+
+    @org.junit.jupiter.api.BeforeEach
+    void delegatePersistenceThroughAccessCollaborator() {
+        org.mockito.Mockito.lenient().when(this.persistAccessChange.execute(any(), any(), any()))
+                .thenAnswer(invocation -> this.movieRepository.updateAccess(invocation.getArgument(1)));
+    }
 
     @Test
     void sharedBulkPersistsOneAccessTransitionPerMovie() {

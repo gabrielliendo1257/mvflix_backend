@@ -16,9 +16,6 @@ import com.gcorp.service.app.mvflix_movies.catalog.domain.metadata.MovieMetadata
 import com.gcorp.service.app.mvflix_movies.catalog.domain.item.CatalogItemRepository;
 import com.gcorp.service.app.mvflix_movies.catalog.domain.item.CatalogItemStatus;
 import com.gcorp.service.app.mvflix_movies.catalog.domain.access.Visibility;
-import com.gcorp.service.app.mvflix_movies.catalog.application.port.CatalogSemanticOutbox;
-import com.gcorp.service.app.mvflix_movies.catalog.application.port.CatalogSemanticEvent;
-import java.util.Map;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -38,7 +35,7 @@ class UpdateCatalogItemAccessUseCaseTest {
 
     @Mock private CatalogItemRepository movieRepository;
     @Mock private UserProvider userProvider;
-    @Mock private CatalogSemanticOutbox outbox;
+    @Mock private PersistCatalogAccessChange persistAccessChange;
 
     @InjectMocks private UpdateCatalogItemAccessUseCase useCase;
 
@@ -62,8 +59,8 @@ class UpdateCatalogItemAccessUseCaseTest {
                 .when(this.movieRepository.updateAccess(any()))
                 .thenAnswer(invocation -> Mono.just(invocation.getArgument(0)));
         org.mockito.Mockito.lenient()
-                .when(this.outbox.append(any()))
-                .thenReturn(Mono.empty());
+                .when(this.persistAccessChange.execute(any(), any(), any()))
+                .thenAnswer(invocation -> this.movieRepository.updateAccess(invocation.getArgument(1)));
     }
 
     @Test
@@ -79,15 +76,7 @@ class UpdateCatalogItemAccessUseCaseTest {
         ArgumentCaptor<CatalogItem> captor = ArgumentCaptor.forClass(CatalogItem.class);
         verify(this.movieRepository).updateAccess(captor.capture());
         assertThat(captor.getValue().getSharedWith()).containsExactlyInAnyOrder("Maria", "Pedro");
-        ArgumentCaptor<CatalogSemanticEvent> eventCaptor = ArgumentCaptor.forClass(CatalogSemanticEvent.class);
-        verify(this.outbox).append(eventCaptor.capture());
-        assertThat(eventCaptor.getValue().eventType()).isEqualTo("CatalogItemAccessChanged");
-        assertThat(eventCaptor.getValue().aggregateType()).isEqualTo("CatalogItem");
-        assertThat(eventCaptor.getValue().aggregateId()).isEqualTo("1");
-        assertThat(eventCaptor.getValue().payload()).isEqualTo(Map.of(
-                "catalogItemId", 1L, "kind", "MOVIE", "title", "Dune",
-                "previousVisibility", "PRIVATE", "visibility", "SHARED",
-                "previousSharedCount", 0, "sharedCount", 2));
+        verify(this.persistAccessChange).execute(any(), any(), org.mockito.ArgumentMatchers.eq("Javier"));
     }
 
     @Test
