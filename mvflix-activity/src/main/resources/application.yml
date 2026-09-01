@@ -34,3 +34,5 @@ mvflix:
   messaging.kafka.feed-consumer-group: ${MVFLIX_ACTIVITY_FEED_KAFKA_GROUP:mvflix-activity-feed}
   messaging.kafka.catalog-access-topic: ${MVFLIX_CATALOG_ACCESS_ACTIVITY_TOPIC:mvflix.catalog-item-access-changed.v1}
   messaging.kafka.catalog-access-consumer-group: ${MVFLIX_CATALOG_ACCESS_KAFKA_GROUP:mvflix-activity-catalog-access}
+  messaging.kafka.upload-failed-topic: ${MVFLIX_UPLOAD_FAILED_ACTIVITY_TOPIC:mvflix.upload-failed.v1}
+  messaging.kafka.upload-failed-consumer-group: ${MVFLIX_UPLOAD_FAILED_KAFKA_GROUP:mvflix-activity-upload-failed}

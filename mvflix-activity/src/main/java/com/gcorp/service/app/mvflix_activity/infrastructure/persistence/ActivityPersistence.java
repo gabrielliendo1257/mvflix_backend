@@ -8,6 +8,7 @@ import com.gcorp.service.app.mvflix_activity.feed.application.port.ActivityFeedI
 import com.gcorp.service.app.mvflix_activity.feed.application.port.ActivityProjection;
 import com.gcorp.service.app.mvflix_activity.feed.application.ProjectActivityCommand;
 import com.gcorp.service.app.mvflix_activity.feed.application.CatalogItemAccessChangedCommand;
+import com.gcorp.service.app.mvflix_activity.feed.application.UploadFailedCommand;
 import com.gcorp.service.app.mvflix_activity.feed.domain.ActivityEntry;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
@@ -123,6 +124,21 @@ public class ActivityPersistence implements ActivityInbox, WatchActivityReposito
         .bind("activityKey", "event:" + e.eventId()).bind("resourceId", e.aggregateId())
         .bind("resourceTitle", e.title()).bind("details", details)
         .fetch().rowsUpdated().then();
+  }
+
+  public Mono<Void> project(UploadFailedCommand e) {
+    var q = """
+        INSERT INTO activity_feed(activity_id,audience_id,actor_id,correlation_id,activity_type,status,started_at,last_occurred_at,last_event_id,last_event_type,catalog_item_id,activity_key,category,severity,resource_type,resource_id,resource_title,details,received_at)
+        VALUES(:activity,:audience,:actor,:correlation,'UPLOAD_FAILED','FAILED',:occurred,:occurred,:event,:eventType,NULL,:activityKey,'STORAGE','ERROR','ManagedObject',:resourceId,:resourceTitle,CAST(:details AS jsonb),NOW())
+        ON CONFLICT(audience_id,activity_key) DO NOTHING
+        """;
+    String details = "{\"reason\":\"" + e.reason().replace("\\", "\\\\").replace("\"", "\\\"") + "\"}";
+    return db.sql(q).bind("activity", e.eventId()).bind("audience", e.audienceId())
+        .bind("actor", e.actorId()).bind("correlation", e.correlationId())
+        .bind("occurred", e.occurredAt()).bind("event", e.eventId())
+        .bind("eventType", e.eventType()).bind("activityKey", "event:" + e.eventId())
+        .bind("resourceId", e.aggregateId()).bind("resourceTitle", e.objectKey())
+        .bind("details", details).fetch().rowsUpdated().then();
   }
 
   public Flux<ActivityEntry> feed(String audience, String cursor, int limit) {

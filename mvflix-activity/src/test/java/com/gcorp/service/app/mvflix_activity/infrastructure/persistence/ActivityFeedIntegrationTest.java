@@ -7,6 +7,8 @@ import com.gcorp.service.app.mvflix_activity.feed.application.ProjectActivityCom
 import com.gcorp.service.app.mvflix_activity.feed.application.ProjectActivityEvent;
 import com.gcorp.service.app.mvflix_activity.feed.application.CatalogItemAccessChangedCommand;
 import com.gcorp.service.app.mvflix_activity.feed.application.ProjectCatalogItemAccessChanged;
+import com.gcorp.service.app.mvflix_activity.feed.application.ProjectUploadFailed;
+import com.gcorp.service.app.mvflix_activity.feed.application.UploadFailedCommand;
 import java.time.Instant;
 import java.util.UUID;
 import org.junit.jupiter.api.AfterEach;
@@ -45,6 +47,7 @@ class ActivityFeedIntegrationTest {
   @Autowired ActivityPersistence persistence;
   @Autowired ProjectActivityEvent projector;
   @Autowired ProjectCatalogItemAccessChanged catalogAccessProjector;
+  @Autowired ProjectUploadFailed uploadFailedProjector;
   @Autowired DatabaseClient database;
   @MockBean ReactiveJwtDecoder jwtDecoder;
 
@@ -149,6 +152,23 @@ class ActivityFeedIntegrationTest {
         .hasSize(2)
         .extracting(activity -> activity.resourceId())
         .containsExactlyInAnyOrder("42", "43");
+  }
+
+  @Test
+  void projectsUploadFailureAsErrorForItsAudience() {
+    UUID eventId = UUID.randomUUID();
+    var event = new UploadFailedCommand(eventId, "UploadFailed", 1,
+        Instant.parse("2026-09-01T16:00:00Z"), "mvflix-storage", "system", "user-123",
+        eventId, "ManagedObject", "7", 7L, "user-123", "movie.mp4", "size mismatch");
+
+    uploadFailedProjector.handle(event).block();
+
+    assertThat(persistence.feed("user-123", null, 20).collectList().block())
+        .singleElement().satisfies(activity -> {
+          assertThat(activity.type()).isEqualTo("UPLOAD_FAILED");
+          assertThat(activity.severity()).isEqualTo("ERROR");
+          assertThat(activity.category()).isEqualTo("STORAGE");
+        });
   }
 
   private static CatalogItemAccessChangedCommand catalogAccessEvent(UUID eventId,
