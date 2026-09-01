@@ -26,6 +26,10 @@ jobs:
       - name: Run E2E stack
         run: ./scripts/e2e.sh
 
-      - name: Collect container logs
-        if: failure()
-        run: docker compose --env-file infra/docker/container-versions.env -f e2e/docker-compose-e2e.yml logs --no-color
+      - name: Upload E2E compose logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-compose-logs
+          path: e2e/logs/compose.log
+          if-no-files-found: warn

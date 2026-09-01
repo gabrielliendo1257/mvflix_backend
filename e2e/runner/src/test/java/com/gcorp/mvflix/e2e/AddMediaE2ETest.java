@@ -105,7 +105,7 @@ class AddMediaE2ETest {
   }
 
   private static JsonNode awaitStatus(String token, String id, String phase) {
-    return await().atMost(Duration.ofSeconds(90)).pollInterval(Duration.ofSeconds(2)).until(
+    return await().atMost(Duration.ofSeconds(90)).pollInterval(Duration.ofMillis(500)).until(
         () -> {
           HttpResponse<String> response = request("GET", BFF + "/web/add-media/" + id, token, null, null);
           if (response.statusCode() != 200) return null;
@@ -115,7 +115,7 @@ class AddMediaE2ETest {
   }
 
   private static JsonNode awaitIngestionPhase(String token, String id, Set<String> phases) {
-    return await().atMost(Duration.ofSeconds(90)).pollInterval(Duration.ofSeconds(2)).until(
+    return await().atMost(Duration.ofSeconds(90)).pollInterval(Duration.ofMillis(500)).until(
         () -> {
           try {
             HttpResponse<String> response = request("GET",

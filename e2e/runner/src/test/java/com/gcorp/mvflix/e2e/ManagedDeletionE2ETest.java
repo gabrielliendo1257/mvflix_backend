@@ -65,7 +65,7 @@ class ManagedDeletionE2ETest {
 
     assertTrue(delete(MOVIES + "/api/v1/movies/" + movieId, token) == 202);
     assertTrue(delete(MOVIES + "/api/v1/movies/" + movieId, token) == 202);
-    await().atMost(Duration.ofSeconds(90)).pollInterval(Duration.ofSeconds(2)).until(() -> {
+    await().atMost(Duration.ofSeconds(90)).pollInterval(Duration.ofMillis(500)).until(() -> {
       HttpResponse<String> response = get(MOVIES + "/api/v1/movies/" + movieId, token);
       return response.statusCode() == 403
           && deletionCompleted(movieId, uploadId, USER, storageKey);
