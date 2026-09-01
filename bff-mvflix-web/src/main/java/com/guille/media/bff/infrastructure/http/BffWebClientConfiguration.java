@@ -239,6 +239,19 @@ public class BffWebClientConfiguration {
         connectTimeoutMs, responseTimeoutMs);
   }
 
+  @Bean
+  WebClient activityWebClient(
+      ServerOAuth2AuthorizedClientExchangeFilterFunction oauth2AuthorizedClientFilter,
+      ObjectProvider<ExchangeFilterFunction> devOutboundAuthFilter,
+      ObjectProvider<ExchangeFilterFunction> oauth2AccessTokenRefreshFilter,
+      @Value("${services.activity.url:http://localhost:7070}") String activityUrl,
+      @Value("${bff.webclient.connect-timeout-ms:2000}") int connectTimeoutMs,
+      @Value("${bff.webclient.response-timeout-ms:10000}") long responseTimeoutMs) {
+    return this.build(activityUrl,
+        this.outboundAuthFilter(oauth2AuthorizedClientFilter, devOutboundAuthFilter, oauth2AccessTokenRefreshFilter),
+        connectTimeoutMs, responseTimeoutMs);
+  }
+
   /**
    * En dev el filtro de salida es el compuesto (Bearer o sesion); fuera de dev no hay bean
    * ExchangeFilterFunction propio y manda siempre el filtro oauth2 de sesion. En ambos

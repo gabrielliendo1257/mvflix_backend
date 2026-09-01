@@ -92,6 +92,7 @@ de feed expondrá solo datos de presentación, por ejemplo `activityId`,
 `correlationId`, `type`, `status`, `occurredAt` y los datos de operación
 permitidos; no propagará el envelope completo ni información privada del actor.
 
-La futura experiencia del feed usará `/web/activity`. Mientras tanto, esa ruta
-sirve únicamente como compatibilidad legacy para los jobs transitorios; los jobs
-nuevos se exponen en `/web/jobs`.
+La experiencia del feed del BFF usa `/web/activity`. El BFF reenvía la sesión
+autenticada al endpoint interno `/api/v1/activity/feed`; `audienceId` no es un
+parámetro controlable por el cliente. Los jobs transitorios se exponen de forma
+independiente en `/web/jobs`.

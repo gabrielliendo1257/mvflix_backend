@@ -268,6 +268,7 @@ services:
       MEDIA_INGESTION_URL: http://media-ingestion:8080
       SERVICES_STORAGE_URL: http://storage:6060
       SERVICES_MOVIES_URL: http://movies:4040
+      SERVICES_ACTIVITY_URL: http://activity:8080
       SERVICES_USERS_URL: ${SERVICES_USERS_URL:-http://users-policy-stub:8080}
       SECURITY_OAUTH2_JWK_SET_URI: http://jwks-stub:8080/oauth2/jwks
       AUTHORIZATION_ISSUER_URL: http://jwks-stub:8080
@@ -282,6 +283,7 @@ services:
       postgres: { condition: service_healthy }
       jwks-stub: { condition: service_healthy }
       media-ingestion: { condition: service_healthy }
+      activity: { condition: service_healthy }
       storage: { condition: service_healthy }
       movies: { condition: service_healthy }
       users-policy-stub: { condition: service_healthy }
