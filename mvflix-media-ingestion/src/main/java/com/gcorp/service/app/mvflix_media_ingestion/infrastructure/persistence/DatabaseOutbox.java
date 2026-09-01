@@ -3,6 +3,7 @@ package com.gcorp.service.app.mvflix_media_ingestion.infrastructure.persistence;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.gcorp.service.app.mvflix_media_ingestion.application.Outbox;
 import com.gcorp.service.app.mvflix_media_ingestion.domain.MediaIngestion;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import org.springframework.r2dbc.core.DatabaseClient;
 import org.springframework.stereotype.Repository;
@@ -31,25 +32,36 @@ public class DatabaseOutbox implements Outbox {
       envelope.put("eventVersion", 1);
       envelope.put("occurredAt", occurred);
       envelope.put("actorId", i.actorId());
+      envelope.put("audienceId", i.actorId());
       envelope.put("correlationId", i.ingestionId());
       if (i.causationId() != null) envelope.put("causationId", i.causationId());
       envelope.put("producer", "mvflix-media-ingestion");
       envelope.put("aggregate", Map.of("type", "MediaIngestion", "id", i.ingestionId()));
-      envelope.put("payload", Map.of("phase", i.phase().name(), "ingestionId", i.ingestionId()));
-      var payload = mapper.writeValueAsString(envelope);
+      envelope.put("payload", eventPayload(i));
+      var serializedPayload = mapper.writeValueAsString(envelope);
       return db.sql(
               "INSERT INTO media_ingestion_outbox(event_id,event_type,event_version,aggregate_id,occurred_at,payload) VALUES(:e,:t,1,:a,:o,CAST(:p AS jsonb)) ON CONFLICT(event_id) DO NOTHING")
           .bind("e", eventId)
           .bind("t", type)
           .bind("a", i.ingestionId())
           .bind("o", occurred)
-          .bind("p", payload)
+          .bind("p", serializedPayload)
           .fetch()
           .rowsUpdated()
           .then();
     } catch (Exception e) {
       return Mono.error(e);
     }
+  }
+
+  static Map<String, Object> eventPayload(MediaIngestion i) {
+    var payload = new LinkedHashMap<String, Object>();
+    payload.put("phase", i.phase().name());
+    payload.put("ingestionId", i.ingestionId());
+    payload.put("fileName", i.fileName());
+    payload.put("catalogItemId", i.catalogItemId());
+    payload.put("failureCode", i.failureCode());
+    return payload;
   }
 
   public Mono<Void> started(MediaIngestion i) {
