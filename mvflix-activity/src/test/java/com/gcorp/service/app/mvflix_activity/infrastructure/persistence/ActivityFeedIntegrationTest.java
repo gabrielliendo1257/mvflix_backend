@@ -136,6 +136,29 @@ class ActivityFeedIntegrationTest {
     });
   }
 
+  @Test
+  void keepsBulkCatalogAccessEventsSeparateWhenCorrelationIsShared() {
+    UUID correlation = UUID.randomUUID();
+    var first = catalogAccessEvent(UUID.randomUUID(), correlation, "42", 42L);
+    var second = catalogAccessEvent(UUID.randomUUID(), correlation, "43", 43L);
+
+    catalogAccessProjector.handle(first).block();
+    catalogAccessProjector.handle(second).block();
+
+    assertThat(persistence.feed("user-123", null, 20).collectList().block())
+        .hasSize(2)
+        .extracting(activity -> activity.resourceId())
+        .containsExactlyInAnyOrder("42", "43");
+  }
+
+  private static CatalogItemAccessChangedCommand catalogAccessEvent(UUID eventId,
+      UUID correlation, String aggregateId, long catalogItemId) {
+    return new CatalogItemAccessChangedCommand(eventId, "CatalogItemAccessChanged", 1,
+        Instant.parse("2026-09-01T16:00:00Z"), "mvflix-movies", "user-123", "user-123",
+        correlation, "CatalogItem", aggregateId, catalogItemId, "MOVIE", "Interstellar",
+        "PRIVATE", "SHARED", 0, 3);
+  }
+
   private static ProjectActivityCommand event(String type, UUID correlation, String audience, Instant occurred) {
     return new ProjectActivityCommand(UUID.randomUUID(), type, 1, occurred, "mvflix-media-ingestion", "actor", audience,
         correlation, "MediaIngestion", correlation.toString(), "movie.mp4", 42L, null);

@@ -69,7 +69,7 @@ public class ActivityPersistence implements ActivityInbox, WatchActivityReposito
     var q = """
         INSERT INTO activity_feed(activity_id,audience_id,actor_id,correlation_id,activity_type,status,started_at,last_occurred_at,last_event_id,last_event_type,file_name,catalog_item_id,failure_code,activity_key,category,severity,resource_type,resource_id,resource_title,received_at)
         VALUES(:activity,:audience,:actor,:correlation,'MEDIA_INGESTION',:status,:occurred,:occurred,:event,:eventType,:fileName,:catalog,:failure,:activityKey,'MEDIA',:severity,'MediaIngestion',:resourceId,:resourceTitle,NOW())
-        ON CONFLICT(audience_id,correlation_id) DO UPDATE SET
+        ON CONFLICT(audience_id,activity_key) DO UPDATE SET
           actor_id=EXCLUDED.actor_id,
           started_at=LEAST(activity_feed.started_at,EXCLUDED.started_at),
           last_occurred_at=GREATEST(activity_feed.last_occurred_at,EXCLUDED.last_occurred_at),
@@ -84,7 +84,7 @@ public class ActivityPersistence implements ActivityInbox, WatchActivityReposito
         .bind("actor", e.actorId()).bind("correlation", e.correlationId())
         .bind("status", e.status()).bind("occurred", e.occurredAt())
         .bind("event", e.eventId()).bind("eventType", e.eventType())
-        .bind("activityKey", e.correlationId().toString())
+        .bind("activityKey", "ingestion:" + e.correlationId())
         .bind("severity", "FAILED".equals(e.status()) ? "ERROR" : "INFO")
         .bind("resourceId", e.correlationId().toString());
     s = bind(s, "fileName", e.fileName(), String.class);
@@ -98,7 +98,7 @@ public class ActivityPersistence implements ActivityInbox, WatchActivityReposito
     var q = """
         INSERT INTO activity_feed(activity_id,audience_id,actor_id,correlation_id,activity_type,status,started_at,last_occurred_at,last_event_id,last_event_type,catalog_item_id,activity_key,category,severity,resource_type,resource_id,resource_title,details,received_at)
         VALUES(:activity,:audience,:actor,:correlation,'CATALOG_ACCESS','ACCESS_CHANGED',:occurred,:occurred,:event,:eventType,:catalog,:activityKey,'CATALOG','INFO','CatalogItem',:resourceId,:resourceTitle,CAST(:details AS jsonb),NOW())
-        ON CONFLICT(audience_id,correlation_id) DO UPDATE SET
+        ON CONFLICT(audience_id,activity_key) DO UPDATE SET
           actor_id=EXCLUDED.actor_id,
           last_occurred_at=GREATEST(activity_feed.last_occurred_at,EXCLUDED.last_occurred_at),
           last_event_id=CASE WHEN (EXCLUDED.last_occurred_at,EXCLUDED.last_event_id) > (activity_feed.last_occurred_at,activity_feed.last_event_id) THEN EXCLUDED.last_event_id ELSE activity_feed.last_event_id END,
@@ -116,11 +116,11 @@ public class ActivityPersistence implements ActivityInbox, WatchActivityReposito
     String details = "{\"previousVisibility\":\"" + e.previousVisibility()
         + "\",\"visibility\":\"" + e.visibility() + "\",\"previousSharedCount\":"
         + e.previousSharedCount() + ",\"sharedCount\":" + e.sharedCount() + "}";
-    return db.sql(q).bind("activity", e.correlationId()).bind("audience", e.audienceId())
+    return db.sql(q).bind("activity", e.eventId()).bind("audience", e.audienceId())
         .bind("actor", e.actorId()).bind("correlation", e.correlationId())
         .bind("occurred", e.occurredAt()).bind("event", e.eventId())
         .bind("eventType", e.eventType()).bind("catalog", e.catalogItemId())
-        .bind("activityKey", e.correlationId().toString()).bind("resourceId", e.aggregateId())
+        .bind("activityKey", "event:" + e.eventId()).bind("resourceId", e.aggregateId())
         .bind("resourceTitle", e.title()).bind("details", details)
         .fetch().rowsUpdated().then();
   }
