@@ -13,4 +13,10 @@ public record ActivityEntry(
     String fileName,
     Long catalogItemId,
     String failureCode,
-    String cursor) {}
+    String cursor,
+    String category,
+    String severity,
+    String resourceType,
+    String resourceId,
+    String resourceTitle,
+    String details) {}

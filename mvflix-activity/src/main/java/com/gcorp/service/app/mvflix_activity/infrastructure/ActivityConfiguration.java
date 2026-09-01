@@ -4,6 +4,7 @@ import com.gcorp.service.app.mvflix_activity.application.*;
 import com.gcorp.service.app.mvflix_activity.application.port.*;
 import com.gcorp.service.app.mvflix_activity.feed.application.GetActivityFeed;
 import com.gcorp.service.app.mvflix_activity.feed.application.ProjectActivityEvent;
+import com.gcorp.service.app.mvflix_activity.feed.application.ProjectCatalogItemAccessChanged;
 import com.gcorp.service.app.mvflix_activity.feed.application.port.ActivityFeedInbox;
 import com.gcorp.service.app.mvflix_activity.feed.application.port.ActivityProjection;
 import org.springframework.context.annotation.Bean;
@@ -20,5 +21,9 @@ public class ActivityConfiguration {
   @Bean ActivityQueryService activityQueryService(WatchActivityRepository repository) { return new ActivityQueryService(repository); }
   @Bean ProjectActivityEvent projectActivityEvent(ActivityFeedInbox inbox, ActivityProjection projection,
       TransactionalOperator tx) { return new ProjectActivityEvent(inbox, projection, tx); }
+  @Bean ProjectCatalogItemAccessChanged projectCatalogItemAccessChanged(ActivityFeedInbox inbox,
+      ActivityProjection projection, TransactionalOperator tx) {
+    return new ProjectCatalogItemAccessChanged(inbox, projection, tx);
+  }
   @Bean GetActivityFeed getActivityFeed(ActivityProjection projection) { return new GetActivityFeed(projection); }
 }

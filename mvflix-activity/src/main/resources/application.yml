@@ -32,3 +32,5 @@ mvflix:
   messaging.kafka.consumer-group: ${MVFLIX_ACTIVITY_KAFKA_GROUP:mvflix-activity}
   messaging.kafka.media-ingestion-topics: ${MVFLIX_MEDIA_INGESTION_ACTIVITY_TOPICS:mvflix.media-ingestion-started.v1,mvflix.media-ingestion-completed.v1,mvflix.media-ingestion-failed.v1,mvflix.media-ingestion-cancelled.v1}
   messaging.kafka.feed-consumer-group: ${MVFLIX_ACTIVITY_FEED_KAFKA_GROUP:mvflix-activity-feed}
+  messaging.kafka.catalog-access-topic: ${MVFLIX_CATALOG_ACCESS_ACTIVITY_TOPIC:mvflix.catalog-item-access-changed.v1}
+  messaging.kafka.catalog-access-consumer-group: ${MVFLIX_CATALOG_ACCESS_KAFKA_GROUP:mvflix-activity-catalog-access}

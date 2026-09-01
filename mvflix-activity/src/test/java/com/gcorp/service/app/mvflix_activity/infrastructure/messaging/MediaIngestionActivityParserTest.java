@@ -38,4 +38,40 @@ class MediaIngestionActivityParserTest {
         """.formatted(UUID.randomUUID(), UUID.randomUUID())))
         .isInstanceOf(IllegalArgumentException.class);
   }
+
+  @Test
+  void parsesCatalogItemAccessChangedContract() {
+    UUID eventId = UUID.randomUUID();
+    UUID correlationId = UUID.randomUUID();
+    var event = new CatalogItemAccessChangedParser(new ObjectMapper()).parse("""
+        {"eventId":"%s","eventType":"CatalogItemAccessChanged","eventVersion":1,
+         "occurredAt":"2026-09-01T16:00:00Z","producer":"mvflix-movies",
+         "actorId":"user-123","audienceId":"user-123","correlationId":"%s",
+         "aggregate":{"type":"CatalogItem","id":"42"},
+         "payload":{"catalogItemId":42,"kind":"MOVIE","title":"Interstellar",
+          "previousVisibility":"PRIVATE","visibility":"SHARED",
+          "previousSharedCount":0,"sharedCount":3}}
+        """.formatted(eventId, correlationId));
+
+    assertThat(event.eventType()).isEqualTo("CatalogItemAccessChanged");
+    assertThat(event.eventVersion()).isEqualTo(1);
+    assertThat(event.audienceId()).isEqualTo("user-123");
+    assertThat(event.aggregateId()).isEqualTo("42");
+    assertThat(event.status()).isEqualTo("ACCESS_CHANGED");
+    assertThat(event.sharedCount()).isEqualTo(3);
+  }
+
+  @Test
+  void rejectsCatalogAccessFromUnexpectedProducer() {
+    UUID id = UUID.randomUUID();
+    assertThatThrownBy(() -> new CatalogItemAccessChangedParser(new ObjectMapper()).parse("""
+        {"eventId":"%s","eventType":"CatalogItemAccessChanged","eventVersion":1,
+         "occurredAt":"2026-09-01T16:00:00Z","producer":"other",
+         "actorId":"user-123","audienceId":"user-123","correlationId":"%s",
+         "aggregate":{"type":"CatalogItem","id":"42"},
+         "payload":{"catalogItemId":42,"kind":"MOVIE","title":"Interstellar",
+          "previousVisibility":"PRIVATE","visibility":"SHARED",
+          "previousSharedCount":0,"sharedCount":3}}
+        """.formatted(id, id))).isInstanceOf(IllegalArgumentException.class);
+  }
 }

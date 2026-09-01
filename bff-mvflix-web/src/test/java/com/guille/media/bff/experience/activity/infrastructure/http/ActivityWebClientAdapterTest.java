@@ -96,7 +96,8 @@ class ActivityWebClientAdapterTest {
     UUID activityId = UUID.randomUUID();
     var entry = new ActivityWebClientAdapter.DownstreamEntry(activityId, activityId,
         "MEDIA_INGESTION", "FAILED", Instant.parse("2026-01-01T12:00:00Z"),
-        Instant.parse("2026-01-01T12:01:00Z"), "movie.mp4", 42L, "CATALOG_FAILED", "cursor");
+        Instant.parse("2026-01-01T12:01:00Z"), "movie.mp4", 42L, "CATALOG_FAILED", "cursor",
+        null, null, null, null, null, null);
 
     var mapped = ActivityWebClientAdapter.toApplication(entry);
 

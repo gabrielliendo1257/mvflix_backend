@@ -33,9 +33,15 @@ public class GetActivityFeed {
       Instant startedAt,
       Instant lastOccurredAt,
       String fileName,
-       Long catalogItemId,
-       String failureCode,
-       String cursor) {}
+      Long catalogItemId,
+      String failureCode,
+      String cursor,
+      String category,
+      String severity,
+      String resourceType,
+      String resourceId,
+      String resourceTitle,
+      String details) {}
 
   public record ActivityPage(List<ActivityEntry> items, String nextCursor, boolean hasMore) {}
 }

@@ -44,7 +44,8 @@ public class ActivityWebClientAdapter implements ActivityProjection {
   static ActivityEntry toApplication(DownstreamEntry entry) {
     return new ActivityEntry(entry.activityId(), entry.correlationId(), entry.type(), entry.status(),
         entry.startedAt(), entry.lastOccurredAt(), entry.fileName(), entry.catalogItemId(),
-        entry.failureCode(), entry.cursor());
+        entry.failureCode(), entry.cursor(), entry.category(), entry.severity(), entry.resourceType(),
+        entry.resourceId(), entry.resourceTitle(), entry.details());
   }
 
   @JsonIgnoreProperties(ignoreUnknown = true)
@@ -58,5 +59,11 @@ public class ActivityWebClientAdapter implements ActivityProjection {
       String fileName,
       Long catalogItemId,
       String failureCode,
-      String cursor) {}
+      String cursor,
+      String category,
+      String severity,
+      String resourceType,
+      String resourceId,
+      String resourceTitle,
+      String details) {}
 }

@@ -7,6 +7,7 @@ import com.gcorp.service.app.mvflix_activity.domain.PlaybackProgressed;
 import com.gcorp.service.app.mvflix_activity.feed.application.port.ActivityFeedInbox;
 import com.gcorp.service.app.mvflix_activity.feed.application.port.ActivityProjection;
 import com.gcorp.service.app.mvflix_activity.feed.application.ProjectActivityCommand;
+import com.gcorp.service.app.mvflix_activity.feed.application.CatalogItemAccessChangedCommand;
 import com.gcorp.service.app.mvflix_activity.feed.domain.ActivityEntry;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
@@ -66,8 +67,8 @@ public class ActivityPersistence implements ActivityInbox, WatchActivityReposito
 
   public Mono<Void> project(ProjectActivityCommand e) {
     var q = """
-        INSERT INTO activity_feed(activity_id,audience_id,actor_id,correlation_id,activity_type,status,started_at,last_occurred_at,last_event_id,last_event_type,file_name,catalog_item_id,failure_code)
-        VALUES(:activity,:audience,:actor,:correlation,'MEDIA_INGESTION',:status,:occurred,:occurred,:event,:eventType,:fileName,:catalog,:failure)
+        INSERT INTO activity_feed(activity_id,audience_id,actor_id,correlation_id,activity_type,status,started_at,last_occurred_at,last_event_id,last_event_type,file_name,catalog_item_id,failure_code,activity_key,category,severity,resource_type,resource_id,resource_title,received_at)
+        VALUES(:activity,:audience,:actor,:correlation,'MEDIA_INGESTION',:status,:occurred,:occurred,:event,:eventType,:fileName,:catalog,:failure,:activityKey,'MEDIA',:severity,'MediaIngestion',:resourceId,:resourceTitle,NOW())
         ON CONFLICT(audience_id,correlation_id) DO UPDATE SET
           actor_id=EXCLUDED.actor_id,
           started_at=LEAST(activity_feed.started_at,EXCLUDED.started_at),
@@ -82,11 +83,46 @@ public class ActivityPersistence implements ActivityInbox, WatchActivityReposito
     var s = db.sql(q).bind("activity", e.correlationId()).bind("audience", e.audienceId())
         .bind("actor", e.actorId()).bind("correlation", e.correlationId())
         .bind("status", e.status()).bind("occurred", e.occurredAt())
-        .bind("event", e.eventId()).bind("eventType", e.eventType());
+        .bind("event", e.eventId()).bind("eventType", e.eventType())
+        .bind("activityKey", e.correlationId().toString())
+        .bind("severity", "FAILED".equals(e.status()) ? "ERROR" : "INFO")
+        .bind("resourceId", e.correlationId().toString());
     s = bind(s, "fileName", e.fileName(), String.class);
     s = bind(s, "catalog", e.catalogItemId(), Long.class);
     s = bind(s, "failure", e.failureCode(), String.class);
+    s = bind(s, "resourceTitle", e.fileName(), String.class);
     return s.fetch().rowsUpdated().then();
+  }
+
+  public Mono<Void> project(CatalogItemAccessChangedCommand e) {
+    var q = """
+        INSERT INTO activity_feed(activity_id,audience_id,actor_id,correlation_id,activity_type,status,started_at,last_occurred_at,last_event_id,last_event_type,catalog_item_id,activity_key,category,severity,resource_type,resource_id,resource_title,details,received_at)
+        VALUES(:activity,:audience,:actor,:correlation,'CATALOG_ACCESS','ACCESS_CHANGED',:occurred,:occurred,:event,:eventType,:catalog,:activityKey,'CATALOG','INFO','CatalogItem',:resourceId,:resourceTitle,CAST(:details AS jsonb),NOW())
+        ON CONFLICT(audience_id,correlation_id) DO UPDATE SET
+          actor_id=EXCLUDED.actor_id,
+          last_occurred_at=GREATEST(activity_feed.last_occurred_at,EXCLUDED.last_occurred_at),
+          last_event_id=CASE WHEN (EXCLUDED.last_occurred_at,EXCLUDED.last_event_id) > (activity_feed.last_occurred_at,activity_feed.last_event_id) THEN EXCLUDED.last_event_id ELSE activity_feed.last_event_id END,
+          last_event_type=CASE WHEN (EXCLUDED.last_occurred_at,EXCLUDED.last_event_id) > (activity_feed.last_occurred_at,activity_feed.last_event_id) THEN EXCLUDED.last_event_type ELSE activity_feed.last_event_type END,
+          catalog_item_id=EXCLUDED.catalog_item_id,
+          activity_key=EXCLUDED.activity_key,
+          category=EXCLUDED.category,
+          severity=EXCLUDED.severity,
+          resource_type=EXCLUDED.resource_type,
+          resource_id=EXCLUDED.resource_id,
+          resource_title=EXCLUDED.resource_title,
+          details=EXCLUDED.details,
+          received_at=EXCLUDED.received_at
+        """;
+    String details = "{\"previousVisibility\":\"" + e.previousVisibility()
+        + "\",\"visibility\":\"" + e.visibility() + "\",\"previousSharedCount\":"
+        + e.previousSharedCount() + ",\"sharedCount\":" + e.sharedCount() + "}";
+    return db.sql(q).bind("activity", e.correlationId()).bind("audience", e.audienceId())
+        .bind("actor", e.actorId()).bind("correlation", e.correlationId())
+        .bind("occurred", e.occurredAt()).bind("event", e.eventId())
+        .bind("eventType", e.eventType()).bind("catalog", e.catalogItemId())
+        .bind("activityKey", e.correlationId().toString()).bind("resourceId", e.aggregateId())
+        .bind("resourceTitle", e.title()).bind("details", details)
+        .fetch().rowsUpdated().then();
   }
 
   public Flux<ActivityEntry> feed(String audience, String cursor, int limit) {
@@ -104,7 +140,10 @@ public class ActivityPersistence implements ActivityInbox, WatchActivityReposito
           r.get("activity_type", String.class), r.get("status", String.class),
           r.get("started_at", Instant.class), occurred, r.get("file_name", String.class),
           r.get("catalog_item_id", Long.class), r.get("failure_code", String.class),
-          Cursor.of(occurred, eventId));
+          Cursor.of(occurred, eventId), r.get("category", String.class),
+          r.get("severity", String.class), r.get("resource_type", String.class),
+          r.get("resource_id", String.class), r.get("resource_title", String.class),
+          r.get("details", String.class));
     }).all();
   }
 
