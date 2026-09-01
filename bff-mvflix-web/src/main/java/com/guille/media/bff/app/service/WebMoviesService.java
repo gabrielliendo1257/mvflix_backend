@@ -294,7 +294,7 @@ public class WebMoviesService {
    * Cambio de visibilidad en lote (selección del front y/o librerías enteras).
    * El trabajo corre en background por lotes de {@link #BULK_CHUNK_SIZE} y se
    * registra como un {@link Job} en {@link JobStore}: el POST responde YA con el
-   * estado inicial y el progreso llega por SSE en /web/activity/{id}/events.
+   * estado inicial y el progreso llega por SSE en /web/jobs/{id}/events.
    */
   public Mono<Job> bulkVisibility(BulkVisibilityRequest request) {
     String visibility = request.visibility();

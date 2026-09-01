@@ -3,7 +3,6 @@ package com.guille.media.bff.presenter.api;
 import com.guille.media.bff.app.service.Job;
 import com.guille.media.bff.app.service.JobStore;
 import com.guille.media.bff.app.service.WebSessionService;
-
 import org.springframework.http.MediaType;
 import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -11,24 +10,18 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-/**
- * Compatibilidad temporal para los clientes que todavía consultan jobs en
- * {@code /web/activity}. Los jobs nuevos viven en {@code /web/jobs}; este
- * endpoint se retirará cuando la experiencia de activity feed esté disponible.
- */
-@Deprecated
+/** Estado y progreso de los trabajos transitorios iniciados desde el BFF. */
 @RestController
-@RequestMapping("/web/activity")
-public class WebActivityController {
+@RequestMapping("/web/jobs")
+public class WebJobsController {
 
     private final JobStore jobStore;
     private final WebSessionService session;
 
-    public WebActivityController(JobStore jobStore, WebSessionService session) {
+    public WebJobsController(JobStore jobStore, WebSessionService session) {
         this.jobStore = jobStore;
         this.session = session;
     }
@@ -40,17 +33,13 @@ public class WebActivityController {
 
     @GetMapping(value = "/{id}/events", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public Flux<ServerSentEvent<Job>> events(@PathVariable String id) {
-        // Un job ajeno se comporta como inexistente: stream vacío, sin filtrar
-        // existencia por status HTTP en un canal SSE.
         return this.subject()
                 .flatMapMany(owner -> this.jobStore.findOwned(id, owner))
                 .flatMap(owned -> this.jobStore.events(id))
                 .map(job -> ServerSentEvent.builder(job).event("progress").build());
     }
 
-    /** Fallback "anonymous" SOLO para perfiles sin auth (sandbox/dev bearer off):
-     * en producción todo /web/** exige autenticación antes de llegar aquí. */
-    private Mono<String> subject() {
+    protected Mono<String> subject() {
         return this.session.currentSubject().defaultIfEmpty("anonymous");
     }
 }

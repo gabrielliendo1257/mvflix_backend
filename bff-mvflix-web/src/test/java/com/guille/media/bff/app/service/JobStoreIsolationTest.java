@@ -7,7 +7,7 @@ import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
-/** Aislamiento de Activity: cada usuario solo ve SUS trabajos. */
+/** Aislamiento de jobs: cada usuario solo ve SUS trabajos. */
 class JobStoreIsolationTest {
 
   private final JobStore store = new JobStore();
@@ -42,7 +42,7 @@ class JobStoreIsolationTest {
         .verifyComplete();
 
     // NOTA: el SSE crudo del store es un stream vivo sin filtrar; el gate de
-    // propiedad para /{id}/events vive en WebActivityController vía findOwned
+    // propiedad para /{id}/events vive en WebJobsController vía findOwned
     // (probado aquí arriba): un ajeno nunca llega a suscribirse al sink.
   }
 }
