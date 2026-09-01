@@ -20,6 +20,12 @@ yq -o=json '.components.messages.StoredObjectDeleted.examples[0].payload' "$SPEC
 yq -o=json '.components.messages.UploadCompleted.examples[0].payload' "$SPEC" \
   > "$TMP_DIR/upload-completed.json"
 
+for message in MediaIngestionStarted MediaIngestionCompleted MediaIngestionFailed MediaIngestionCancelled; do
+  filename="$(printf '%s' "$message" | tr '[:upper:]' '[:lower:]' | tr -d '-')"
+  yq -o=json ".components.messages.${message}.examples[0].payload" "$SPEC" \
+    > "$TMP_DIR/${filename}.json"
+done
+
 npx --yes ajv-cli@5.0.0 validate \
   --spec=draft7 \
   --strict=false \
@@ -33,5 +39,16 @@ npx --yes ajv-cli@5.0.0 validate \
   --strict=false \
   -s "$TMP_DIR/upload-schema.json" \
   -d "$TMP_DIR/upload-completed.json"
+
+for message in MediaIngestionStarted MediaIngestionCompleted MediaIngestionFailed MediaIngestionCancelled; do
+  filename="$(printf '%s' "$message" | tr '[:upper:]' '[:lower:]' | tr -d '-')"
+  jq ' ."$ref" = "#/components/schemas/MediaIngestionEnvelope"' "$TMP_DIR/schema.json" \
+    > "$TMP_DIR/media-schema.json"
+  npx --yes ajv-cli@5.0.0 validate \
+    --spec=draft7 \
+    --strict=false \
+    -s "$TMP_DIR/media-schema.json" \
+    -d "$TMP_DIR/${filename}.json"
+done
 
 printf '%s\n' "AsyncAPI contract and integration event examples are valid."

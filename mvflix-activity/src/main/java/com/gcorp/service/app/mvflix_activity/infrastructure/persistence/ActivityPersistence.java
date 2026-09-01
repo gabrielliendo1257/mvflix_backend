@@ -6,8 +6,8 @@ import com.gcorp.service.app.mvflix_activity.application.port.WatchActivityRepos
 import com.gcorp.service.app.mvflix_activity.domain.PlaybackProgressed;
 import com.gcorp.service.app.mvflix_activity.feed.application.port.ActivityFeedInbox;
 import com.gcorp.service.app.mvflix_activity.feed.application.port.ActivityProjection;
+import com.gcorp.service.app.mvflix_activity.feed.application.ProjectActivityCommand;
 import com.gcorp.service.app.mvflix_activity.feed.domain.ActivityEntry;
-import com.gcorp.service.app.mvflix_activity.feed.domain.ProjectActivityEvent;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.Base64;
@@ -64,8 +64,7 @@ public class ActivityPersistence implements ActivityInbox, WatchActivityReposito
     return s.fetch().rowsUpdated().then();
   }
 
-  public Mono<Void> project(ProjectActivityEvent e) {
-    var p = e.payload();
+  public Mono<Void> project(ProjectActivityCommand e) {
     var q = """
         INSERT INTO activity_feed(activity_id,audience_id,actor_id,correlation_id,activity_type,status,started_at,last_occurred_at,last_event_id,last_event_type,file_name,catalog_item_id,failure_code)
         VALUES(:activity,:audience,:actor,:correlation,'MEDIA_INGESTION',:status,:occurred,:occurred,:event,:eventType,:fileName,:catalog,:failure)
@@ -84,9 +83,9 @@ public class ActivityPersistence implements ActivityInbox, WatchActivityReposito
         .bind("actor", e.actorId()).bind("correlation", e.correlationId())
         .bind("status", e.status()).bind("occurred", e.occurredAt())
         .bind("event", e.eventId()).bind("eventType", e.eventType());
-    s = bind(s, "fileName", text(p, "fileName"), String.class);
-    s = bind(s, "catalog", number(p, "catalogItemId"), Long.class);
-    s = bind(s, "failure", text(p, "failureCode"), String.class);
+    s = bind(s, "fileName", e.fileName(), String.class);
+    s = bind(s, "catalog", e.catalogItemId(), Long.class);
+    s = bind(s, "failure", e.failureCode(), String.class);
     return s.fetch().rowsUpdated().then();
   }
 
@@ -107,16 +106,6 @@ public class ActivityPersistence implements ActivityInbox, WatchActivityReposito
           r.get("catalog_item_id", Long.class), r.get("failure_code", String.class),
           Cursor.of(occurred, eventId));
     }).all();
-  }
-
-  private static String text(com.fasterxml.jackson.databind.JsonNode payload, String field) {
-    return payload.path(field).isMissingNode() || payload.path(field).isNull() ? null
-        : payload.path(field).asText();
-  }
-
-  private static Long number(com.fasterxml.jackson.databind.JsonNode payload, String field) {
-    return payload.path(field).isMissingNode() || payload.path(field).isNull() ? null
-        : payload.path(field).asLong();
   }
 
   private static <T> DatabaseClient.GenericExecuteSpec bind(DatabaseClient.GenericExecuteSpec spec,

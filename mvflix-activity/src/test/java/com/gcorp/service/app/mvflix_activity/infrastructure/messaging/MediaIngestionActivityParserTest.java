@@ -25,7 +25,7 @@ class MediaIngestionActivityParserTest {
     assertThat(event.eventId()).isEqualTo(eventId);
     assertThat(event.correlationId()).isEqualTo(correlationId);
     assertThat(event.audienceId()).isEqualTo("ana");
-    assertThat(event.payload().path("fileName").asText()).isEqualTo("movie.mp4");
+    assertThat(event.fileName()).isEqualTo("movie.mp4");
     assertThat(event.status()).isEqualTo("COMPLETED");
   }
 

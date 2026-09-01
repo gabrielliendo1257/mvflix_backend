@@ -39,6 +39,17 @@ public class MediaIngestionService {
       String fileName,
       long size,
       String mime) {
+    return create(actor, actor, key, draft, fileName, size, mime);
+  }
+
+  public Mono<MediaIngestion> create(
+      String actor,
+      String audience,
+      String key,
+      Map<String, Object> draft,
+      String fileName,
+      long size,
+      String mime) {
     String fingerprint = fingerprint(draft, fileName, size, mime);
     return repository
         .findByKey(actor, key)
@@ -48,12 +59,13 @@ public class MediaIngestionService {
         .switchIfEmpty(Mono.defer(() -> clients.mediaIngestionEligibility(actor)
             .switchIfEmpty(Mono.error(new IllegalStateException("user eligibility unavailable")))
             .flatMap(eligibility -> eligibility.allowed()
-                ? createInternal(actor, key, draft, fileName, size, mime, fingerprint)
+             ? createInternal(actor, audience, key, draft, fileName, size, mime, fingerprint)
                 : Mono.error(new IllegalStateException("media ingestion not allowed for user")))));
   }
 
   private Mono<MediaIngestion> createInternal(
       String actor,
+      String audience,
       String key,
       Map<String, Object> draft,
       String fileName,
@@ -72,7 +84,7 @@ public class MediaIngestionService {
                   var i =
                       new MediaIngestion(
                           UUID.randomUUID(),
-                          actor,
+                           actor,
                           null,
                           null,
                           Phase.STARTING,
@@ -90,7 +102,8 @@ public class MediaIngestionService {
                            null,
                            null,
                             fingerprint,
-                           null);
+                            null,
+                            audience);
                    return repository
                        .insert(i)
                       .flatMap(

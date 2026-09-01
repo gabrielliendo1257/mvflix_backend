@@ -23,7 +23,17 @@ public record MediaIngestion(
     Long storageId,
     String storageKey,
     String requestFingerprint,
-    UUID causationId) {
+    UUID causationId,
+    String audienceId) {
+  public MediaIngestion(
+      UUID id, String actor, Long catalog, String upload, Phase phase, String failure, long version,
+      int retries, Instant created, Instant updated, Instant next, String key, String name,
+      long size, String mime, String url, Long storageId, String storageKey,
+      String requestFingerprint, UUID causationId) {
+    this(id, actor, catalog, upload, phase, failure, version, retries, created, updated, next, key,
+        name, size, mime, url, storageId, storageKey, requestFingerprint, causationId, actor);
+  }
+
   public MediaIngestion(
       UUID id,
       String actor,
@@ -43,7 +53,7 @@ public record MediaIngestion(
       String url) {
     this(
         id, actor, catalog, upload, phase, failure, version, retries, created, updated, next, key,
-        name, size, mime, url, null, null, null, null);
+         name, size, mime, url, null, null, null, null, actor);
   }
 
   public MediaIngestion(
@@ -66,7 +76,7 @@ public record MediaIngestion(
       Long storageId) {
     this(
         id, actor, catalog, upload, phase, failure, version, retries, created, updated, next, key,
-        name, size, mime, url, storageId, null, null, null);
+         name, size, mime, url, storageId, null, null, null, actor);
   }
 
   public MediaIngestion(
@@ -74,7 +84,7 @@ public record MediaIngestion(
       int retries, Instant created, Instant updated, Instant next, String key, String name,
       long size, String mime, String url, Long storageId, String storageKey) {
     this(id, actor, catalog, upload, phase, failure, version, retries, created, updated, next,
-        key, name, size, mime, url, storageId, storageKey, null, null);
+        key, name, size, mime, url, storageId, storageKey, null, null, actor);
   }
 
   public MediaIngestion(
@@ -83,7 +93,7 @@ public record MediaIngestion(
       long size, String mime, String url, Long storageId, String storageKey,
       String requestFingerprint) {
     this(id, actor, catalog, upload, phase, failure, version, retries, created, updated, next,
-        key, name, size, mime, url, storageId, storageKey, requestFingerprint, null);
+        key, name, size, mime, url, storageId, storageKey, requestFingerprint, null, actor);
   }
 
   public enum Phase {
@@ -124,7 +134,7 @@ public record MediaIngestion(
         storageId,
         storageKey,
         requestFingerprint,
-        causationId);
+         causationId, audienceId);
   }
 
   public MediaIngestion awaitUpload(String upload, String url, String objectKey) {
@@ -150,7 +160,7 @@ public record MediaIngestion(
         storageId,
         objectKey,
         requestFingerprint,
-        causationId);
+         causationId, audienceId);
   }
 
   private static boolean allowed(Phase current, Phase next) {
@@ -193,7 +203,7 @@ public record MediaIngestion(
         storageId,
         storageKey,
         requestFingerprint,
-        causationId);
+         causationId, audienceId);
   }
 
   public MediaIngestion rescheduled(Phase next, String reason, long delaySeconds) {
@@ -217,12 +227,13 @@ public record MediaIngestion(
         storageId,
         storageKey,
         requestFingerprint,
-        causationId);
+         causationId, audienceId);
   }
 
   public MediaIngestion withCausationId(UUID causation) {
     return new MediaIngestion(ingestionId, actorId, catalogItemId, uploadId, phase, failureCode,
         version, retryCount, createdAt, updatedAt, nextAttemptAt, idempotencyKey, fileName,
-        fileSize, mimeType, uploadUrl, storageId, storageKey, requestFingerprint, causation);
+         fileSize, mimeType, uploadUrl, storageId, storageKey, requestFingerprint, causation,
+         audienceId);
   }
 }

@@ -17,10 +17,10 @@ public class ProjectActivityEvent {
     this.tx = tx;
   }
 
-  public Mono<Void> handle(com.gcorp.service.app.mvflix_activity.feed.domain.ProjectActivityEvent event) {
+  public Mono<Void> handle(ProjectActivityCommand event) {
     String id = event.eventId().toString();
-    return inbox.recordReceived(id, event.eventType())
-        .then(tx.transactional(inbox.isCompleted(id)
+    return tx.transactional(inbox.recordReceived(id, event.eventType())
+        .then(inbox.isCompleted(id)
             .flatMap(done -> done ? Mono.empty()
                 : projection.project(event).then(inbox.markCompleted(id)))))
         .onErrorResume(error -> inbox.markFailed(id, event.eventType(), error.toString())

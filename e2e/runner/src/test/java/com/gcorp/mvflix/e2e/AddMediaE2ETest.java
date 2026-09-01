@@ -71,6 +71,24 @@ class AddMediaE2ETest {
   }
 
   @Test
+  void publishesCompletedIngestionActivityThroughBff() throws Exception {
+    String key = "e2e-add-media-activity-" + UUID.randomUUID();
+    String token = token(USER, "media-ingestion");
+    provisionStorage(token(USER, "storage.write"));
+
+    JsonNode started = start(token, key, request("activity.mp4", 4, "activity movie"), 201);
+    String id = started.get("addMediaId").asText();
+    upload(started.get("upload"));
+    complete(token, id, 202, 200);
+
+    JsonNode activity = awaitActivity(token, id);
+    assertEquals(id, activity.path("correlationId").asText());
+    assertEquals("MEDIA_INGESTION", activity.path("type").asText());
+    assertEquals("COMPLETED", activity.path("status").asText());
+    assertEquals("activity.mp4", activity.path("fileName").asText());
+  }
+
+  @Test
   void recoversWhenIngestionRestartsAfterUploadCompletion() throws Exception {
     String key = "e2e-add-media-restart-" + UUID.randomUUID();
     String token = token(USER, "media-ingestion");
@@ -124,6 +142,24 @@ class AddMediaE2ETest {
             if (response.statusCode() != 200) return null;
             JsonNode value = JSON.readTree(response.body());
             return phases.contains(value.path("phase").asText()) ? value : null;
+          } catch (RuntimeException transientFailure) {
+            return null;
+          }
+        }, value -> value != null);
+  }
+
+  private static JsonNode awaitActivity(String token, String correlationId) {
+    return await().atMost(Duration.ofSeconds(90)).pollInterval(Duration.ofMillis(500)).until(
+        () -> {
+          try {
+            HttpResponse<String> response = request("GET", BFF + "/web/activity?limit=100",
+                token, null, null);
+            if (response.statusCode() != 200) return null;
+            for (JsonNode entry : JSON.readTree(response.body())) {
+              if (correlationId.equals(entry.path("correlationId").asText())
+                  && "COMPLETED".equals(entry.path("status").asText())) return entry;
+            }
+            return null;
           } catch (RuntimeException transientFailure) {
             return null;
           }

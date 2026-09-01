@@ -53,8 +53,6 @@ public class ActivityController {
   }
 
   private String owner(Jwt jwt) {
-    String value = jwt.getClaimAsString("preferred_username");
-    if (value == null || value.isBlank()) value = jwt.getClaimAsString("name");
-    return value == null || value.isBlank() ? jwt.getSubject() : value;
+    return jwt.getSubject();
   }
 }

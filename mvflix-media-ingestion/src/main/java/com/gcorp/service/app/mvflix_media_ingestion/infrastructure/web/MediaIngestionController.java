@@ -35,7 +35,8 @@ public class MediaIngestionController {
     }
     return service
         .create(
-            actor(jwt),
+             actor(jwt),
+             audience(jwt),
             key,
             r.draft(),
             r.file().filename(),
@@ -75,6 +76,12 @@ public class MediaIngestionController {
   }
 
   private String actor(Jwt jwt) {
+    if (jwt == null || jwt.getSubject() == null)
+      throw new IllegalStateException("JWT subject required");
+    return jwt.getSubject();
+  }
+
+  private String audience(Jwt jwt) {
     if (jwt == null || jwt.getSubject() == null)
       throw new IllegalStateException("JWT subject required");
     return jwt.getSubject();

@@ -32,7 +32,7 @@ public class DatabaseOutbox implements Outbox {
       envelope.put("eventVersion", 1);
       envelope.put("occurredAt", occurred);
       envelope.put("actorId", i.actorId());
-      envelope.put("audienceId", i.actorId());
+      envelope.put("audienceId", i.audienceId());
       envelope.put("correlationId", i.ingestionId());
       if (i.causationId() != null) envelope.put("causationId", i.causationId());
       envelope.put("producer", "mvflix-media-ingestion");

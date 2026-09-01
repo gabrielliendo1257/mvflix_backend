@@ -34,4 +34,15 @@ class DatabaseOutboxTest {
         .containsEntry("catalogItemId", null)
         .containsEntry("failureCode", null);
   }
+
+  @Test
+  void ingestionKeepsActorAndAudienceSeparate() {
+    var ingestion = new MediaIngestion(
+        UUID.randomUUID(), "system", 42L, "upload", MediaIngestion.Phase.COMPLETED, null,
+        1, 0, Instant.now(), Instant.now(), Instant.now(), "key", "movie.mp4", 4, "video/mp4",
+        null, null, null, null, null, "user-123");
+
+    assertThat(ingestion.actorId()).isEqualTo("system");
+    assertThat(ingestion.audienceId()).isEqualTo("user-123");
+  }
 }
