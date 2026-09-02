@@ -4,7 +4,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 import com.gcorp.service.app.mvflix_activity.feed.application.port.ActivityFeedInbox;
-import com.gcorp.service.app.mvflix_activity.feed.application.port.ActivityProjection;
+import com.gcorp.service.app.mvflix_activity.feed.application.port.ActivityFeedRepository;
 import java.time.Instant;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
@@ -15,12 +15,12 @@ class ProjectCatalogItemAccessChangedTest {
   @Test
   void projectsEventAndMarksInboxCompleted() {
     var inbox = mock(ActivityFeedInbox.class);
-    var projection = mock(ActivityProjection.class);
+    var projection = mock(ActivityFeedRepository.class);
     var tx = mock(TransactionalOperator.class);
     when(inbox.recordReceived(any(), any())).thenReturn(Mono.empty());
     when(inbox.isCompleted(any())).thenReturn(Mono.just(false));
     when(inbox.markCompleted(any())).thenReturn(Mono.empty());
-    when(projection.project(any(CatalogItemAccessChangedCommand.class))).thenReturn(Mono.empty());
+    when(projection.project(any())).thenReturn(Mono.empty());
     when(tx.transactional(any(Mono.class))).thenAnswer(invocation -> invocation.getArgument(0));
     var projector = new ProjectCatalogItemAccessChanged(inbox, projection, tx);
     var event = new CatalogItemAccessChangedCommand(UUID.randomUUID(),
@@ -30,7 +30,7 @@ class ProjectCatalogItemAccessChangedTest {
 
     projector.handle(event).block();
 
-    verify(projection).project(event);
+    verify(projection).project(any());
     verify(inbox).markCompleted(event.eventId().toString());
   }
 }

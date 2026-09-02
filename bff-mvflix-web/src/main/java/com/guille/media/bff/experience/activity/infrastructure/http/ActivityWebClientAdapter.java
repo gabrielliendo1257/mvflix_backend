@@ -1,6 +1,7 @@
 package com.guille.media.bff.experience.activity.infrastructure.http;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.guille.media.bff.experience.activity.application.GetActivityFeed.ActivityEntry;
 import com.guille.media.bff.experience.activity.application.GetActivityFeed.ActivityPage;
 import com.guille.media.bff.experience.activity.application.port.ActivityProjection;
@@ -45,7 +46,7 @@ public class ActivityWebClientAdapter implements ActivityProjection {
     return new ActivityEntry(entry.activityId(), entry.correlationId(), entry.type(), entry.status(),
         entry.startedAt(), entry.lastOccurredAt(), entry.fileName(), entry.catalogItemId(),
         entry.failureCode(), entry.cursor(), entry.category(), entry.severity(), entry.resourceType(),
-        entry.resourceId(), entry.resourceTitle(), entry.details());
+         entry.resourceId(), entry.resourceTitle(), entry.context());
   }
 
   @JsonIgnoreProperties(ignoreUnknown = true)
@@ -65,5 +66,5 @@ public class ActivityWebClientAdapter implements ActivityProjection {
       String resourceType,
       String resourceId,
       String resourceTitle,
-      String details) {}
+       JsonNode context) {}
 }

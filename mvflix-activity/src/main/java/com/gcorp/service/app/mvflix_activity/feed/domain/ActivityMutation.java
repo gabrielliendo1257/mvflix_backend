@@ -1,23 +1,27 @@
 package com.gcorp.service.app.mvflix_activity.feed.domain;
 
 import java.time.Instant;
+import java.util.Map;
 import java.util.UUID;
-import com.fasterxml.jackson.databind.JsonNode;
 
-public record ActivityEntry(
+public record ActivityMutation(
     UUID activityId,
+    String audienceId,
+    String actorId,
     UUID correlationId,
     String type,
     String status,
     Instant startedAt,
-    Instant lastOccurredAt,
+    Instant occurredAt,
+    UUID eventId,
+    String eventType,
     String fileName,
     Long catalogItemId,
     String failureCode,
-    String cursor,
+    String activityKey,
     String category,
     String severity,
     String resourceType,
     String resourceId,
     String resourceTitle,
-    JsonNode context) {}
+    Map<String, Object> context) {}

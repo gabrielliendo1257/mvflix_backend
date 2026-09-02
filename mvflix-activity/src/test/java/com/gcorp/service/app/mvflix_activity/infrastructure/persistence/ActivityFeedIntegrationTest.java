@@ -135,7 +135,8 @@ class ActivityFeedIntegrationTest {
       assertThat(activity.resourceType()).isEqualTo("CatalogItem");
       assertThat(activity.resourceId()).isEqualTo("42");
       assertThat(activity.resourceTitle()).isEqualTo("Interstellar");
-      assertThat(activity.details()).contains("previousSharedCount", "sharedCount");
+       assertThat(activity.context().path("previousSharedCount").asInt()).isEqualTo(0);
+       assertThat(activity.context().path("sharedCount").asInt()).isEqualTo(3);
     });
   }
 
@@ -157,18 +158,21 @@ class ActivityFeedIntegrationTest {
   @Test
   void projectsUploadFailureAsErrorForItsAudience() {
     UUID eventId = UUID.randomUUID();
+    String reason = "INSUFFICIENT_STORAGE\nrequired=1000" + (char) 1;
     var event = new UploadFailedCommand(eventId, "UploadFailed", 1,
         Instant.parse("2026-09-01T16:00:00Z"), "mvflix-storage", "system", "user-123",
-        eventId, "ManagedObject", "7", 7L, "user-123", "movie.mp4", "size mismatch");
+         eventId, "ManagedObject", "7", 7L, "user-123", "movie.mp4", reason);
 
     uploadFailedProjector.handle(event).block();
 
     assertThat(persistence.feed("user-123", null, 20).collectList().block())
         .singleElement().satisfies(activity -> {
-          assertThat(activity.type()).isEqualTo("UPLOAD_FAILED");
-          assertThat(activity.severity()).isEqualTo("ERROR");
-          assertThat(activity.category()).isEqualTo("STORAGE");
-        });
+           assertThat(activity.type()).isEqualTo("UPLOAD_FAILED");
+           assertThat(activity.severity()).isEqualTo("ERROR");
+           assertThat(activity.category()).isEqualTo("STORAGE");
+           assertThat(activity.context().path("reason").asText())
+               .isEqualTo(reason);
+         });
   }
 
   private static CatalogItemAccessChangedCommand catalogAccessEvent(UUID eventId,

@@ -5,14 +5,14 @@ import com.gcorp.service.app.mvflix_activity.application.port.ActivityInbox;
 import com.gcorp.service.app.mvflix_activity.application.port.WatchActivityRepository;
 import com.gcorp.service.app.mvflix_activity.domain.PlaybackProgressed;
 import com.gcorp.service.app.mvflix_activity.feed.application.port.ActivityFeedInbox;
-import com.gcorp.service.app.mvflix_activity.feed.application.port.ActivityProjection;
-import com.gcorp.service.app.mvflix_activity.feed.application.ProjectActivityCommand;
-import com.gcorp.service.app.mvflix_activity.feed.application.CatalogItemAccessChangedCommand;
-import com.gcorp.service.app.mvflix_activity.feed.application.UploadFailedCommand;
+import com.gcorp.service.app.mvflix_activity.feed.application.port.ActivityFeedRepository;
+import com.gcorp.service.app.mvflix_activity.feed.domain.ActivityMutation;
 import com.gcorp.service.app.mvflix_activity.feed.domain.ActivityEntry;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.Base64;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.UUID;
 import org.springframework.r2dbc.core.DatabaseClient;
 import org.springframework.stereotype.Repository;
@@ -21,11 +21,13 @@ import reactor.core.publisher.Mono;
 
 @Repository
 public class ActivityPersistence implements ActivityInbox, WatchActivityRepository,
-    ActivityFeedInbox, ActivityProjection {
+    ActivityFeedInbox, ActivityFeedRepository {
   private final DatabaseClient db;
+  private final ObjectMapper mapper;
 
-  public ActivityPersistence(DatabaseClient db) {
+  public ActivityPersistence(DatabaseClient db, ObjectMapper mapper) {
     this.db = db;
+    this.mapper = mapper;
   }
 
   public Mono<Void> recordReceived(String id, String type) {
@@ -66,10 +68,10 @@ public class ActivityPersistence implements ActivityInbox, WatchActivityReposito
     return s.fetch().rowsUpdated().then();
   }
 
-  public Mono<Void> project(ProjectActivityCommand e) {
+  public Mono<Void> project(ActivityMutation e) {
     var q = """
-        INSERT INTO activity_feed(activity_id,audience_id,actor_id,correlation_id,activity_type,status,started_at,last_occurred_at,last_event_id,last_event_type,file_name,catalog_item_id,failure_code,activity_key,category,severity,resource_type,resource_id,resource_title,received_at)
-        VALUES(:activity,:audience,:actor,:correlation,'MEDIA_INGESTION',:status,:occurred,:occurred,:event,:eventType,:fileName,:catalog,:failure,:activityKey,'MEDIA',:severity,'MediaIngestion',:resourceId,:resourceTitle,NOW())
+        INSERT INTO activity_feed(activity_id,audience_id,actor_id,correlation_id,activity_type,status,started_at,last_occurred_at,last_event_id,last_event_type,file_name,catalog_item_id,failure_code,activity_key,category,severity,resource_type,resource_id,resource_title,details,received_at)
+        VALUES(:activity,:audience,:actor,:correlation,:type,:status,:started,:occurred,:event,:eventType,:fileName,:catalog,:failure,:activityKey,:category,:severity,:resourceType,:resourceId,:resourceTitle,CAST(:context AS jsonb),NOW())
         ON CONFLICT(audience_id,activity_key) DO UPDATE SET
           actor_id=EXCLUDED.actor_id,
           started_at=LEAST(activity_feed.started_at,EXCLUDED.started_at),
@@ -79,66 +81,22 @@ public class ActivityPersistence implements ActivityInbox, WatchActivityReposito
           status=CASE WHEN CASE EXCLUDED.status WHEN 'COMPLETED' THEN 3 WHEN 'FAILED' THEN 2 WHEN 'CANCELLED' THEN 2 WHEN 'STARTED' THEN 1 ELSE 0 END > CASE activity_feed.status WHEN 'COMPLETED' THEN 3 WHEN 'FAILED' THEN 2 WHEN 'CANCELLED' THEN 2 WHEN 'STARTED' THEN 1 ELSE 0 END THEN EXCLUDED.status ELSE activity_feed.status END,
           file_name=COALESCE(EXCLUDED.file_name,activity_feed.file_name),
           catalog_item_id=COALESCE(EXCLUDED.catalog_item_id,activity_feed.catalog_item_id),
-          failure_code=COALESCE(EXCLUDED.failure_code,activity_feed.failure_code)
+          failure_code=COALESCE(EXCLUDED.failure_code,activity_feed.failure_code),
+          details=COALESCE(EXCLUDED.details,activity_feed.details)
         """;
-    var s = db.sql(q).bind("activity", e.correlationId()).bind("audience", e.audienceId())
+    var s = db.sql(q).bind("activity", e.activityId()).bind("audience", e.audienceId())
         .bind("actor", e.actorId()).bind("correlation", e.correlationId())
-        .bind("status", e.status()).bind("occurred", e.occurredAt())
+        .bind("type", e.type()).bind("status", e.status()).bind("started", e.startedAt())
+        .bind("occurred", e.occurredAt())
         .bind("event", e.eventId()).bind("eventType", e.eventType())
-        .bind("activityKey", "ingestion:" + e.correlationId())
-        .bind("severity", "FAILED".equals(e.status()) ? "ERROR" : "INFO")
-        .bind("resourceId", e.correlationId().toString());
+        .bind("activityKey", e.activityKey()).bind("category", e.category())
+        .bind("severity", e.severity()).bind("resourceType", e.resourceType())
+        .bind("resourceId", e.resourceId()).bind("resourceTitle", e.resourceTitle())
+        .bind("context", context(e.context()));
     s = bind(s, "fileName", e.fileName(), String.class);
     s = bind(s, "catalog", e.catalogItemId(), Long.class);
     s = bind(s, "failure", e.failureCode(), String.class);
-    s = bind(s, "resourceTitle", e.fileName(), String.class);
     return s.fetch().rowsUpdated().then();
-  }
-
-  public Mono<Void> project(CatalogItemAccessChangedCommand e) {
-    var q = """
-        INSERT INTO activity_feed(activity_id,audience_id,actor_id,correlation_id,activity_type,status,started_at,last_occurred_at,last_event_id,last_event_type,catalog_item_id,activity_key,category,severity,resource_type,resource_id,resource_title,details,received_at)
-        VALUES(:activity,:audience,:actor,:correlation,'CATALOG_ACCESS','ACCESS_CHANGED',:occurred,:occurred,:event,:eventType,:catalog,:activityKey,'CATALOG','INFO','CatalogItem',:resourceId,:resourceTitle,CAST(:details AS jsonb),NOW())
-        ON CONFLICT(audience_id,activity_key) DO UPDATE SET
-          actor_id=EXCLUDED.actor_id,
-          last_occurred_at=GREATEST(activity_feed.last_occurred_at,EXCLUDED.last_occurred_at),
-          last_event_id=CASE WHEN (EXCLUDED.last_occurred_at,EXCLUDED.last_event_id) > (activity_feed.last_occurred_at,activity_feed.last_event_id) THEN EXCLUDED.last_event_id ELSE activity_feed.last_event_id END,
-          last_event_type=CASE WHEN (EXCLUDED.last_occurred_at,EXCLUDED.last_event_id) > (activity_feed.last_occurred_at,activity_feed.last_event_id) THEN EXCLUDED.last_event_type ELSE activity_feed.last_event_type END,
-          catalog_item_id=EXCLUDED.catalog_item_id,
-          activity_key=EXCLUDED.activity_key,
-          category=EXCLUDED.category,
-          severity=EXCLUDED.severity,
-          resource_type=EXCLUDED.resource_type,
-          resource_id=EXCLUDED.resource_id,
-          resource_title=EXCLUDED.resource_title,
-          details=EXCLUDED.details,
-          received_at=EXCLUDED.received_at
-        """;
-    String details = "{\"previousVisibility\":\"" + e.previousVisibility()
-        + "\",\"visibility\":\"" + e.visibility() + "\",\"previousSharedCount\":"
-        + e.previousSharedCount() + ",\"sharedCount\":" + e.sharedCount() + "}";
-    return db.sql(q).bind("activity", e.eventId()).bind("audience", e.audienceId())
-        .bind("actor", e.actorId()).bind("correlation", e.correlationId())
-        .bind("occurred", e.occurredAt()).bind("event", e.eventId())
-        .bind("eventType", e.eventType()).bind("catalog", e.catalogItemId())
-        .bind("activityKey", "event:" + e.eventId()).bind("resourceId", e.aggregateId())
-        .bind("resourceTitle", e.title()).bind("details", details)
-        .fetch().rowsUpdated().then();
-  }
-
-  public Mono<Void> project(UploadFailedCommand e) {
-    var q = """
-        INSERT INTO activity_feed(activity_id,audience_id,actor_id,correlation_id,activity_type,status,started_at,last_occurred_at,last_event_id,last_event_type,catalog_item_id,activity_key,category,severity,resource_type,resource_id,resource_title,details,received_at)
-        VALUES(:activity,:audience,:actor,:correlation,'UPLOAD_FAILED','FAILED',:occurred,:occurred,:event,:eventType,NULL,:activityKey,'STORAGE','ERROR','ManagedObject',:resourceId,:resourceTitle,CAST(:details AS jsonb),NOW())
-        ON CONFLICT(audience_id,activity_key) DO NOTHING
-        """;
-    String details = "{\"reason\":\"" + e.reason().replace("\\", "\\\\").replace("\"", "\\\"") + "\"}";
-    return db.sql(q).bind("activity", e.eventId()).bind("audience", e.audienceId())
-        .bind("actor", e.actorId()).bind("correlation", e.correlationId())
-        .bind("occurred", e.occurredAt()).bind("event", e.eventId())
-        .bind("eventType", e.eventType()).bind("activityKey", "event:" + e.eventId())
-        .bind("resourceId", e.aggregateId()).bind("resourceTitle", e.objectKey())
-        .bind("details", details).fetch().rowsUpdated().then();
   }
 
   public Flux<ActivityEntry> feed(String audience, String cursor, int limit) {
@@ -158,9 +116,25 @@ public class ActivityPersistence implements ActivityInbox, WatchActivityReposito
           r.get("catalog_item_id", Long.class), r.get("failure_code", String.class),
           Cursor.of(occurred, eventId), r.get("category", String.class),
           r.get("severity", String.class), r.get("resource_type", String.class),
-          r.get("resource_id", String.class), r.get("resource_title", String.class),
-          r.get("details", String.class));
+           r.get("resource_id", String.class), r.get("resource_title", String.class),
+           json(r.get("details", String.class)));
     }).all();
+  }
+
+  private String context(java.util.Map<String, Object> value) {
+    try {
+      return mapper.writeValueAsString(value);
+    } catch (Exception error) {
+      throw new IllegalArgumentException("Could not serialize activity context", error);
+    }
+  }
+
+  private JsonNode json(String value) {
+    try {
+      return value == null ? null : mapper.readTree(value);
+    } catch (Exception error) {
+      throw new IllegalStateException("Invalid activity context", error);
+    }
   }
 
   private static <T> DatabaseClient.GenericExecuteSpec bind(DatabaseClient.GenericExecuteSpec spec,

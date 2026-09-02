@@ -3,7 +3,7 @@ package com.gcorp.service.app.mvflix_activity.feed.application;
 import static org.mockito.Mockito.*;
 
 import com.gcorp.service.app.mvflix_activity.feed.application.port.ActivityFeedInbox;
-import com.gcorp.service.app.mvflix_activity.feed.application.port.ActivityProjection;
+import com.gcorp.service.app.mvflix_activity.feed.application.port.ActivityFeedRepository;
 import java.time.Instant;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
@@ -14,7 +14,7 @@ class ProjectActivityEventTest {
   @Test
   void completedEventIsNotProjectedAgain() {
     var inbox = mock(ActivityFeedInbox.class);
-    var projection = mock(ActivityProjection.class);
+    var projection = mock(ActivityFeedRepository.class);
     var tx = mock(TransactionalOperator.class);
     when(inbox.recordReceived(any(), any())).thenReturn(Mono.empty());
     when(inbox.isCompleted(any())).thenReturn(Mono.just(true));
@@ -27,7 +27,7 @@ class ProjectActivityEventTest {
 
     projector.handle(event).block();
 
-    verify(projection, never()).project(event);
+    verify(projection, never()).project(any());
     verify(inbox, never()).markCompleted(any());
   }
 }

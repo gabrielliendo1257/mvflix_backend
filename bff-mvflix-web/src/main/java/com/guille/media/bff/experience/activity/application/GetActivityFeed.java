@@ -1,6 +1,7 @@
 package com.guille.media.bff.experience.activity.application;
 
 import com.guille.media.bff.experience.activity.application.port.ActivityProjection;
+import com.fasterxml.jackson.databind.JsonNode;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
@@ -41,7 +42,7 @@ public class GetActivityFeed {
       String resourceType,
       String resourceId,
       String resourceTitle,
-      String details) {}
+       JsonNode context) {}
 
   public record ActivityPage(List<ActivityEntry> items, String nextCursor, boolean hasMore) {}
 }

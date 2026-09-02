@@ -1,13 +1,13 @@
 package com.gcorp.service.app.mvflix_activity.feed.application;
 
-import com.gcorp.service.app.mvflix_activity.feed.application.port.ActivityProjection;
+import com.gcorp.service.app.mvflix_activity.feed.application.port.ActivityFeedRepository;
 import com.gcorp.service.app.mvflix_activity.feed.domain.ActivityEntry;
 import reactor.core.publisher.Flux;
 
 public class GetActivityFeed {
-  private final ActivityProjection projection;
+  private final ActivityFeedRepository projection;
 
-  public GetActivityFeed(ActivityProjection projection) {
+  public GetActivityFeed(ActivityFeedRepository projection) {
     this.projection = projection;
   }
 
