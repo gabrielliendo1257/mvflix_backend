@@ -1,6 +1,7 @@
 server.port: ${PLAYBACK_PORT_INTERNAL:7070}
 spring:
   application.name: mvflix-playback
+  kafka.bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
   r2dbc:
     url: r2dbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:mvflix_playback_db}
     username: ${DB_USERNAME:db_rw}

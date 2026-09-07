@@ -14,10 +14,13 @@ import reactor.core.publisher.Mono;
 public class RecordPlaybackProgress {
   private final PlaybackSessionRepository sessions;
   private final WatchProgressRepository progress;
+  private final PlaybackOutbox outbox;
 
-  public RecordPlaybackProgress(PlaybackSessionRepository sessions, WatchProgressRepository progress) {
+  public RecordPlaybackProgress(PlaybackSessionRepository sessions, WatchProgressRepository progress,
+      PlaybackOutbox outbox) {
     this.sessions = sessions;
     this.progress = progress;
+    this.outbox = outbox;
   }
 
   public Mono<PlaybackSession> execute(PlaybackSessionId sessionId, ViewerId viewerId,
@@ -39,7 +42,13 @@ public class RecordPlaybackProgress {
                   .flatMap(watch -> {
                     watch.update(position, saved.id(), sequence, completed,
                         java.time.Instant.now());
-                    return progress.save(watch).thenReturn(saved);
+                    return progress.save(watch)
+                        .then(outbox.append(completed ? "PlaybackCompleted" : "PlaybackProgressed",
+                            saved.id().value(), java.util.Map.of("viewerId", viewerId.value(),
+                                "catalogItemId", saved.catalogItemId().value(), "assetId", saved.assetId().value(),
+                                "sessionId", saved.id().value(), "sequence", sequence,
+                                "positionSeconds", positionSeconds, "completed", completed)))
+                        .thenReturn(saved);
                   }));
         });
   }

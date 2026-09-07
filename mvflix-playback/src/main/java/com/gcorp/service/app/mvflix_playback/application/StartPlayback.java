@@ -22,13 +22,15 @@ public class StartPlayback {
   private final ContentAccess contentAccess;
   private final PlaybackSessionRepository sessions;
   private final WatchProgressRepository progress;
+  private final PlaybackOutbox outbox;
 
   public StartPlayback(AuthorizedCatalog catalog, ContentAccess contentAccess,
-      PlaybackSessionRepository sessions, WatchProgressRepository progress) {
+      PlaybackSessionRepository sessions, WatchProgressRepository progress, PlaybackOutbox outbox) {
     this.catalog = catalog;
     this.contentAccess = contentAccess;
     this.sessions = sessions;
     this.progress = progress;
+    this.outbox = outbox;
   }
 
   public Mono<PlaybackStarted> execute(CatalogItemId catalogItemId, ViewerId viewerId,
@@ -48,7 +50,10 @@ public class StartPlayback {
                   Long resume = watchProgress.position() == null || watchProgress.completed()
                       ? null : watchProgress.position().seconds();
                   return sessions.save(session)
-                      .map(saved -> new PlaybackStarted(saved, item, source, resume));
+                      .flatMap(saved -> outbox.append("PlaybackStarted", saved.id().value(),
+                          java.util.Map.of("viewerId", viewerId.value(), "catalogItemId", catalogItemId.value(),
+                              "assetId", assetId.value(), "sessionId", saved.id().value()))
+                          .thenReturn(new PlaybackStarted(saved, item, source, resume)));
                 })));
   }
 

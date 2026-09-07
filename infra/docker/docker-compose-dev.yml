@@ -212,6 +212,8 @@ services:
       DB_HOST: postgres
       DB_PORT: 5432
       DB_NAME: mvflix_playback_db
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      MVFLIX_MESSAGING_KAFKA_ENABLED: ${MVFLIX_MESSAGING_KAFKA_ENABLED:-false}
       SERVICES_MOVIES_URL: http://host.docker.internal:4040
       SERVICES_STORAGE_URL: http://host.docker.internal:6060
       SERVICES_AUTHORIZATION_URL: http://host.docker.internal:8081
