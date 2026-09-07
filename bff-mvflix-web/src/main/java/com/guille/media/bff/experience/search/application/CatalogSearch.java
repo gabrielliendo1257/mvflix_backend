@@ -31,7 +31,7 @@ public class CatalogSearch {
 
   private final MoviesWebClient movies;
 
-  public Flux<MovieDto> search(String query) {
+  public Flux<SearchResult> search(String query) {
     String needle = normalize(query);
     if (needle.isBlank()) {
       return Flux.empty();
@@ -40,7 +40,13 @@ public class CatalogSearch {
         .listMovies(CANDIDATE_POOL)
         .filter(movie -> containsIgnoreCase(movie.title(), needle)
             || containsIgnoreCase(movie.originalTitle(), needle))
+        .map(CatalogSearch::toResult)
         .take(MAX_RESULTS);
+  }
+
+  private static SearchResult toResult(MovieDto movie) {
+    return new SearchResult(movie.id(), movie.title(), movie.originalTitle(), movie.year(),
+        movie.posterPath(), movie.kind(), movie.status(), "READY".equals(movie.status()));
   }
 
   private static boolean containsIgnoreCase(String haystack, String needle) {

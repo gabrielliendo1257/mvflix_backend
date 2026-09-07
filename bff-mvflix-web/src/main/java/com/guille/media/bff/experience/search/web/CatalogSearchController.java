@@ -1,7 +1,7 @@
 package com.guille.media.bff.experience.search.web;
 
-import com.guille.media.bff.app.dto.MovieDto;
 import com.guille.media.bff.experience.search.application.CatalogSearch;
+import com.guille.media.bff.experience.search.application.SearchResult;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -31,7 +31,7 @@ public class CatalogSearchController {
 
   @Operation(summary = "Busca por título en el catálogo visible")
   @GetMapping
-  public Flux<MovieDto> search(
+  public Flux<SearchResult> search(
       @RequestParam String q,
       @RequestParam(defaultValue = "20") int limit) {
     int capped = Math.max(1, Math.min(limit, 20));

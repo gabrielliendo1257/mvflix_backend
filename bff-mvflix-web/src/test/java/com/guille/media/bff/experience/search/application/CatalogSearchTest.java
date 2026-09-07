@@ -41,7 +41,8 @@ class CatalogSearchTest {
             movie(3L, "Predator", null)));
 
     StepVerifier.create(this.search.search("ALIE"))
-        .expectNextCount(2)
+        .assertNext(result -> assertThat(result.title()).isEqualTo("Alien"))
+        .expectNextCount(1)
         .verifyComplete();
   }
 
