@@ -3,7 +3,7 @@ WORKDIR /workspace
 COPY .mvn .mvn
 COPY mvnw pom.xml ./
 COPY . .
-RUN --mount=type=cache,target=/root/.m2 ./mvnw -pl mvflix-activity -am package -Dmaven.test.skip=true
+RUN --mount=type=cache,target=/root/.m2 mvn -pl mvflix-activity -am package -Dmaven.test.skip=true
 FROM eclipse-temurin:21-jre-jammy
 RUN apt-get update && apt-get install --no-install-recommends -y curl && rm -rf /var/lib/apt/lists/* && useradd --system --create-home --uid 10001 app
 WORKDIR /app
