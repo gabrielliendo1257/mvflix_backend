@@ -15,7 +15,7 @@ management:
   endpoints.web.exposure.include: health,info,metrics,prometheus
   endpoint.health.probes.enabled: true
   server.port: ${MANAGEMENT_SERVER_PORT:10070}
-security.oauth2.jwk-set-uri: ${SECURITY_OAUTH2_JWK_SET_URI:http://localhost:8081/oauth2/jwks}
+spring.security.oauth2.resourceserver.jwt.jwk-set-uri: ${SECURITY_OAUTH2_JWK_SET_URI:http://localhost:8081/oauth2/jwks}
 services:
   movies.url: ${SERVICES_MOVIES_URL:http://localhost:4040}
   storage.url: ${SERVICES_STORAGE_URL:http://localhost:6060}
