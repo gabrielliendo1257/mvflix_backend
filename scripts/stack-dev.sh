@@ -40,6 +40,7 @@ USERS_PORT=8080
 STORAGE_PORT=6060
 MOVIES_PORT=4040
 MEDIA_INGESTION_PORT=7080
+PLAYBACK_PORT=7071
 BFF_PORT=9091
 DB_TARGET_HOST="${DB_HOST:-127.0.0.1}"
 DB_TARGET_PORT="${DB_PORT:-5432}"
@@ -55,6 +56,7 @@ declare -A SERVICES=(
   [mvflix-storage]=$STORAGE_PORT
   [mvflix-movies]=$MOVIES_PORT
   [mvflix-media-ingestion]=$MEDIA_INGESTION_PORT
+  [mvflix-playback]=$PLAYBACK_PORT
   [bff-mvflix-web]=$BFF_PORT
 )
 
@@ -132,8 +134,10 @@ start_one() {
   local extra_args=()
   if [ "${name}" = "mvflix-media-ingestion" ]; then
     extra_args+=("-Dspring-boot.run.jvmArguments=-DMEDIA_INGESTION_PORT_INTERNAL=${MEDIA_INGESTION_PORT} -DMVFLIX_INTERNAL_TOKEN_URI=http://127.0.0.1:${AUTH_PORT}/oauth2/token -DSECURITY_OAUTH2_JWK_SET_URI=http://127.0.0.1:${AUTH_PORT}/oauth2/jwks")
+  elif [ "${name}" = "mvflix-playback" ]; then
+    extra_args+=("-Dspring-boot.run.jvmArguments=-DPLAYBACK_PORT_INTERNAL=${PLAYBACK_PORT} -DSERVICES_MOVIES_URL=http://127.0.0.1:${MOVIES_PORT} -DSERVICES_STORAGE_URL=http://127.0.0.1:${STORAGE_PORT} -DSERVICES_AUTHORIZATION_URL=http://127.0.0.1:${AUTH_PORT} -DSECURITY_OAUTH2_JWK_SET_URI=http://127.0.0.1:${AUTH_PORT}/oauth2/jwks -DKAFKA_BOOTSTRAP_SERVERS=${KAFKA_BOOTSTRAP_SERVERS:-127.0.0.1:9094}")
   elif [ "${name}" = "bff-mvflix-web" ]; then
-    extra_args+=("-Dspring-boot.run.jvmArguments=-DMEDIA_INGESTION_URL=http://127.0.0.1:${MEDIA_INGESTION_PORT} -DMEDIA_INGESTION_ENABLED=true")
+    extra_args+=("-Dspring-boot.run.jvmArguments=-DMEDIA_INGESTION_URL=http://127.0.0.1:${MEDIA_INGESTION_PORT} -DMEDIA_INGESTION_ENABLED=true -DPLAYBACK_URL=http://127.0.0.1:${PLAYBACK_PORT}")
   fi
   TMDB_API_TOKEN="${TMDB_API_TOKEN:-}" nohup "${MVN_CMD}" -q -pl "${name}" spring-boot:run \
     "${extra_args[@]}" \
@@ -188,15 +192,17 @@ start() {
   start_one mvflix-authorization
   wait_port "$AUTH_PORT" mvflix-authorization
 
-  echo "== Arrancando users, storage, movies y media-ingestion en paralelo =="
+  echo "== Arrancando users, storage, movies, media-ingestion y playback en paralelo =="
   start_one mvflix-users
   start_one mvflix-storage
   start_one mvflix-movies
   start_one mvflix-media-ingestion
+  start_one mvflix-playback
   wait_port "$USERS_PORT" mvflix-users
   wait_port "$STORAGE_PORT" mvflix-storage
   wait_port "$MOVIES_PORT" mvflix-movies
   wait_port "$MEDIA_INGESTION_PORT" mvflix-media-ingestion
+  wait_port "$PLAYBACK_PORT" mvflix-playback
 
   echo "== Arrancando BFF (requiere auth arriba) =="
   start_one bff-mvflix-web
@@ -209,6 +215,7 @@ start() {
   echo "  storage http://127.0.0.1:${STORAGE_PORT}"
   echo "  movies  http://127.0.0.1:${MOVIES_PORT}"
   echo "  media-ingestion http://127.0.0.1:${MEDIA_INGESTION_PORT}"
+  echo "  playback http://127.0.0.1:${PLAYBACK_PORT}"
   echo "  bff     http://127.0.0.1:${BFF_PORT}"
   echo "Dev token: curl -s -X POST http://127.0.0.1:${AUTH_PORT}/oauth2/dev-token"
   echo "           -H 'Content-Type: application/json' -d '{\"username\":\"Javier\",\"password\":\"JavierPassword\"}'"
@@ -218,6 +225,7 @@ stop() {
   echo "== Deteniendo stack dev =="
   stop_one bff-mvflix-web
   stop_one mvflix-media-ingestion
+  stop_one mvflix-playback
   stop_one mvflix-users
   stop_one mvflix-storage
   stop_one mvflix-movies
@@ -236,7 +244,7 @@ status() {
   else
     echo "  minio: DOWN (${MINIO_TARGET_URL})"
   fi
-  for name in mvflix-authorization mvflix-users mvflix-storage mvflix-movies mvflix-media-ingestion bff-mvflix-web; do
+  for name in mvflix-authorization mvflix-users mvflix-storage mvflix-movies mvflix-media-ingestion mvflix-playback bff-mvflix-web; do
     local port=${SERVICES[$name]}
     local pid
     if http_responding "${port}"; then
