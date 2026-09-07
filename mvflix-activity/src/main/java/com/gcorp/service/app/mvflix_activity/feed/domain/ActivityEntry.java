@@ -1,8 +1,8 @@
 package com.gcorp.service.app.mvflix_activity.feed.domain;
 
 import java.time.Instant;
+import java.util.Map;
 import java.util.UUID;
-import com.fasterxml.jackson.databind.JsonNode;
 
 public record ActivityEntry(
     UUID activityId,
@@ -20,4 +20,4 @@ public record ActivityEntry(
     String resourceType,
     String resourceId,
     String resourceTitle,
-    JsonNode context) {}
+    Map<String, Object> context) {}

@@ -1,9 +1,9 @@
 package com.guille.media.bff.experience.activity.application;
 
 import com.guille.media.bff.experience.activity.application.port.ActivityProjection;
-import com.fasterxml.jackson.databind.JsonNode;
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -42,7 +42,7 @@ public class GetActivityFeed {
       String resourceType,
       String resourceId,
       String resourceTitle,
-       JsonNode context) {}
+       Map<String, Object> context) {}
 
   public record ActivityPage(List<ActivityEntry> items, String nextCursor, boolean hasMore) {}
 }

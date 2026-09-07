@@ -135,8 +135,8 @@ class ActivityFeedIntegrationTest {
       assertThat(activity.resourceType()).isEqualTo("CatalogItem");
       assertThat(activity.resourceId()).isEqualTo("42");
       assertThat(activity.resourceTitle()).isEqualTo("Interstellar");
-       assertThat(activity.context().path("previousSharedCount").asInt()).isEqualTo(0);
-       assertThat(activity.context().path("sharedCount").asInt()).isEqualTo(3);
+       assertThat(activity.context()).containsEntry("previousSharedCount", 0)
+           .containsEntry("sharedCount", 3);
     });
   }
 
@@ -170,7 +170,7 @@ class ActivityFeedIntegrationTest {
            assertThat(activity.type()).isEqualTo("UPLOAD_FAILED");
            assertThat(activity.severity()).isEqualTo("ERROR");
            assertThat(activity.category()).isEqualTo("STORAGE");
-           assertThat(activity.context().path("reason").asText())
+           assertThat(activity.context().get("reason"))
                .isEqualTo(reason);
          });
   }

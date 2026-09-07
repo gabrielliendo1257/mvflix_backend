@@ -11,9 +11,9 @@ import com.gcorp.service.app.mvflix_activity.feed.domain.ActivityEntry;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.Base64;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.UUID;
+import java.util.Map;
 import org.springframework.r2dbc.core.DatabaseClient;
 import org.springframework.stereotype.Repository;
 import reactor.core.publisher.Flux;
@@ -129,9 +129,9 @@ public class ActivityPersistence implements ActivityInbox, WatchActivityReposito
     }
   }
 
-  private JsonNode json(String value) {
+  private Map<String, Object> json(String value) {
     try {
-      return value == null ? null : mapper.readTree(value);
+      return value == null ? null : mapper.readValue(value, Map.class);
     } catch (Exception error) {
       throw new IllegalStateException("Invalid activity context", error);
     }

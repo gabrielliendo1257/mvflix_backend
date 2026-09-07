@@ -1,12 +1,12 @@
 package com.guille.media.bff.experience.activity.infrastructure.http;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.guille.media.bff.experience.activity.application.GetActivityFeed.ActivityEntry;
 import com.guille.media.bff.experience.activity.application.GetActivityFeed.ActivityPage;
 import com.guille.media.bff.experience.activity.application.port.ActivityProjection;
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
@@ -66,5 +66,5 @@ public class ActivityWebClientAdapter implements ActivityProjection {
       String resourceType,
       String resourceId,
       String resourceTitle,
-       JsonNode context) {}
+       Map<String, Object> context) {}
 }
