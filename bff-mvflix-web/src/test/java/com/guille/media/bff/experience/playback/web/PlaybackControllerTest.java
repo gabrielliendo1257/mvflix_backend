@@ -13,8 +13,8 @@ import com.guille.media.bff.experience.playback.application.PlaybackMediaNotFoun
 import com.guille.media.bff.experience.playback.application.PlaybackSourceUnavailableException;
 import com.guille.media.bff.experience.playback.application.StartPlayback;
 import com.guille.media.bff.experience.playback.application.port.LocalPlaybackAccess;
-import com.guille.media.bff.experience.playback.application.port.ManagedContentAccess;
 import com.guille.media.bff.experience.playback.application.port.PlaybackCatalog;
+import com.guille.media.bff.experience.playback.application.port.PlaybackService;
 import com.guille.media.bff.experience.playback.infrastructure.http.HmacLocalPlaybackAccess;
 import com.guille.media.bff.presenter.api.ApiExceptionHandler;
 
@@ -40,16 +40,16 @@ class PlaybackControllerTest {
       new HmacLocalPlaybackAccess("test-secret", Duration.ofHours(2));
 
   private WebTestClient client;
-  private ManagedContentAccess managedAccess;
+  private PlaybackService playbackService;
   private PlaybackCatalog catalog;
 
   @BeforeEach
   void setUp() {
     this.catalog = mock(PlaybackCatalog.class);
-    this.managedAccess = mock(ManagedContentAccess.class);
+    this.playbackService = mock(PlaybackService.class);
     when(this.session.currentSubject()).thenReturn(Mono.just("pepe"));
     var controller = new PlaybackController(
-        new StartPlayback(this.catalog, this.managedAccess, this.localAccess),
+        new StartPlayback(this.catalog, this.playbackService, this.localAccess),
         this.localAccess,
         this.storage,
         this.session);
@@ -72,9 +72,10 @@ class PlaybackControllerTest {
   void startManagedReturnsExperienceContractWithoutStorageDetails() {
     this.catalogReturns("READY", 77L, true);
     Instant expiresAt = Instant.now().plus(Duration.ofHours(3));
-    when(this.managedAccess.openDirect(77L)).thenReturn(Mono.just(new DirectSource(
-        "https://minio.dev:9000/bucket/key?X-Amz-Signature=abc", expiresAt,
-        "video/x-matroska")));
+    when(this.playbackService.start(42L)).thenReturn(Mono.just(new PlaybackService.StartedSession(
+        "123e4567-e89b-12d3-a456-426614174000",
+        new DirectSource("https://minio.dev:9000/bucket/key?X-Amz-Signature=abc", expiresAt,
+            "video/x-matroska"), null)));
 
     this.client.post()
         .uri("/web/playback/42/session")
@@ -146,7 +147,7 @@ class PlaybackControllerTest {
   @Test
   void storageFailureMapsTo503() {
     this.catalogReturns("READY", 77L, true);
-    when(this.managedAccess.openDirect(77L)).thenReturn(Mono.error(
+    when(this.playbackService.start(42L)).thenReturn(Mono.error(
         new PlaybackSourceUnavailableException("storage no disponible",
             new IllegalStateException("down"))));
 

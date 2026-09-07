@@ -1,0 +1,47 @@
+package com.guille.media.bff.experience.playback.infrastructure.http;
+
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.guille.media.bff.experience.playback.application.DirectSource;
+import com.guille.media.bff.experience.playback.application.PlaybackSourceUnavailableException;
+import com.guille.media.bff.experience.playback.application.port.PlaybackService;
+import java.time.Instant;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.stereotype.Component;
+import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.reactive.function.client.WebClientRequestException;
+import org.springframework.web.reactive.function.client.WebClientResponseException;
+import reactor.core.publisher.Mono;
+
+@Component
+public class PlaybackServiceAdapter implements PlaybackService {
+  private final WebClient playbackServiceWebClient;
+
+  public PlaybackServiceAdapter(@Qualifier("playbackServiceWebClient") WebClient playbackServiceWebClient) {
+    this.playbackServiceWebClient = playbackServiceWebClient;
+  }
+
+  @Override
+  public Mono<StartedSession> start(long mediaId) {
+    return playbackServiceWebClient.post()
+        .uri("/api/v1/playback/sessions/{mediaId}", mediaId)
+        .retrieve()
+        .bodyToMono(PlaybackResponse.class)
+        .map(response -> new StartedSession(
+            response.sessionId(),
+            new DirectSource(response.source().url(), response.source().expiresAt(),
+                response.source().mimeType()),
+            response.resumePositionSeconds()))
+        .onErrorMap(WebClientResponseException.class,
+            error -> new PlaybackSourceUnavailableException(
+                "Playback no pudo iniciar la sesion (" + error.getStatusCode().value() + ")", error))
+        .onErrorMap(WebClientRequestException.class,
+            error -> new PlaybackSourceUnavailableException("Playback no alcanzable", error));
+  }
+
+  record PlaybackResponse(String sessionId, Long resumePositionSeconds, Source source) {}
+
+  record Source(
+      @JsonProperty("url") String url,
+      @JsonProperty("expiresAt") Instant expiresAt,
+      @JsonProperty("mimeType") String mimeType) {}
+}

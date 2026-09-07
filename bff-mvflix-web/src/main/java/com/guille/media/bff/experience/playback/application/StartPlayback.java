@@ -1,8 +1,8 @@
 package com.guille.media.bff.experience.playback.application;
 
 import com.guille.media.bff.experience.playback.application.port.LocalPlaybackAccess;
-import com.guille.media.bff.experience.playback.application.port.ManagedContentAccess;
 import com.guille.media.bff.experience.playback.application.port.PlaybackCatalog;
+import com.guille.media.bff.experience.playback.application.port.PlaybackService;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 
 import reactor.core.publisher.Mono;
 
+import java.time.Duration;
 import java.util.UUID;
 
 /**
@@ -33,15 +34,15 @@ public class StartPlayback {
   static final String CODE_NO_PLAYABLE_ASSET = "NO_PLAYABLE_ASSET";
 
   private final PlaybackCatalog catalog;
-  private final ManagedContentAccess managedAccess;
+  private final PlaybackService playbackService;
   private final LocalPlaybackAccess localAccess;
 
   public StartPlayback(
       PlaybackCatalog catalog,
-      ManagedContentAccess managedAccess,
+      PlaybackService playbackService,
       LocalPlaybackAccess localAccess) {
     this.catalog = catalog;
-    this.managedAccess = managedAccess;
+    this.playbackService = playbackService;
     this.localAccess = localAccess;
   }
 
@@ -49,8 +50,8 @@ public class StartPlayback {
     return this.catalog
         .loadVisibleMedia(mediaId)
         .flatMap(media -> this.requirePlayable(mediaId, media))
-        .flatMap(resolved -> this.openSource(subject, resolved)
-            .map(source -> this.compose(resolved, source)));
+        .flatMap(resolved -> this.openSource(subject, mediaId, resolved)
+            .map(opened -> this.compose(resolved, opened)));
   }
 
   /**
@@ -72,33 +73,39 @@ public class StartPlayback {
   }
 
   /** MANAGED: presigned directo al object store. LOCAL: capability del proxy del BFF. */
-  private Mono<DirectSource> openSource(String subject, Resolved playable) {
+  private Mono<OpenedSource> openSource(String subject, long mediaId, Resolved playable) {
     var movie = playable.movie();
     if (movie.objectId() != null) {
-      return this.managedAccess.openDirect(movie.objectId());
+      return this.playbackService.start(mediaId)
+          .map(started -> new OpenedSource(
+              UUID.fromString(started.sessionId()), started.source(), started.resumePositionSeconds() == null
+                  ? null : Duration.ofSeconds(started.resumePositionSeconds())));
     }
     var asset = playable.asset();
     return this.localAccess
         .mint(new LocalPlaybackAccess.LocalMintCommand(
             asset.mediaId(), asset.assetId(), asset.libraryId(),
             asset.relativePath(), subject))
-        .map(minted -> new DirectSource(
-            "/web/playback/assets/" + asset.assetId() + "/stream?token=" + minted.rawToken(),
-            minted.expiresAt(),
-            asset.mimeType()));
+        .map(minted -> new OpenedSource(
+            UUID.randomUUID(),
+            new DirectSource(
+                "/web/playback/assets/" + asset.assetId() + "/stream?token=" + minted.rawToken(),
+                minted.expiresAt(),
+                asset.mimeType()),
+            null));
   }
 
-  private PlaybackSession compose(Resolved resolved, DirectSource source) {
+  private PlaybackSession compose(Resolved resolved, OpenedSource opened) {
     var movie = resolved.movie();
     var session = new PlaybackSession(
-        UUID.randomUUID(),
+        opened.sessionId(),
         movie.id(),
         movie.title(),
         movie.posterPath(),
         movie.duration(),
         PlaybackStrategy.DIRECT,
-        source,
-        null);
+        opened.source(),
+        opened.resumePosition());
     // Sin URLs firmadas ni tokens en logs: solo identificadores de correlación.
     log.info("playback session started: sessionId={} media={} storage={} strategy=DIRECT",
         session.sessionId(), movie.id(),
@@ -107,4 +114,6 @@ public class StartPlayback {
   }
 
   private record Resolved(PlaybackCatalog.PlaybackMovie movie, PlayableAsset asset) {}
+
+  private record OpenedSource(UUID sessionId, DirectSource source, Duration resumePosition) {}
 }

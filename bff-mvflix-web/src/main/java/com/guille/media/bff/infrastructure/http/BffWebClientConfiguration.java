@@ -212,6 +212,20 @@ public class BffWebClientConfiguration {
   }
 
   @Bean
+  WebClient playbackServiceWebClient(
+      ServerOAuth2AuthorizedClientExchangeFilterFunction oauth2AuthorizedClientFilter,
+      ObjectProvider<ExchangeFilterFunction> devOutboundAuthFilter,
+      ObjectProvider<ExchangeFilterFunction> oauth2AccessTokenRefreshFilter,
+      @Value("${services.playback.url}") String playbackUrl,
+      @Value("${bff.webclient.connect-timeout-ms:2000}") int connectTimeoutMs,
+      @Value("${bff.webclient.response-timeout-ms:10000}") long responseTimeoutMs) {
+    return this.build(playbackUrl,
+        this.outboundAuthFilter(oauth2AuthorizedClientFilter, devOutboundAuthFilter,
+            oauth2AccessTokenRefreshFilter),
+        connectTimeoutMs, responseTimeoutMs);
+  }
+
+  @Bean
   WebClient moviesWebClient(
       ServerOAuth2AuthorizedClientExchangeFilterFunction oauth2AuthorizedClientFilter,
       ObjectProvider<ExchangeFilterFunction> devOutboundAuthFilter,

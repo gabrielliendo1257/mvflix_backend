@@ -5,8 +5,8 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verifyNoInteractions;
 
 import com.guille.media.bff.experience.playback.application.port.LocalPlaybackAccess;
-import com.guille.media.bff.experience.playback.application.port.ManagedContentAccess;
 import com.guille.media.bff.experience.playback.application.port.PlaybackCatalog;
+import com.guille.media.bff.experience.playback.application.port.PlaybackService;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -20,14 +20,14 @@ import java.time.Instant;
 class StartPlaybackTest {
 
   private final PlaybackCatalog catalog = mock(PlaybackCatalog.class);
-  private final ManagedContentAccess managedAccess = mock(ManagedContentAccess.class);
+  private final PlaybackService playbackService = mock(PlaybackService.class);
   private final LocalPlaybackAccess localAccess = mock(LocalPlaybackAccess.class);
   private final StartPlayback useCase =
-      new StartPlayback(this.catalog, this.managedAccess, this.localAccess);
+      new StartPlayback(this.catalog, this.playbackService, this.localAccess);
 
   @BeforeEach
   void resetStubs() {
-    org.mockito.Mockito.reset(this.catalog, this.managedAccess, this.localAccess);
+    org.mockito.Mockito.reset(this.catalog, this.playbackService, this.localAccess);
   }
 
   private static PlaybackCatalog.PlaybackMedia media(String status, Long objectId,
@@ -48,9 +48,11 @@ class StartPlaybackTest {
     // Los objetos subidos no generan MediaAsset: MANAGED se resuelve por objectId.
     org.mockito.Mockito.when(this.catalog.loadVisibleMedia(42L))
         .thenReturn(Mono.just(media("READY", 77L, null)));
-    org.mockito.Mockito.when(this.managedAccess.openDirect(77L))
-        .thenReturn(Mono.just(new DirectSource(
-            "https://minio.dev:9000/bucket/key?X-Amz-Signature=abc", expiresAt, null)));
+    org.mockito.Mockito.when(this.playbackService.start(42L))
+        .thenReturn(Mono.just(new PlaybackService.StartedSession(
+            "123e4567-e89b-12d3-a456-426614174000",
+            new DirectSource("https://minio.dev:9000/bucket/key?X-Amz-Signature=abc", expiresAt, null),
+            null)));
     verifyNoInteractions(this.localAccess);
 
     StepVerifier.create(this.useCase.handle("pepe", 42L))
@@ -65,16 +67,18 @@ class StartPlaybackTest {
   }
 
   @Test
-  void currentBffFlowCreatesStatelessSessionIds() {
+  void managedPlaybackPreservesServiceSessionId() {
     Instant expiresAt = Instant.now().plus(Duration.ofHours(3));
     org.mockito.Mockito.when(this.catalog.loadVisibleMedia(42L))
         .thenReturn(Mono.just(media("READY", 77L, null)));
-    org.mockito.Mockito.when(this.managedAccess.openDirect(77L))
-        .thenReturn(Mono.just(new DirectSource("https://minio/key", expiresAt, null)));
+    org.mockito.Mockito.when(this.playbackService.start(42L))
+        .thenReturn(Mono.just(new PlaybackService.StartedSession(
+            "123e4567-e89b-12d3-a456-426614174000",
+            new DirectSource("https://minio/key", expiresAt, null), null)));
 
     StepVerifier.create(this.useCase.handle("pepe", 42L).zipWith(this.useCase.handle("pepe", 42L)))
-        .assertNext(pair -> assertThat(pair.getT1().sessionId())
-            .isNotEqualTo(pair.getT2().sessionId()))
+         .assertNext(pair -> assertThat(pair.getT1().sessionId())
+             .isEqualTo(pair.getT2().sessionId()))
         .verifyComplete();
   }
 
@@ -87,7 +91,7 @@ class StartPlaybackTest {
             new LocalPlaybackAccess.LocalMintCommand(
                 42L, 5L, 3L, "Movies/edward.mkv", "pepe")))
         .thenReturn(Mono.just(new LocalPlaybackAccess.MintedAccess("jwt-token", expiresAt)));
-    verifyNoInteractions(this.managedAccess);
+    verifyNoInteractions(this.playbackService);
 
     StepVerifier.create(this.useCase.handle("pepe", 42L))
         .assertNext(session -> {
@@ -107,7 +111,7 @@ class StartPlaybackTest {
     StepVerifier.create(this.useCase.handle("pepe", 42L))
         .expectError(PlaybackForbiddenException.class)
         .verify();
-    verifyNoInteractions(this.managedAccess, this.localAccess);
+    verifyNoInteractions(this.playbackService, this.localAccess);
   }
 
   @Test
@@ -132,7 +136,7 @@ class StartPlaybackTest {
               .isEqualTo(StartPlayback.CODE_MEDIA_NOT_READY);
         })
         .verify();
-    verifyNoInteractions(this.managedAccess, this.localAccess);
+    verifyNoInteractions(this.playbackService, this.localAccess);
   }
 
   @Test
@@ -153,7 +157,7 @@ class StartPlaybackTest {
   void storageFailureSurfacesAsSourceUnavailable() {
     org.mockito.Mockito.when(this.catalog.loadVisibleMedia(42L))
         .thenReturn(Mono.just(media("READY", 77L, null)));
-    org.mockito.Mockito.when(this.managedAccess.openDirect(77L))
+    org.mockito.Mockito.when(this.playbackService.start(42L))
         .thenReturn(Mono.error(new PlaybackSourceUnavailableException(
             "storage no disponible para playback",
             new IllegalStateException("connection refused"))));
