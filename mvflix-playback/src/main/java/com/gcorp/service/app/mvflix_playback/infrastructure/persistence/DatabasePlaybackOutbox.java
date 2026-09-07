@@ -26,7 +26,8 @@ public class DatabasePlaybackOutbox implements PlaybackOutbox {
     try {
       var eventId = UUID.randomUUID();
       var envelope = Map.of("eventId", eventId, "eventType", type, "eventVersion", 1,
-          "occurredAt", Instant.now(), "producer", "mvflix-playback", "aggregateId", aggregateId,
+          "occurredAt", Instant.now(), "producer", "mvflix-playback",
+          "aggregate", Map.of("type", "PlaybackSession", "id", aggregateId),
           "payload", payload);
       return database.sql("INSERT INTO playback_outbox(event_id,event_type,aggregate_id,occurred_at,payload) VALUES(:id,:type,:aggregate,:occurred,CAST(:payload AS jsonb))")
           .bind("id", eventId).bind("type", type).bind("aggregate", aggregateId)
