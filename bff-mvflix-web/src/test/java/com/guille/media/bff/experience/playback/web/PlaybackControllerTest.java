@@ -52,7 +52,8 @@ class PlaybackControllerTest {
         new StartPlayback(this.catalog, this.playbackService, this.localAccess),
         this.localAccess,
         this.storage,
-        this.session);
+        this.session,
+        this.playbackService);
     this.client = WebTestClient.bindToController(controller)
         .controllerAdvice(new ApiExceptionHandler())
         .build();

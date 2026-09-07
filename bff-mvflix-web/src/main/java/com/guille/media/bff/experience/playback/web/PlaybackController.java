@@ -5,6 +5,7 @@ import com.guille.media.bff.app.ports.StorageWebClient;
 import com.guille.media.bff.experience.playback.application.LocalStreamTokenException;
 import com.guille.media.bff.experience.playback.application.StartPlayback;
 import com.guille.media.bff.experience.playback.application.port.LocalPlaybackAccess;
+import com.guille.media.bff.experience.playback.application.port.PlaybackService;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -18,6 +19,7 @@ import org.springframework.security.core.context.ReactiveSecurityContextHolder;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -46,17 +48,34 @@ public class PlaybackController {
   private final LocalPlaybackAccess localAccess;
   private final StorageWebClient storage;
   private final WebSessionService session;
+  private final PlaybackService playbackService;
 
   public PlaybackController(
       StartPlayback startPlayback,
       LocalPlaybackAccess localAccess,
       StorageWebClient storage,
-      WebSessionService session) {
+      WebSessionService session,
+      PlaybackService playbackService) {
     this.startPlayback = startPlayback;
     this.localAccess = localAccess;
     this.storage = storage;
     this.session = session;
+    this.playbackService = playbackService;
   }
+
+  @PostMapping(value = "/sessions/{sessionId}/progress", produces = MediaType.APPLICATION_JSON_VALUE)
+  public Mono<ProgressResponse> progress(
+      @PathVariable String sessionId, @RequestBody ProgressRequest request) {
+    return playbackService.progress(sessionId,
+            new PlaybackService.ProgressCommand(request.sequence(), request.positionSeconds(),
+                request.durationSeconds(), request.completed()))
+        .map(result -> new ProgressResponse(result.sequence(), result.positionSeconds(), result.status()));
+  }
+
+  public record ProgressRequest(long sequence, long positionSeconds, Long durationSeconds,
+      boolean completed) {}
+
+  public record ProgressResponse(long sequence, Long positionSeconds, String status) {}
 
   @Operation(summary = "Inicia la reproducción: autoriza, resuelve contenido y compone la sesión")
   @PostMapping(value = "/{mediaId}/session", produces = MediaType.APPLICATION_JSON_VALUE)

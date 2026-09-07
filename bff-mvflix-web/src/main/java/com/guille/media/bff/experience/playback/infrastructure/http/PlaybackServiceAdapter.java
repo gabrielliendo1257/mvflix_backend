@@ -38,7 +38,24 @@ public class PlaybackServiceAdapter implements PlaybackService {
             error -> new PlaybackSourceUnavailableException("Playback no alcanzable", error));
   }
 
+  @Override
+  public Mono<ProgressResult> progress(String sessionId, ProgressCommand command) {
+    return playbackServiceWebClient.post()
+        .uri("/api/v1/playback/sessions/{sessionId}/progress", sessionId)
+        .bodyValue(command)
+        .retrieve()
+        .bodyToMono(ProgressResponse.class)
+        .map(response -> new ProgressResult(response.sequence(), response.positionSeconds(),
+            response.status()))
+        .onErrorMap(WebClientResponseException.class,
+            error -> new PlaybackSourceUnavailableException("Playback no pudo guardar el progreso", error))
+        .onErrorMap(WebClientRequestException.class,
+            error -> new PlaybackSourceUnavailableException("Playback no alcanzable", error));
+  }
+
   record PlaybackResponse(String sessionId, Long resumePositionSeconds, Source source) {}
+
+  record ProgressResponse(long sequence, Long positionSeconds, String status) {}
 
   record Source(
       @JsonProperty("url") String url,
