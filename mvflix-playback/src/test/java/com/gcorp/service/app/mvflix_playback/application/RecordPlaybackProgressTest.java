@@ -19,7 +19,8 @@ import reactor.core.publisher.Mono;
 class RecordPlaybackProgressTest {
   private final PlaybackSessionRepository sessions = mock(PlaybackSessionRepository.class);
   private final WatchProgressRepository progress = mock(WatchProgressRepository.class);
-  private final RecordPlaybackProgress useCase = new RecordPlaybackProgress(sessions, progress);
+  private final PlaybackOutbox outbox = mock(PlaybackOutbox.class);
+  private final RecordPlaybackProgress useCase = new RecordPlaybackProgress(sessions, progress, outbox);
   private final PlaybackSessionId sessionId = new PlaybackSessionId(UUID.randomUUID());
   private final ViewerId viewer = new ViewerId("viewer-1");
 
@@ -31,6 +32,8 @@ class RecordPlaybackProgressTest {
     when(progress.find(viewer, session.catalogItemId())).thenReturn(Mono.empty());
     when(progress.save(org.mockito.ArgumentMatchers.any())).thenAnswer(invocation ->
         Mono.just(invocation.getArgument(0)));
+    when(outbox.append(org.mockito.ArgumentMatchers.anyString(), org.mockito.ArgumentMatchers.any(),
+        org.mockito.ArgumentMatchers.any())).thenReturn(Mono.empty());
 
     var saved = useCase.execute(sessionId, viewer, 1, 42, 100L, false).block();
     assertThat(saved.lastPosition().seconds()).isEqualTo(42);
