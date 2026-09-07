@@ -69,6 +69,8 @@ services:
            mvflix.upload-completed.v1.retry-1 \
            mvflix.upload-completed.v1.retry-2 \
            mvflix.upload-completed.v1.DLT \
+           mvflix.playback-started.v1 \
+           mvflix.playback-completed.v1 \
            mvflix.playback-progressed.v1 \
            mvflix.playback-progressed.v1.retry-0 \
            mvflix.playback-progressed.v1.retry-1 \
