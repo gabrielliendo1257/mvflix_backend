@@ -33,6 +33,7 @@
         <module>mvflix-users</module>
         <module>mvflix-movies</module>
         <module>mvflix-activity</module>
+        <module>mvflix-playback</module>
         <module>mvflix-media-ingestion</module>
         <module>bff-mvflix-web</module>
 	</modules>
