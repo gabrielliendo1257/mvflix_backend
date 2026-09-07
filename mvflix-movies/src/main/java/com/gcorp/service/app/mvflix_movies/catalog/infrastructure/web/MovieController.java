@@ -12,6 +12,7 @@ import com.gcorp.service.app.mvflix_movies.catalog.application.DeletionOutcome;
 import com.gcorp.service.app.mvflix_movies.catalog.application.DiscardDraftUseCase;
 import com.gcorp.service.app.mvflix_movies.catalog.application.EnrichCatalogItemUseCase;
 import com.gcorp.service.app.mvflix_movies.catalog.application.GetCatalogItemUseCase;
+import com.gcorp.service.app.mvflix_movies.catalog.application.GetAuthorizedPlaybackContext;
 import com.gcorp.service.app.mvflix_movies.catalog.application.ListCatalogItemsUseCase;
 import com.gcorp.service.app.mvflix_movies.catalog.application.ManagedObjectIdLookup;
 import com.gcorp.service.app.mvflix_movies.catalog.application.UpdateCatalogItemAccessUseCase;
@@ -84,6 +85,7 @@ public class MovieController {
   private final DeleteCatalogItemUseCase deleteMovieUseCase;
   private final EnrichCatalogItemUseCase enrichMovieUseCase;
   private final DiscardDraftUseCase discardDraftUseCase;
+  private final GetAuthorizedPlaybackContext authorizedPlaybackContext;
   private final MovieApiMapper mapper;
   private final ManagedObjectIdLookup objectIdLookup;
 
@@ -104,7 +106,8 @@ public class MovieController {
       EnrichCatalogItemUseCase enrichMovieUseCase,
       MovieApiMapper mapper,
       ManagedObjectIdLookup objectIdLookup,
-      DiscardDraftUseCase discardDraftUseCase) {
+       DiscardDraftUseCase discardDraftUseCase,
+       GetAuthorizedPlaybackContext authorizedPlaybackContext) {
     this.createMovieUseCase = createMovieUseCase;
     this.createIdentifiedDraftUseCase = createIdentifiedDraftUseCase;
     this.getMovieUseCase = getMovieUseCase;
@@ -121,6 +124,7 @@ public class MovieController {
     this.mapper = mapper;
     this.objectIdLookup = objectIdLookup;
     this.discardDraftUseCase = discardDraftUseCase;
+    this.authorizedPlaybackContext = authorizedPlaybackContext;
   }
 
   public MovieController(
@@ -153,6 +157,7 @@ public class MovieController {
         deleteMovieUseCase,
         enrichMovieUseCase,
         mapper,
+        null,
         null,
         null);
   }
@@ -212,6 +217,12 @@ public class MovieController {
   @GetMapping("/{id}")
   public Mono<MovieResponse> findById(@PathVariable Long id) {
     return this.getMovieUseCase.execute(CatalogItemId.of(id)).flatMap(this::response);
+  }
+
+  @GetMapping("/{id}/playback-context")
+  public Mono<com.gcorp.service.app.mvflix_movies.catalog.domain.item.PlayableCatalogItem>
+      authorizedPlaybackContext(@PathVariable Long id) {
+    return this.authorizedPlaybackContext.execute(CatalogItemId.of(id));
   }
 
   @PostMapping("/{id}/visibility")

@@ -23,6 +23,7 @@ public interface CatalogItemRepository {
 
     Mono<CatalogItem> findById(CatalogItemId id);
 
+
     /**
      * Catalogo visible para el usuario (PUBLIC + propias + compartidas).
      * Traducción SQL de {@link CatalogItem#isVisibleTo(String)}: la regla de negocio

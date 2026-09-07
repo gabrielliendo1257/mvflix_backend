@@ -4,6 +4,8 @@ import com.gcorp.service.app.mvflix_movies.catalog.domain.movie.EnrichmentStatus
 import com.gcorp.service.app.mvflix_movies.catalog.domain.item.CatalogItem;
 import com.gcorp.service.app.mvflix_movies.catalog.domain.item.CatalogItemId;
 import com.gcorp.service.app.mvflix_movies.catalog.domain.item.CatalogItemRepository;
+import com.gcorp.service.app.mvflix_movies.catalog.domain.item.PlayableCatalogItem;
+import com.gcorp.service.app.mvflix_movies.catalog.application.port.AuthorizedPlaybackCatalog;
 import com.gcorp.service.app.mvflix_movies.catalog.domain.access.Visibility;
 import com.gcorp.service.app.mvflix_movies.catalog.application.port.IdentifiedDraftIdempotencyStore;
 
@@ -18,7 +20,8 @@ import java.time.Duration;
 import java.util.List;
 
 @Repository
-public class SpringDataCatalogItemRepository implements CatalogItemRepository, IdentifiedDraftIdempotencyStore {
+public class SpringDataCatalogItemRepository implements CatalogItemRepository, IdentifiedDraftIdempotencyStore,
+        AuthorizedPlaybackCatalog {
 
     private static final String MEDIA_OBJECT_ID =
             """
@@ -165,6 +168,53 @@ public class SpringDataCatalogItemRepository implements CatalogItemRepository, I
                 .map(this::toRow)
                 .one()
                 .map(this.rowMapper::toDomain);
+    }
+
+    @Override
+    public Mono<PlayableCatalogItem> findAuthorizedPlaybackContext(CatalogItemId id, String viewer) {
+        return this.databaseClient.sql("""
+                SELECT m.id, m.title, managed.object_id,
+                       a.id AS asset_id, a.library_id, a.relative_path, a.size, a.mime_type
+                FROM catalog_items m
+                LEFT JOIN LATERAL (
+                    SELECT mm.object_id
+                    FROM media mm
+                    WHERE mm.catalog_item_id = m.id
+                    ORDER BY mm.id
+                    LIMIT 1
+                ) managed ON TRUE
+                LEFT JOIN LATERAL (
+                    SELECT ma.id, ma.library_id, ma.relative_path, ma.size, ma.mime_type
+                    FROM media_assets ma
+                    WHERE ma.catalog_item_id = m.id
+                      AND ma.status = 'IDENTIFIED'
+                      AND ma.present = TRUE
+                    ORDER BY ma.id
+                    LIMIT 1
+                ) a ON TRUE
+                WHERE m.id = :id
+                  AND m.status = 'READY'
+                  AND (m.visibility = 'PUBLIC' OR m.owner_username = :viewer
+                       OR (m.visibility = 'SHARED' AND EXISTS (
+                           SELECT 1 FROM movie_shares ms
+                           WHERE ms.catalog_item_id = m.id AND ms.shared_with = :viewer)))
+                  AND ((managed.object_id IS NOT NULL AND a.id IS NULL)
+                       OR (managed.object_id IS NULL AND a.id IS NOT NULL))
+                """)
+            .bind("id", id.value())
+            .bind("viewer", viewer)
+            .map((row, metadata) -> new PlayableCatalogItem(
+                CatalogItemId.of(row.get("id", Long.class)),
+                row.get("title", String.class),
+                null,
+                null,
+                row.get("object_id", Long.class),
+                row.get("asset_id", Long.class) == null ? null
+                    : new PlayableCatalogItem.PlayableAsset(
+                        row.get("asset_id", Long.class), row.get("library_id", Long.class),
+                        row.get("relative_path", String.class), row.get("size", Long.class),
+                        row.get("mime_type", String.class))))
+            .one();
     }
 
     @Override
