@@ -49,6 +49,11 @@ class PlaybackSessionTest {
         .isInstanceOf(IllegalArgumentException.class);
   }
 
+  @Test
+  void acceptsPositionWithoutKnownDuration() {
+    assertThat(new PlaybackPosition(1250, null).durationSeconds()).isNull();
+  }
+
   private PlaybackSession session() {
     return PlaybackSession.start(new PlaybackSessionId(java.util.UUID.randomUUID()),
         new ViewerId("viewer-1"), new CatalogItemId(42), new LibraryAssetReference(7), startedAt,

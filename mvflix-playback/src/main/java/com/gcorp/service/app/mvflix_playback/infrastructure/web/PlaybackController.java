@@ -7,6 +7,8 @@ import com.gcorp.service.app.mvflix_playback.domain.PlaybackSessionId;
 import com.gcorp.service.app.mvflix_playback.domain.ViewerId;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ProblemDetail;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -16,6 +18,7 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.server.ServerWebInputException;
 import reactor.core.publisher.Mono;
 
 @RestController
@@ -50,8 +53,34 @@ public class PlaybackController {
   }
 
   @org.springframework.web.bind.annotation.ExceptionHandler(OptimisticLockingFailureException.class)
-  public ResponseEntity<Void> optimisticLockConflict() {
-    return ResponseEntity.status(org.springframework.http.HttpStatus.CONFLICT).build();
+  public ResponseEntity<ProblemDetail> optimisticLockConflict() {
+    return problem(HttpStatus.CONFLICT, "PLAYBACK_CONFLICT", "Playback progress was modified concurrently");
+  }
+
+  @org.springframework.web.bind.annotation.ExceptionHandler(RecordPlaybackProgress.PlaybackSessionForbiddenException.class)
+  public ResponseEntity<ProblemDetail> forbidden(RecordPlaybackProgress.PlaybackSessionForbiddenException error) {
+    return problem(HttpStatus.FORBIDDEN, "PLAYBACK_FORBIDDEN", error.getMessage());
+  }
+
+  @org.springframework.web.bind.annotation.ExceptionHandler(RecordPlaybackProgress.PlaybackSessionNotFoundException.class)
+  public ResponseEntity<ProblemDetail> notFound(RecordPlaybackProgress.PlaybackSessionNotFoundException error) {
+    return problem(HttpStatus.NOT_FOUND, "PLAYBACK_SESSION_NOT_FOUND", error.getMessage());
+  }
+
+  @org.springframework.web.bind.annotation.ExceptionHandler(IllegalArgumentException.class)
+  public ResponseEntity<ProblemDetail> badRequest(IllegalArgumentException error) {
+    return problem(HttpStatus.BAD_REQUEST, "INVALID_PLAYBACK_REQUEST", error.getMessage());
+  }
+
+  @org.springframework.web.bind.annotation.ExceptionHandler(ServerWebInputException.class)
+  public ResponseEntity<ProblemDetail> invalidInput(ServerWebInputException error) {
+    return problem(HttpStatus.BAD_REQUEST, "INVALID_PLAYBACK_REQUEST", "Request body is invalid");
+  }
+
+  private static ResponseEntity<ProblemDetail> problem(HttpStatus status, String code, String detail) {
+    var problem = ProblemDetail.forStatusAndDetail(status, detail);
+    problem.setProperty("code", code);
+    return ResponseEntity.status(status).body(problem);
   }
 
   public record ProgressRequest(long sequence, long positionSeconds, Long durationSeconds,

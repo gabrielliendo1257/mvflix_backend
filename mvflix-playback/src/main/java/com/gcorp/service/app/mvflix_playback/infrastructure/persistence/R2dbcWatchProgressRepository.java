@@ -27,8 +27,8 @@ public class R2dbcWatchProgressRepository implements WatchProgressRepository {
         .bind("catalog", catalogItemId.value())
         .map((row, metadata) -> WatchProgress.restore(viewerId, catalogItemId,
             row.get("position_seconds", Long.class) == null ? null
-                : new PlaybackPosition(row.get("position_seconds", Long.class),
-                    row.get("duration_seconds", Long.class)),
+                 : new PlaybackPosition((long) row.get("position_seconds", Long.class),
+                     (Long) row.get("duration_seconds", Long.class)),
              row.get("completed", Boolean.class),
              row.get("last_session_id", java.util.UUID.class) == null ? null
                  : new PlaybackSessionId(row.get("last_session_id", java.util.UUID.class)),

@@ -82,7 +82,7 @@ public class R2dbcPlaybackSessionRepository implements PlaybackSessionRepository
         row.get("started_at", Instant.class), row.get("expires_at", Instant.class),
         PlaybackSessionStatus.valueOf(row.get("status", String.class)),
         row.get("last_sequence", Long.class),
-        position == null ? null : new PlaybackPosition(position, duration));
+         position == null ? null : new PlaybackPosition((long) position, (Long) duration));
   }
 
   private static ContentReference contentReference(String type, long value) {
