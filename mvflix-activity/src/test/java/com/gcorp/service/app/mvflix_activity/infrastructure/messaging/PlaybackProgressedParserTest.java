@@ -16,6 +16,11 @@ class PlaybackProgressedParserTest {
   }
   @Test void rejectsNonPositiveIdentifiers() {
     assertThatThrownBy(() -> parser.parse("{\"eventId\":\"7d9f3c1e-6c2d-4d79-9c3a-7fbcd5c6a2a1\",\"eventType\":\"PlaybackProgressed\",\"eventVersion\":1,\"producer\":\"mvflix-playback\",\"aggregate\":{\"type\":\"PlaybackSession\",\"id\":\"s-1\"},\"payload\":{\"ownerUsername\":\"u\",\"movieId\":0,\"positionSeconds\":1,\"completed\":false,\"sequence\":1}}"))
-        .isInstanceOf(IllegalArgumentException.class);
+         .isInstanceOf(IllegalArgumentException.class);
+  }
+  @Test void acceptsCompletedEventsForTheSameWatchProjection() {
+    var event = parser.parse("{\"eventId\":\"7d9f3c1e-6c2d-4d79-9c3a-7fbcd5c6a2a1\",\"eventType\":\"PlaybackCompleted\",\"eventVersion\":1,\"producer\":\"mvflix-playback\",\"aggregate\":{\"type\":\"PlaybackSession\",\"id\":\"s-1\"},\"payload\":{\"ownerUsername\":\"Javier\",\"movieId\":101,\"positionSeconds\":7200,\"completed\":true,\"sequence\":4}}");
+    assertThat(event.eventType()).isEqualTo("PlaybackCompleted");
+    assertThat(event.completed()).isTrue();
   }
 }

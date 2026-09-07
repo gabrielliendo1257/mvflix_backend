@@ -81,10 +81,11 @@ class RecordPlaybackProgressTest {
   }
 
   @Test
-  void doesNotSaveOrPublishWhenWatchProgressIsAlreadyAhead() {
+  void savesSessionWithoutReplacingNewerGlobalWatchProgress() {
     var session = session();
     var watch = org.mockito.Mockito.mock(com.gcorp.service.app.mvflix_playback.domain.WatchProgress.class);
     when(sessions.findById(sessionId)).thenReturn(Mono.just(session));
+    when(sessions.save(session)).thenReturn(Mono.just(session));
     when(progress.find(viewer, session.catalogItemId())).thenReturn(Mono.just(watch));
     when(watch.update(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.eq(sessionId),
         org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.eq(1L),
@@ -94,7 +95,7 @@ class RecordPlaybackProgressTest {
     var result = useCase.execute(sessionId, viewer, 1, 42, 100L, false).block();
 
     assertThat(result).isSameAs(session);
-    verify(sessions, never()).save(org.mockito.ArgumentMatchers.any());
+    verify(sessions).save(session);
     verify(progress, never()).save(org.mockito.ArgumentMatchers.any());
     verify(outbox, never()).append(org.mockito.ArgumentMatchers.anyString(), org.mockito.ArgumentMatchers.any(),
         org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any());

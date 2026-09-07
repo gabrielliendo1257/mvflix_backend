@@ -1,0 +1,22 @@
+{
+  "priority": 1,
+  "request": {
+    "method": "POST",
+    "url": "/oauth2/token",
+    "basicAuthCredentials": {
+      "username": "movies-playback",
+      "password": "super-secret"
+    }
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "jsonBody": {
+      "access_token": "eyJhbGciOiJSUzI1NiIsImtpZCI6Im12ZmxpeC1lMmUtMjAyNi0wMSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJtb3ZpZXMtcGxheWJhY2siLCJzY29wZSI6InN0b3JhZ2Uuc3RyZWFtIiwiaXNzIjoiaHR0cDovL2p3a3Mtc3R1Yjo4MDgwIiwiZXhwIjoxODkzNDU2MDAwfQ.mKG9LkxFHUIKHive-SCYyuhxY6istdJfn9o5oe2d6TSiZCI5PJ_gZX3lyy9TQD_DEpaQjDBERwmSvysXRT2gRPozIz_Hp0Bs0Tb19z0rDE8_wV4NhgKm_1YFtiuiQf4cv4bIvMwjNr1WteZT1gBPA7NTvpUYKI0203Xz9nvG1IB8PZSuJruzV_1I1hK0UlBS7JXu5W56cdHYQfmAbU-og9RS-DBiie55GDQxcoFPwERBkyxOE1NVGAkPxmKe-rM-7GTXymo-2IoyREibIRj-B7W2apqj1ifziVQef6_AS0fMbPGEYJSh7t8_ckNNUzrJ2Fa6WLibo6jExrXgII5PSg",
+      "token_type": "Bearer",
+      "expires_in": 86400
+    }
+  }
+}

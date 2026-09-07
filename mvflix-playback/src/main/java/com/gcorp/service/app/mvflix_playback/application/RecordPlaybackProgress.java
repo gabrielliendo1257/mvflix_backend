@@ -49,7 +49,7 @@ public class RecordPlaybackProgress {
                 var watchChanged = watch.update(position, session.id(), session.startedAt(), sequence, completed,
                     java.time.Instant.now());
                 if (!watchChanged) {
-                  return Mono.just(session);
+                  return sessions.save(session);
                 }
                 var payload = new HashMap<String, Object>();
                 payload.put("ownerUsername", viewerId.value());

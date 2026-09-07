@@ -30,8 +30,8 @@ import org.jose4j.jwt.JwtClaims;
 import org.junit.jupiter.api.Test;
 
 class AddMediaE2ETest {
-  private static final String BFF = env("BFF_URL", "http://localhost:19091");
-  private static final String USER = "e2e-add-media";
+  static final String BFF = env("BFF_URL", "http://localhost:19091");
+  static final String USER = "e2e-add-media";
   private static final ObjectMapper JSON = new ObjectMapper();
   private static final HttpClient HTTP = HttpClient.newHttpClient();
 
@@ -105,24 +105,24 @@ class AddMediaE2ETest {
       restartIngestion();
       awaitIngestionPhase(token, id, Set.of("RECONCILIATION_REQUIRED"));
 
-      compose("up", "-d", "--wait", "movies");
+      compose("start", "movies");
       moviesRunning = true;
       awaitIngestionPhase(token, id, Set.of("COMPLETED"));
     } finally {
-      if (!moviesRunning) compose("up", "-d", "--wait", "movies");
+      if (!moviesRunning) compose("start", "movies");
     }
   }
 
-  private static JsonNode start(String token, String key, String body, int expected) throws Exception {
+  static JsonNode start(String token, String key, String body, int expected) throws Exception {
     return JSON.readTree(request("POST", BFF + "/web/add-media", token, key, body, expected).body());
   }
 
-  private static void complete(String token, String id, int... expected) throws Exception {
+  static void complete(String token, String id, int... expected) throws Exception {
     request("POST", BFF + "/web/add-media/" + id + "/complete", token, null,
         "{\"sizeBytes\":4}", expected);
   }
 
-  private static JsonNode awaitStatus(String token, String id, String phase) {
+  static JsonNode awaitStatus(String token, String id, String phase) {
     return await().atMost(Duration.ofSeconds(90)).pollInterval(Duration.ofMillis(500)).until(
         () -> {
           HttpResponse<String> response = request("GET", BFF + "/web/add-media/" + id, token, null, null);
@@ -176,7 +176,7 @@ class AddMediaE2ETest {
     }
   }
 
-  private static void upload(JsonNode upload) throws Exception {
+  static void upload(JsonNode upload) throws Exception {
     byte[] bytes = {1, 2, 3, 4};
     Path payload = Files.createTempFile("mvflix-e2e-upload-", ".mp4");
     Files.write(payload, bytes);
@@ -204,14 +204,22 @@ class AddMediaE2ETest {
     assertEquals(4, object.size());
   }
 
-  private static void provisionStorage(String token) {
+  static void provisionStorage(String token) {
     request("POST", env("STORAGE_URL", "http://localhost:16060")
         + "/api/v1/movie/storage/users/" + USER + "/provision", token, null,
         "{\"quota_bytes\":1048576}", 200);
   }
 
   private static void restartIngestion() throws Exception {
-    compose("restart", "media-ingestion");
+    Process process = new ProcessBuilder("docker", "restart",
+        env("E2E_COMPOSE_PROJECT", "mvflix-e2e") + "-media-ingestion-1")
+        .redirectErrorStream(true).start();
+    boolean finished = process.waitFor(90, java.util.concurrent.TimeUnit.SECONDS);
+    String output = new String(process.getInputStream().readAllBytes());
+    if (!finished || process.exitValue() != 0) {
+      throw new AssertionError("media-ingestion restart failed with exit "
+          + (finished ? process.exitValue() : "timeout") + ": " + output);
+    }
   }
 
   private static void compose(String... arguments) throws Exception {
@@ -259,15 +267,16 @@ class AddMediaE2ETest {
     }
   }
 
-  private static String request(String file, long size, String title) {
+  static String request(String file, long size, String title) {
     long providerId = Math.abs((long) title.hashCode()) + 1;
     return "{\"file\":{\"filename\":\"" + file + "\",\"sizeBytes\":" + size
         + ",\"mimeType\":\"video/mp4\"},\"movie\":{\"providerId\":" + providerId + ",\"draft\":{"
         + "\"title\":\"" + title + "\",\"kind\":\"MOVIE\"}},\"access\":{"
-        + "\"visibility\":\"PRIVATE\",\"sharedWith\":[]},\"idempotencyKey\":\"body-key\"}";
+        + "\"visibility\":\"PRIVATE\",\"sharedWith\":[]},\"idempotencyKey\":\"e2e-"
+        + title + "\"}";
   }
 
-  private static String token(String subject, String scope) throws Exception {
+  static String token(String subject, String scope) throws Exception {
     JsonNode jwk = JSON.readTree(Files.readString(Path.of("../oidc-stub/jwks/jwks.json")))
         .get("keys").get(0);
     RsaJsonWebKey key = (RsaJsonWebKey) JsonWebKey.Factory.newJwk(jwk.toString());

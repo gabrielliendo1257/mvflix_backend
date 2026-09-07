@@ -34,7 +34,7 @@ public class MoviesAuthorizedCatalogAdapter implements AuthorizedCatalog {
   }
 
   @JsonIgnoreProperties(ignoreUnknown = true)
-  record DownstreamItem(long id, String title, String posterPath, String duration, Long objectId,
+  record DownstreamItem(String title, String posterPath, String duration, Long objectId,
       DownstreamAsset asset) {
     Optional<DownstreamAsset> optionalAsset() {
       return Optional.ofNullable(asset);
