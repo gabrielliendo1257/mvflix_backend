@@ -9,6 +9,7 @@ import com.gcorp.service.app.mvflix_playback.domain.PlaybackSessionId;
 import com.gcorp.service.app.mvflix_playback.domain.PlaybackSessionStatus;
 import com.gcorp.service.app.mvflix_playback.domain.ViewerId;
 import java.time.Instant;
+import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.r2dbc.core.DatabaseClient;
 import org.springframework.stereotype.Repository;
 import reactor.core.publisher.Mono;
@@ -43,6 +44,7 @@ public class R2dbcPlaybackSessionRepository implements PlaybackSessionRepository
           last_position_seconds = EXCLUDED.last_position_seconds,
           last_duration_seconds = EXCLUDED.last_duration_seconds,
           updated_at = NOW()
+        WHERE playback_session.last_sequence < EXCLUDED.last_sequence
         """)
         .bind("id", session.id().value())
         .bind("viewer", session.viewerId().value())
@@ -59,7 +61,10 @@ public class R2dbcPlaybackSessionRepository implements PlaybackSessionRepository
           .bind("duration", session.lastPosition().durationSeconds());
     }
     return statement.fetch().rowsUpdated()
-        .thenReturn(session);
+        .flatMap(rows -> rows == 1L
+            ? Mono.just(session)
+            : Mono.error(new OptimisticLockingFailureException(
+                "Playback session was modified concurrently: " + session.id().value())));
   }
 
   private static PlaybackSession restore(io.r2dbc.spi.Row row) {

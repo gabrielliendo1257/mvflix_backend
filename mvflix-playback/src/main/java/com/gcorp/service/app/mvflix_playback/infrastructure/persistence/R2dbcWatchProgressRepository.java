@@ -7,6 +7,7 @@ import com.gcorp.service.app.mvflix_playback.domain.PlaybackSessionId;
 import com.gcorp.service.app.mvflix_playback.domain.ViewerId;
 import com.gcorp.service.app.mvflix_playback.domain.WatchProgress;
 import java.time.Instant;
+import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.r2dbc.core.DatabaseClient;
 import org.springframework.stereotype.Repository;
 import reactor.core.publisher.Mono;
@@ -46,11 +47,12 @@ public class R2dbcWatchProgressRepository implements WatchProgressRepository {
         ON CONFLICT (viewer_id, catalog_item_id) DO UPDATE SET
           position_seconds = EXCLUDED.position_seconds,
           duration_seconds = EXCLUDED.duration_seconds,
-          completed = EXCLUDED.completed,
-          last_session_id = EXCLUDED.last_session_id,
-          updated_at = EXCLUDED.updated_at,
-          version = EXCLUDED.version
-        """)
+           completed = EXCLUDED.completed,
+           last_session_id = EXCLUDED.last_session_id,
+           updated_at = EXCLUDED.updated_at,
+           version = EXCLUDED.version
+         WHERE watch_progress.version < EXCLUDED.version
+         """)
         .bind("viewer", progress.viewerId().value())
         .bind("catalog", progress.catalogItemId().value())
         .bind("completed", progress.completed())
@@ -67,6 +69,11 @@ public class R2dbcWatchProgressRepository implements WatchProgressRepository {
           .bind("duration", position.durationSeconds());
     }
     return statement.fetch().rowsUpdated()
-        .thenReturn(progress);
+        .flatMap(rows -> rows == 1L
+            ? Mono.just(progress)
+            : Mono.error(new OptimisticLockingFailureException(
+                "Watch progress was modified concurrently for viewer "
+                    + progress.viewerId().value() + " and catalog item "
+                    + progress.catalogItemId().value())));
   }
 }
