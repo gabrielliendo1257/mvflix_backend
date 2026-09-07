@@ -24,8 +24,8 @@ class PlaybackSessionTest {
     PlaybackSession session = session();
     PlaybackPosition position = new PlaybackPosition(7200, 7200);
 
-    session.complete(position);
-    session.complete(position);
+    assertThat(session.complete(position, 1)).isTrue();
+    assertThat(session.complete(position, 1)).isFalse();
 
     assertThat(session.status()).isEqualTo(PlaybackSessionStatus.COMPLETED);
     assertThat(session.recordProgress(position, 1)).isFalse();

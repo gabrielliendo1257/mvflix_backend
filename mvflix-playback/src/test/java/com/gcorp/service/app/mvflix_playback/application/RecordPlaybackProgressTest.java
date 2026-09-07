@@ -2,6 +2,8 @@ package com.gcorp.service.app.mvflix_playback.application;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.gcorp.service.app.mvflix_playback.application.port.PlaybackSessionRepository;
@@ -46,6 +48,55 @@ class RecordPlaybackProgressTest {
     org.assertj.core.api.Assertions.assertThatThrownBy(
             () -> useCase.execute(sessionId, new ViewerId("other"), 1, 42, 100L, false).block())
         .isInstanceOf(RecordPlaybackProgress.PlaybackSessionForbiddenException.class);
+  }
+
+  @Test
+  void ignoresRepeatedProgressWithoutSavingOrPublishing() {
+    var session = session();
+    session.recordProgress(new com.gcorp.service.app.mvflix_playback.domain.PlaybackPosition(42, 100), 1);
+    when(sessions.findById(sessionId)).thenReturn(Mono.just(session));
+
+    var result = useCase.execute(sessionId, viewer, 1, 42, 100L, false).block();
+
+    assertThat(result).isSameAs(session);
+    verify(sessions, never()).save(org.mockito.ArgumentMatchers.any());
+    verify(progress, never()).find(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any());
+    verify(outbox, never()).append(org.mockito.ArgumentMatchers.anyString(), org.mockito.ArgumentMatchers.any(),
+        org.mockito.ArgumentMatchers.any());
+  }
+
+  @Test
+  void ignoresRepeatedCompletionWithoutSavingOrPublishing() {
+    var session = session();
+    session.complete(new com.gcorp.service.app.mvflix_playback.domain.PlaybackPosition(100, 100), 1);
+    when(sessions.findById(sessionId)).thenReturn(Mono.just(session));
+
+    var result = useCase.execute(sessionId, viewer, 1, 100, 100L, true).block();
+
+    assertThat(result).isSameAs(session);
+    verify(sessions, never()).save(org.mockito.ArgumentMatchers.any());
+    verify(progress, never()).find(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any());
+    verify(outbox, never()).append(org.mockito.ArgumentMatchers.anyString(), org.mockito.ArgumentMatchers.any(),
+        org.mockito.ArgumentMatchers.any());
+  }
+
+  @Test
+  void doesNotSaveOrPublishWhenWatchProgressIsAlreadyAhead() {
+    var session = session();
+    var watch = org.mockito.Mockito.mock(com.gcorp.service.app.mvflix_playback.domain.WatchProgress.class);
+    when(sessions.findById(sessionId)).thenReturn(Mono.just(session));
+    when(progress.find(viewer, session.catalogItemId())).thenReturn(Mono.just(watch));
+    when(watch.update(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.eq(sessionId),
+        org.mockito.ArgumentMatchers.eq(1L), org.mockito.ArgumentMatchers.eq(false),
+        org.mockito.ArgumentMatchers.any())).thenReturn(false);
+
+    var result = useCase.execute(sessionId, viewer, 1, 42, 100L, false).block();
+
+    assertThat(result).isSameAs(session);
+    verify(sessions, never()).save(org.mockito.ArgumentMatchers.any());
+    verify(progress, never()).save(org.mockito.ArgumentMatchers.any());
+    verify(outbox, never()).append(org.mockito.ArgumentMatchers.anyString(), org.mockito.ArgumentMatchers.any(),
+        org.mockito.ArgumentMatchers.any());
   }
 
   private PlaybackSession session() {

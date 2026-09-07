@@ -32,26 +32,30 @@ public class RecordPlaybackProgress {
         .flatMap(session -> validateOwner(session, viewerId))
         .flatMap(session -> {
           var position = new PlaybackPosition(positionSeconds, durationSeconds);
-          if (completed) {
-            session.complete(position);
-          } else {
-            session.recordProgress(position, sequence);
+          var sessionChanged = completed
+              ? session.complete(position, sequence)
+              : session.recordProgress(position, sequence);
+          if (!sessionChanged) {
+            return Mono.just(session);
           }
-          return sessions.save(session)
-              .flatMap(saved -> progress.find(viewerId, saved.catalogItemId())
-                  .defaultIfEmpty(new com.gcorp.service.app.mvflix_playback.domain.WatchProgress(
-                      viewerId, saved.catalogItemId()))
-                  .flatMap(watch -> {
-                    watch.update(position, saved.id(), sequence, completed,
-                        java.time.Instant.now());
-                    return progress.save(watch)
+          return progress.find(viewerId, session.catalogItemId())
+              .defaultIfEmpty(new com.gcorp.service.app.mvflix_playback.domain.WatchProgress(
+                  viewerId, session.catalogItemId()))
+              .flatMap(watch -> {
+                var watchChanged = watch.update(position, session.id(), sequence, completed,
+                    java.time.Instant.now());
+                if (!watchChanged) {
+                  return Mono.just(session);
+                }
+                return sessions.save(session)
+                    .flatMap(saved -> progress.save(watch)
                         .then(outbox.append(completed ? "PlaybackCompleted" : "PlaybackProgressed",
                             saved.id().value(), java.util.Map.of("viewerId", viewerId.value(),
                                 "catalogItemId", saved.catalogItemId().value(), "assetId", saved.assetId().value(),
                                 "sessionId", saved.id().value(), "sequence", sequence,
                                 "positionSeconds", positionSeconds, "completed", completed)))
-                        .thenReturn(saved);
-                  }));
+                        .thenReturn(saved));
+              });
         });
   }
 

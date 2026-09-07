@@ -55,15 +55,20 @@ public final class PlaybackSession {
     return true;
   }
 
-  public void complete(PlaybackPosition finalPosition) {
+  public boolean complete(PlaybackPosition finalPosition, long sequence) {
     if (status == PlaybackSessionStatus.COMPLETED) {
-      return;
+      return false;
     }
     if (status != PlaybackSessionStatus.ACTIVE) {
       throw new IllegalStateException("Only active playback sessions can complete");
     }
+    if (sequence <= lastSequence) {
+      return false;
+    }
     this.lastPosition = finalPosition;
+    this.lastSequence = sequence;
     this.status = PlaybackSessionStatus.COMPLETED;
+    return true;
   }
 
   public void expire(Instant now) {
