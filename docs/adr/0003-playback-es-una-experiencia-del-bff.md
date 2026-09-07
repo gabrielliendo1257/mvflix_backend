@@ -1,6 +1,6 @@
 # ADR 0003: Playback es una experiencia del BFF; los bytes los mueve la infraestructura
 
-Estado: Aceptado
+Estado: Reemplazado por ADR 0004
 
 ## Contexto
 
