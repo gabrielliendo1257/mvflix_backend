@@ -33,6 +33,16 @@ public class R2dbcPlaybackSessionRepository implements PlaybackSessionRepository
   }
 
   @Override
+  public Mono<PlaybackSession> findActive(ViewerId viewerId, CatalogItemId catalogItemId) {
+    return database.sql("SELECT * FROM playback_session WHERE viewer_id = :viewer "
+            + "AND catalog_item_id = :catalog AND status = 'ACTIVE' ORDER BY started_at DESC LIMIT 1")
+        .bind("viewer", viewerId.value())
+        .bind("catalog", catalogItemId.value())
+        .map((row, metadata) -> restore(row))
+        .one();
+  }
+
+  @Override
   public Mono<PlaybackSession> save(PlaybackSession session) {
     var statement = database.sql("""
         INSERT INTO playback_session

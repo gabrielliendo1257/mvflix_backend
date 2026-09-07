@@ -6,5 +6,8 @@ import reactor.core.publisher.Mono;
 
 public interface PlaybackSessionRepository {
   Mono<PlaybackSession> findById(PlaybackSessionId id);
+  Mono<PlaybackSession> findActive(
+      com.gcorp.service.app.mvflix_playback.domain.ViewerId viewerId,
+      com.gcorp.service.app.mvflix_playback.domain.CatalogItemId catalogItemId);
   Mono<PlaybackSession> save(PlaybackSession session);
 }

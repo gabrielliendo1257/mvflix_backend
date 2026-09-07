@@ -5,6 +5,7 @@ import com.gcorp.service.app.mvflix_playback.domain.PlaybackSession;
 import java.util.Map;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.dao.DataIntegrityViolationException;
 import reactor.core.publisher.Mono;
 
 @Service
@@ -18,10 +19,18 @@ public class PersistPlaybackSession {
   }
 
   @Transactional("connectionFactoryTransactionManager")
-  public Mono<PlaybackSession> execute(PlaybackSession session, Map<String, Object> payload,
+  public Mono<Persisted> execute(PlaybackSession session, Map<String, Object> payload,
       PlaybackOutbox.EventMetadata metadata) {
-    return sessions.save(session)
-        .flatMap(saved -> outbox.append("PlaybackStarted", saved.id().value(), payload, metadata)
-            .thenReturn(saved));
+    return sessions.findActive(session.viewerId(), session.catalogItemId())
+        .map(active -> new Persisted(active, false))
+        .switchIfEmpty(sessions.save(session)
+            .flatMap(saved -> outbox.append("PlaybackStarted", saved.id().value(), payload, metadata)
+                .thenReturn(new Persisted(saved, true)))
+            .onErrorResume(DataIntegrityViolationException.class, error ->
+                sessions.findActive(session.viewerId(), session.catalogItemId())
+                    .map(active -> new Persisted(active, false))
+                    .switchIfEmpty(Mono.error(error))));
   }
+
+  public record Persisted(PlaybackSession session, boolean created) {}
 }

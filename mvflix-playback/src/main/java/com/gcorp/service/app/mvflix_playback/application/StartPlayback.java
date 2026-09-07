@@ -61,8 +61,13 @@ public class StartPlayback {
                   var metadata = new PlaybackOutbox.EventMetadata(viewerId.value(), viewerId.value(),
                       UUID.randomUUID(), null);
                    return persistence.execute(session, payload, metadata)
-                       .map(saved -> new PlaybackStarted(saved, item, source, resume));
+                       .map(saved -> new PlaybackStarted(saved.session(), item, source,
+                           saved.created() ? resume : resumeForExisting(saved.session())));
                  })));
+  }
+
+  private static Long resumeForExisting(PlaybackSession session) {
+    return session.lastPosition() == null ? null : session.lastPosition().seconds();
   }
 
   private static Long mediaId(ContentReference reference) {

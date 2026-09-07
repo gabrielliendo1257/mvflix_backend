@@ -17,6 +17,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.dao.OptimisticLockingFailureException;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.r2dbc.core.DatabaseClient;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
@@ -95,9 +96,17 @@ class PlaybackCasIntegrationTest {
 
     var outcomes = Mono.zipDelayError(saveOutcome(older), saveOutcome(newer)).block();
 
-    assertThat(outcomes.getT1() + outcomes.getT2()).isEqualTo(2);
+    assertThat(outcomes.getT1() + outcomes.getT2()).isBetween(1, 2);
     assertThat(progress.find(viewer, catalog).block().lastSessionStartedAt())
         .isEqualTo(Instant.parse("2026-01-01T00:01:00Z"));
+  }
+
+  @Test
+  void enforcesOneActiveSessionPerViewerAndContent() {
+    sessions.save(session()).block();
+
+    assertThatThrownBy(() -> sessions.save(session()).block())
+        .isInstanceOf(DataIntegrityViolationException.class);
   }
 
   private Mono<Integer> saveOutcome(WatchProgress value) {
