@@ -2,7 +2,6 @@ package com.gcorp.service.app.mvflix_playback.application;
 
 import com.gcorp.service.app.mvflix_playback.application.port.AuthorizedCatalog;
 import com.gcorp.service.app.mvflix_playback.application.port.ContentAccess;
-import com.gcorp.service.app.mvflix_playback.application.port.PlaybackSessionRepository;
 import com.gcorp.service.app.mvflix_playback.application.port.WatchProgressRepository;
 import com.gcorp.service.app.mvflix_playback.domain.CatalogItemId;
 import com.gcorp.service.app.mvflix_playback.domain.ContentReference;
@@ -16,7 +15,6 @@ import java.time.Instant;
 import java.util.HashMap;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 import reactor.core.publisher.Mono;
 
 @Service
@@ -25,20 +23,17 @@ public class StartPlayback {
 
   private final AuthorizedCatalog catalog;
   private final ContentAccess contentAccess;
-  private final PlaybackSessionRepository sessions;
   private final WatchProgressRepository progress;
-  private final PlaybackOutbox outbox;
+  private final PersistPlaybackSession persistence;
 
   public StartPlayback(AuthorizedCatalog catalog, ContentAccess contentAccess,
-      PlaybackSessionRepository sessions, WatchProgressRepository progress, PlaybackOutbox outbox) {
+      WatchProgressRepository progress, PersistPlaybackSession persistence) {
     this.catalog = catalog;
     this.contentAccess = contentAccess;
-    this.sessions = sessions;
     this.progress = progress;
-    this.outbox = outbox;
+    this.persistence = persistence;
   }
 
-  @Transactional("connectionFactoryTransactionManager")
   public Mono<PlaybackStarted> execute(CatalogItemId catalogItemId, ViewerId viewerId,
       String bearerToken) {
     Instant startedAt = Instant.now();
@@ -65,10 +60,9 @@ public class StartPlayback {
                   payload.put("sessionId", session.id().value());
                   var metadata = new PlaybackOutbox.EventMetadata(viewerId.value(), viewerId.value(),
                       UUID.randomUUID(), null);
-                  return sessions.save(session)
-                      .flatMap(saved -> outbox.append("PlaybackStarted", saved.id().value(), payload, metadata)
-                          .thenReturn(new PlaybackStarted(saved, item, source, resume)));
-                })));
+                   return persistence.execute(session, payload, metadata)
+                       .map(saved -> new PlaybackStarted(saved, item, source, resume));
+                 })));
   }
 
   private static Long mediaId(ContentReference reference) {
