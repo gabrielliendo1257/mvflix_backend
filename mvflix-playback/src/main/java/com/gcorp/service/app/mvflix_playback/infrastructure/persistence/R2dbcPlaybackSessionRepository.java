@@ -31,7 +31,7 @@ public class R2dbcPlaybackSessionRepository implements PlaybackSessionRepository
 
   @Override
   public Mono<PlaybackSession> save(PlaybackSession session) {
-    return database.sql("""
+    var statement = database.sql("""
         INSERT INTO playback_session
           (id, viewer_id, catalog_item_id, asset_id, status, started_at, expires_at,
            last_sequence, last_position_seconds, last_duration_seconds, updated_at)
@@ -51,10 +51,14 @@ public class R2dbcPlaybackSessionRepository implements PlaybackSessionRepository
         .bind("status", session.status().name())
         .bind("started", session.startedAt())
         .bind("expires", session.expiresAt())
-        .bind("sequence", session.lastSequence())
-        .bind("position", session.lastPosition() == null ? null : session.lastPosition().seconds())
-        .bind("duration", session.lastPosition() == null ? null : session.lastPosition().durationSeconds())
-        .fetch().rowsUpdated()
+        .bind("sequence", session.lastSequence());
+    if (session.lastPosition() == null) {
+      statement = statement.bindNull("position", Long.class).bindNull("duration", Long.class);
+    } else {
+      statement = statement.bind("position", session.lastPosition().seconds())
+          .bind("duration", session.lastPosition().durationSeconds());
+    }
+    return statement.fetch().rowsUpdated()
         .thenReturn(session);
   }
 
