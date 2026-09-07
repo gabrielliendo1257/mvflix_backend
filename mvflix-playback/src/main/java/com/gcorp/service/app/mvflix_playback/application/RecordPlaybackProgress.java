@@ -42,7 +42,7 @@ public class RecordPlaybackProgress {
               .defaultIfEmpty(new com.gcorp.service.app.mvflix_playback.domain.WatchProgress(
                   viewerId, session.catalogItemId()))
               .flatMap(watch -> {
-                var watchChanged = watch.update(position, session.id(), sequence, completed,
+                var watchChanged = watch.update(position, session.id(), session.startedAt(), sequence, completed,
                     java.time.Instant.now());
                 if (!watchChanged) {
                   return Mono.just(session);

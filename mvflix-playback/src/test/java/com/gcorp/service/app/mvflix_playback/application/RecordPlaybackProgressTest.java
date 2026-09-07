@@ -87,7 +87,8 @@ class RecordPlaybackProgressTest {
     when(sessions.findById(sessionId)).thenReturn(Mono.just(session));
     when(progress.find(viewer, session.catalogItemId())).thenReturn(Mono.just(watch));
     when(watch.update(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.eq(sessionId),
-        org.mockito.ArgumentMatchers.eq(1L), org.mockito.ArgumentMatchers.eq(false),
+        org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.eq(1L),
+        org.mockito.ArgumentMatchers.eq(false),
         org.mockito.ArgumentMatchers.any())).thenReturn(false);
 
     var result = useCase.execute(sessionId, viewer, 1, 42, 100L, false).block();

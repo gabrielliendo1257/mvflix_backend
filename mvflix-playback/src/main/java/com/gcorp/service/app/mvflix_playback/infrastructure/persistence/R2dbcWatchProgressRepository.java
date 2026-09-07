@@ -29,10 +29,11 @@ public class R2dbcWatchProgressRepository implements WatchProgressRepository {
             row.get("position_seconds", Long.class) == null ? null
                 : new PlaybackPosition(row.get("position_seconds", Long.class),
                     row.get("duration_seconds", Long.class)),
-            row.get("completed", Boolean.class),
-            row.get("last_session_id", java.util.UUID.class) == null ? null
-                : new PlaybackSessionId(row.get("last_session_id", java.util.UUID.class)),
-            row.get("updated_at", Instant.class), row.get("version", Long.class)))
+             row.get("completed", Boolean.class),
+             row.get("last_session_id", java.util.UUID.class) == null ? null
+                 : new PlaybackSessionId(row.get("last_session_id", java.util.UUID.class)),
+             row.get("last_session_started_at", Instant.class),
+             row.get("updated_at", Instant.class), row.get("version", Long.class)))
         .one();
   }
 
@@ -41,22 +42,28 @@ public class R2dbcWatchProgressRepository implements WatchProgressRepository {
     var position = progress.position();
     var statement = database.sql("""
         INSERT INTO watch_progress
-          (viewer_id, catalog_item_id, position_seconds, duration_seconds, completed,
-           last_session_id, updated_at, version)
-        VALUES (:viewer, :catalog, :position, :duration, :completed, :session, NOW(), :version)
+           (viewer_id, catalog_item_id, position_seconds, duration_seconds, completed,
+            last_session_id, last_session_started_at, updated_at, version)
+         VALUES (:viewer, :catalog, :position, :duration, :completed, :session,
+                 :session_started_at, NOW(), :version)
         ON CONFLICT (viewer_id, catalog_item_id) DO UPDATE SET
           position_seconds = EXCLUDED.position_seconds,
           duration_seconds = EXCLUDED.duration_seconds,
            completed = EXCLUDED.completed,
            last_session_id = EXCLUDED.last_session_id,
+           last_session_started_at = EXCLUDED.last_session_started_at,
            updated_at = EXCLUDED.updated_at,
            version = EXCLUDED.version
-         WHERE watch_progress.version < EXCLUDED.version
+         WHERE (watch_progress.last_session_id IS NOT DISTINCT FROM EXCLUDED.last_session_id
+                AND watch_progress.version < EXCLUDED.version)
+            OR (watch_progress.last_session_id IS DISTINCT FROM EXCLUDED.last_session_id
+                AND watch_progress.last_session_started_at < EXCLUDED.last_session_started_at)
          """)
         .bind("viewer", progress.viewerId().value())
-        .bind("catalog", progress.catalogItemId().value())
-        .bind("completed", progress.completed())
-        .bind("version", progress.version());
+         .bind("catalog", progress.catalogItemId().value())
+         .bind("completed", progress.completed())
+         .bind("session_started_at", progress.lastSessionStartedAt())
+         .bind("version", progress.version());
     if (progress.lastSessionId() == null) {
       statement = statement.bindNull("session", java.util.UUID.class);
     } else {
