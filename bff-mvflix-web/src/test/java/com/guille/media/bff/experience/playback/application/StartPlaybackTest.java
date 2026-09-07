@@ -65,6 +65,20 @@ class StartPlaybackTest {
   }
 
   @Test
+  void currentBffFlowCreatesStatelessSessionIds() {
+    Instant expiresAt = Instant.now().plus(Duration.ofHours(3));
+    org.mockito.Mockito.when(this.catalog.loadVisibleMedia(42L))
+        .thenReturn(Mono.just(media("READY", 77L, null)));
+    org.mockito.Mockito.when(this.managedAccess.openDirect(77L))
+        .thenReturn(Mono.just(new DirectSource("https://minio/key", expiresAt, null)));
+
+    StepVerifier.create(this.useCase.handle("pepe", 42L).zipWith(this.useCase.handle("pepe", 42L)))
+        .assertNext(pair -> assertThat(pair.getT1().sessionId())
+            .isNotEqualTo(pair.getT2().sessionId()))
+        .verifyComplete();
+  }
+
+  @Test
   void authorizedReadyLocalMintsCapabilityForProxyUrl() {
     Instant expiresAt = Instant.now().plus(Duration.ofHours(2));
     org.mockito.Mockito.when(this.catalog.loadVisibleMedia(42L))
