@@ -7,6 +7,10 @@ import com.gcorp.service.app.mvflix_playback.domain.PlaybackPosition;
 import com.gcorp.service.app.mvflix_playback.domain.PlaybackSession;
 import com.gcorp.service.app.mvflix_playback.domain.PlaybackSessionId;
 import com.gcorp.service.app.mvflix_playback.domain.ViewerId;
+import com.gcorp.service.app.mvflix_playback.domain.ContentReference;
+import com.gcorp.service.app.mvflix_playback.domain.LibraryAssetReference;
+import java.util.HashMap;
+import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import reactor.core.publisher.Mono;
@@ -47,18 +51,30 @@ public class RecordPlaybackProgress {
                 if (!watchChanged) {
                   return Mono.just(session);
                 }
+                var payload = new HashMap<String, Object>();
+                payload.put("ownerUsername", viewerId.value());
+                payload.put("movieId", session.catalogItemId().value());
+                payload.put("mediaId", mediaId(session.contentReference()));
+                payload.put("contentReferenceType", session.contentReference().type());
+                payload.put("contentReferenceId", session.contentReference().value());
+                payload.put("sessionId", session.id().value());
+                payload.put("sequence", sequence);
+                payload.put("positionSeconds", positionSeconds);
+                payload.put("durationSeconds", durationSeconds);
+                payload.put("completed", completed);
+                var metadata = new PlaybackOutbox.EventMetadata(viewerId.value(), viewerId.value(),
+                    UUID.randomUUID(), null);
                 return sessions.save(session)
                     .flatMap(saved -> progress.save(watch)
                         .then(outbox.append(completed ? "PlaybackCompleted" : "PlaybackProgressed",
-                            saved.id().value(), java.util.Map.of("viewerId", viewerId.value(),
-                                "catalogItemId", saved.catalogItemId().value(),
-                                "contentReferenceType", saved.contentReference().type(),
-                                "contentReferenceId", saved.contentReference().value(),
-                                "sessionId", saved.id().value(), "sequence", sequence,
-                                "positionSeconds", positionSeconds, "completed", completed)))
+                            saved.id().value(), payload, metadata))
                         .thenReturn(saved));
               });
         });
+  }
+
+  private static Long mediaId(ContentReference reference) {
+    return reference instanceof LibraryAssetReference local ? local.assetId() : null;
   }
 
   private Mono<PlaybackSession> validateOwner(PlaybackSession session, ViewerId viewerId) {

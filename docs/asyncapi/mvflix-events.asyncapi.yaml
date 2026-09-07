@@ -296,10 +296,12 @@ components:
             eventVersion: 1
             occurredAt: '2026-08-28T12:00:00Z'
             actorId: Javier
+            audienceId: Javier
             correlationId: 77777777-7777-4777-8777-777777777777
+            causationId: null
             producer: mvflix-playback
-            aggregate: { type: PlaybackSession, id: session-42 }
-            payload: { ownerUsername: Javier, movieId: 101, mediaId: 3, positionSeconds: 120, durationSeconds: 7200, completed: false, sequence: 4 }
+            aggregate: { type: PlaybackSession, id: 11111111-1111-4111-8111-111111111111 }
+            payload: { ownerUsername: Javier, movieId: 101, mediaId: 3, contentReferenceType: LIBRARY_ASSET, contentReferenceId: 3, sessionId: 11111111-1111-4111-8111-111111111111, positionSeconds: 120, durationSeconds: 7200, completed: false, sequence: 4 }
 
   schemas:
     MediaIngestionEnvelope:
@@ -664,8 +666,11 @@ components:
         ownerUsername: { type: string }
         movieId: { type: integer, format: int64, minimum: 0 }
         mediaId: { type: integer, format: int64, minimum: 0, nullable: true }
+        contentReferenceType: { type: string, enum: [MANAGED_OBJECT, LIBRARY_ASSET] }
+        contentReferenceId: { type: integer, format: int64, minimum: 1 }
+        sessionId: { type: string, format: uuid }
         positionSeconds: { type: integer, format: int64, minimum: 0 }
         durationSeconds: { type: integer, format: int64, minimum: 0, nullable: true }
         completed: { type: boolean }
         sequence: { type: integer, format: int64, minimum: 1 }
-      required: [ownerUsername, movieId, positionSeconds, completed, sequence]
+      required: [ownerUsername, movieId, contentReferenceType, contentReferenceId, sessionId, positionSeconds, completed, sequence]

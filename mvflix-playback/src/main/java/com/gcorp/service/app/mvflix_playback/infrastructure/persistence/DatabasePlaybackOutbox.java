@@ -22,16 +22,26 @@ public class DatabasePlaybackOutbox implements PlaybackOutbox {
   }
 
   @Override
-  public Mono<Void> append(String type, UUID aggregateId, Object payload) {
+  public Mono<Void> append(String type, UUID aggregateId, Object payload,
+      PlaybackOutbox.EventMetadata metadata) {
     try {
       var eventId = UUID.randomUUID();
-      var envelope = Map.of("eventId", eventId, "eventType", type, "eventVersion", 1,
-          "occurredAt", Instant.now(), "producer", "mvflix-playback",
-          "aggregate", Map.of("type", "PlaybackSession", "id", aggregateId),
-          "payload", payload);
+      var occurredAt = Instant.now();
+      var envelope = new java.util.LinkedHashMap<String, Object>();
+      envelope.put("eventId", eventId);
+      envelope.put("eventType", type);
+      envelope.put("eventVersion", 1);
+      envelope.put("occurredAt", occurredAt);
+      envelope.put("actorId", metadata.actorId());
+      envelope.put("audienceId", metadata.audienceId());
+      envelope.put("correlationId", metadata.correlationId());
+      envelope.put("causationId", metadata.causationId());
+      envelope.put("producer", "mvflix-playback");
+      envelope.put("aggregate", Map.of("type", "PlaybackSession", "id", aggregateId));
+      envelope.put("payload", payload);
       return database.sql("INSERT INTO playback_outbox(event_id,event_type,aggregate_id,occurred_at,payload) VALUES(:id,:type,:aggregate,:occurred,CAST(:payload AS jsonb))")
           .bind("id", eventId).bind("type", type).bind("aggregate", aggregateId)
-          .bind("occurred", envelope.get("occurredAt")).bind("payload", mapper.writeValueAsString(envelope))
+           .bind("occurred", occurredAt).bind("payload", mapper.writeValueAsString(envelope))
           .fetch().rowsUpdated().then();
     } catch (Exception error) {
       return Mono.error(error);

@@ -35,7 +35,7 @@ class RecordPlaybackProgressTest {
     when(progress.save(org.mockito.ArgumentMatchers.any())).thenAnswer(invocation ->
         Mono.just(invocation.getArgument(0)));
     when(outbox.append(org.mockito.ArgumentMatchers.anyString(), org.mockito.ArgumentMatchers.any(),
-        org.mockito.ArgumentMatchers.any())).thenReturn(Mono.empty());
+        org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any())).thenReturn(Mono.empty());
 
     var saved = useCase.execute(sessionId, viewer, 1, 42, 100L, false).block();
     assertThat(saved.lastPosition().seconds()).isEqualTo(42);
@@ -62,7 +62,7 @@ class RecordPlaybackProgressTest {
     verify(sessions, never()).save(org.mockito.ArgumentMatchers.any());
     verify(progress, never()).find(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any());
     verify(outbox, never()).append(org.mockito.ArgumentMatchers.anyString(), org.mockito.ArgumentMatchers.any(),
-        org.mockito.ArgumentMatchers.any());
+        org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any());
   }
 
   @Test
@@ -77,7 +77,7 @@ class RecordPlaybackProgressTest {
     verify(sessions, never()).save(org.mockito.ArgumentMatchers.any());
     verify(progress, never()).find(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any());
     verify(outbox, never()).append(org.mockito.ArgumentMatchers.anyString(), org.mockito.ArgumentMatchers.any(),
-        org.mockito.ArgumentMatchers.any());
+        org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any());
   }
 
   @Test
@@ -97,7 +97,7 @@ class RecordPlaybackProgressTest {
     verify(sessions, never()).save(org.mockito.ArgumentMatchers.any());
     verify(progress, never()).save(org.mockito.ArgumentMatchers.any());
     verify(outbox, never()).append(org.mockito.ArgumentMatchers.anyString(), org.mockito.ArgumentMatchers.any(),
-        org.mockito.ArgumentMatchers.any());
+        org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any());
   }
 
   private PlaybackSession session() {

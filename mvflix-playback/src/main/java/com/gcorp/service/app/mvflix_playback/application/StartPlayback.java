@@ -13,6 +13,8 @@ import com.gcorp.service.app.mvflix_playback.domain.PlaybackSessionId;
 import com.gcorp.service.app.mvflix_playback.domain.ViewerId;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.HashMap;
+import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import reactor.core.publisher.Mono;
@@ -47,21 +49,30 @@ public class StartPlayback {
                 .defaultIfEmpty(new com.gcorp.service.app.mvflix_playback.domain.WatchProgress(
                     viewerId, catalogItemId))
                 .flatMap(watchProgress -> {
-              ContentReference contentReference = item.objectId() == null
-                  ? new LibraryAssetReference(item.asset().id())
-                  : new ManagedObjectReference(item.objectId());
-              PlaybackSession session = PlaybackSession.start(PlaybackSessionId.generate(), viewerId,
-                  catalogItemId, contentReference, startedAt, expiresAt);
+                  ContentReference contentReference = item.objectId() == null
+                      ? new LibraryAssetReference(item.asset().id())
+                      : new ManagedObjectReference(item.objectId());
+                  PlaybackSession session = PlaybackSession.start(PlaybackSessionId.generate(), viewerId,
+                      catalogItemId, contentReference, startedAt, expiresAt);
                   Long resume = watchProgress.position() == null || watchProgress.completed()
                       ? null : watchProgress.position().seconds();
+                  var payload = new HashMap<String, Object>();
+                  payload.put("ownerUsername", viewerId.value());
+                  payload.put("movieId", catalogItemId.value());
+                  payload.put("mediaId", mediaId(contentReference));
+                  payload.put("contentReferenceType", contentReference.type());
+                  payload.put("contentReferenceId", contentReference.value());
+                  payload.put("sessionId", session.id().value());
+                  var metadata = new PlaybackOutbox.EventMetadata(viewerId.value(), viewerId.value(),
+                      UUID.randomUUID(), null);
                   return sessions.save(session)
-                      .flatMap(saved -> outbox.append("PlaybackStarted", saved.id().value(),
-                          java.util.Map.of("viewerId", viewerId.value(), "catalogItemId", catalogItemId.value(),
-                               "contentReferenceType", contentReference.type(),
-                               "contentReferenceId", contentReference.value(),
-                               "sessionId", saved.id().value()))
+                      .flatMap(saved -> outbox.append("PlaybackStarted", saved.id().value(), payload, metadata)
                           .thenReturn(new PlaybackStarted(saved, item, source, resume)));
                 })));
+  }
+
+  private static Long mediaId(ContentReference reference) {
+    return reference instanceof LibraryAssetReference local ? local.assetId() : null;
   }
 
   public record PlaybackStarted(PlaybackSession session,
