@@ -38,7 +38,7 @@ public class R2dbcWatchProgressRepository implements WatchProgressRepository {
   @Override
   public Mono<WatchProgress> save(WatchProgress progress) {
     var position = progress.position();
-    return database.sql("""
+    var statement = database.sql("""
         INSERT INTO watch_progress
           (viewer_id, catalog_item_id, position_seconds, duration_seconds, completed,
            last_session_id, updated_at, version)
@@ -54,11 +54,19 @@ public class R2dbcWatchProgressRepository implements WatchProgressRepository {
         .bind("viewer", progress.viewerId().value())
         .bind("catalog", progress.catalogItemId().value())
         .bind("completed", progress.completed())
-        .bind("session", progress.lastSessionId() == null ? null : progress.lastSessionId().value())
-        .bind("version", progress.version())
-        .bind("position", position == null ? null : position.seconds())
-        .bind("duration", position == null ? null : position.durationSeconds())
-        .fetch().rowsUpdated()
+        .bind("version", progress.version());
+    if (progress.lastSessionId() == null) {
+      statement = statement.bindNull("session", java.util.UUID.class);
+    } else {
+      statement = statement.bind("session", progress.lastSessionId().value());
+    }
+    if (position == null) {
+      statement = statement.bindNull("position", Long.class).bindNull("duration", Long.class);
+    } else {
+      statement = statement.bind("position", position.seconds())
+          .bind("duration", position.durationSeconds());
+    }
+    return statement.fetch().rowsUpdated()
         .thenReturn(progress);
   }
 }
