@@ -1,6 +1,7 @@
 package com.gcorp.service.app.mvflix_playback.application;
 
 import com.gcorp.service.app.mvflix_playback.application.port.PlaybackSessionRepository;
+import com.gcorp.service.app.mvflix_playback.application.port.WatchProgressRepository;
 import com.gcorp.service.app.mvflix_playback.domain.CatalogItemId;
 import com.gcorp.service.app.mvflix_playback.domain.PlaybackPosition;
 import com.gcorp.service.app.mvflix_playback.domain.PlaybackSession;
@@ -12,9 +13,11 @@ import reactor.core.publisher.Mono;
 @Service
 public class RecordPlaybackProgress {
   private final PlaybackSessionRepository sessions;
+  private final WatchProgressRepository progress;
 
-  public RecordPlaybackProgress(PlaybackSessionRepository sessions) {
+  public RecordPlaybackProgress(PlaybackSessionRepository sessions, WatchProgressRepository progress) {
     this.sessions = sessions;
+    this.progress = progress;
   }
 
   public Mono<PlaybackSession> execute(PlaybackSessionId sessionId, ViewerId viewerId,
@@ -29,7 +32,15 @@ public class RecordPlaybackProgress {
           } else {
             session.recordProgress(position, sequence);
           }
-          return sessions.save(session);
+          return sessions.save(session)
+              .flatMap(saved -> progress.find(viewerId, saved.catalogItemId())
+                  .defaultIfEmpty(new com.gcorp.service.app.mvflix_playback.domain.WatchProgress(
+                      viewerId, saved.catalogItemId()))
+                  .flatMap(watch -> {
+                    watch.update(position, saved.id(), sequence, completed,
+                        java.time.Instant.now());
+                    return progress.save(watch).thenReturn(saved);
+                  }));
         });
   }
 

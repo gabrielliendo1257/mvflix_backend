@@ -17,6 +17,18 @@ public final class WatchProgress {
     this.updatedAt = Instant.EPOCH;
   }
 
+  public static WatchProgress restore(ViewerId viewerId, CatalogItemId catalogItemId,
+      PlaybackPosition position, boolean completed, PlaybackSessionId lastSessionId,
+      Instant updatedAt, long version) {
+    var progress = new WatchProgress(viewerId, catalogItemId);
+    progress.position = position;
+    progress.completed = completed;
+    progress.lastSessionId = lastSessionId;
+    progress.updatedAt = updatedAt;
+    progress.version = version;
+    return progress;
+  }
+
   public boolean update(PlaybackPosition next, PlaybackSessionId sessionId, long nextVersion,
       boolean completed, Instant updatedAt) {
     if (nextVersion <= version) {

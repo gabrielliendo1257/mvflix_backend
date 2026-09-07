@@ -3,6 +3,7 @@ package com.gcorp.service.app.mvflix_playback.application;
 import com.gcorp.service.app.mvflix_playback.application.port.AuthorizedCatalog;
 import com.gcorp.service.app.mvflix_playback.application.port.ContentAccess;
 import com.gcorp.service.app.mvflix_playback.application.port.PlaybackSessionRepository;
+import com.gcorp.service.app.mvflix_playback.application.port.WatchProgressRepository;
 import com.gcorp.service.app.mvflix_playback.domain.AssetId;
 import com.gcorp.service.app.mvflix_playback.domain.CatalogItemId;
 import com.gcorp.service.app.mvflix_playback.domain.PlaybackSession;
@@ -20,12 +21,14 @@ public class StartPlayback {
   private final AuthorizedCatalog catalog;
   private final ContentAccess contentAccess;
   private final PlaybackSessionRepository sessions;
+  private final WatchProgressRepository progress;
 
   public StartPlayback(AuthorizedCatalog catalog, ContentAccess contentAccess,
-      PlaybackSessionRepository sessions) {
+      PlaybackSessionRepository sessions, WatchProgressRepository progress) {
     this.catalog = catalog;
     this.contentAccess = contentAccess;
     this.sessions = sessions;
+    this.progress = progress;
   }
 
   public Mono<PlaybackStarted> execute(CatalogItemId catalogItemId, ViewerId viewerId,
@@ -34,14 +37,19 @@ public class StartPlayback {
     Instant expiresAt = startedAt.plus(SESSION_TTL);
     return catalog.getPlayableItem(catalogItemId, bearerToken)
         .flatMap(item -> contentAccess.open(item)
-            .flatMap(source -> {
+            .flatMap(source -> progress.find(viewerId, catalogItemId)
+                .defaultIfEmpty(new com.gcorp.service.app.mvflix_playback.domain.WatchProgress(
+                    viewerId, catalogItemId))
+                .flatMap(watchProgress -> {
               AssetId assetId = item.objectId() == null
                   ? new AssetId(item.asset().id()) : new AssetId(item.objectId());
               PlaybackSession session = PlaybackSession.start(PlaybackSessionId.generate(), viewerId,
                   catalogItemId, assetId, startedAt, expiresAt);
-              return sessions.save(session)
-                  .map(saved -> new PlaybackStarted(saved, item, source, null));
-            }));
+                  Long resume = watchProgress.position() == null || watchProgress.completed()
+                      ? null : watchProgress.position().seconds();
+                  return sessions.save(session)
+                      .map(saved -> new PlaybackStarted(saved, item, source, resume));
+                })));
   }
 
   public record PlaybackStarted(PlaybackSession session,
