@@ -39,6 +39,13 @@ public final class PlaybackSession {
         PlaybackSessionStatus.ACTIVE, 0, null);
   }
 
+  public static PlaybackSession restore(PlaybackSessionId id, ViewerId viewerId,
+      CatalogItemId catalogItemId, AssetId assetId, Instant startedAt, Instant expiresAt,
+      PlaybackSessionStatus status, long lastSequence, PlaybackPosition lastPosition) {
+    return new PlaybackSession(id, viewerId, catalogItemId, assetId, startedAt, expiresAt,
+        status, lastSequence, lastPosition);
+  }
+
   public boolean recordProgress(PlaybackPosition position, long sequence) {
     if (status != PlaybackSessionStatus.ACTIVE || sequence <= lastSequence) {
       return false;
