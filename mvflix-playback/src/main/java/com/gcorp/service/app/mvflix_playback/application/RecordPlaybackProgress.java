@@ -11,6 +11,7 @@ import com.gcorp.service.app.mvflix_playback.domain.ContentReference;
 import com.gcorp.service.app.mvflix_playback.domain.LibraryAssetReference;
 import java.util.HashMap;
 import java.util.UUID;
+import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import reactor.core.publisher.Mono;
@@ -49,7 +50,7 @@ public class RecordPlaybackProgress {
                 var watchChanged = watch.update(position, session.id(), session.startedAt(), sequence, completed,
                     java.time.Instant.now());
                 if (!watchChanged) {
-                  return sessions.save(session);
+                return saveSession(session, sequence);
                 }
                 var payload = new HashMap<String, Object>();
                 payload.put("ownerUsername", viewerId.value());
@@ -64,13 +65,27 @@ public class RecordPlaybackProgress {
                 payload.put("completed", completed);
                 var metadata = new PlaybackOutbox.EventMetadata(viewerId.value(), viewerId.value(),
                     UUID.randomUUID(), null);
-                return sessions.save(session)
-                    .flatMap(saved -> progress.save(watch)
-                        .then(outbox.append(completed ? "PlaybackCompleted" : "PlaybackProgressed",
-                            saved.id().value(), payload, metadata))
-                        .thenReturn(saved));
+                return saveSession(session, sequence)
+                    .flatMap(saved -> saved == session
+                        ? progress.save(watch)
+                            .then(Mono.defer(() -> outbox.append(
+                                completed ? "PlaybackCompleted" : "PlaybackProgressed",
+                                saved.id().value(), payload, metadata)))
+                            .onErrorResume(OptimisticLockingFailureException.class,
+                                error -> Mono.empty())
+                            .thenReturn(saved)
+                        : Mono.just(saved));
               });
-        });
+         });
+  }
+
+  private Mono<PlaybackSession> saveSession(PlaybackSession session, long sequence) {
+    return sessions.save(session)
+        .onErrorResume(OptimisticLockingFailureException.class, error ->
+            sessions.findById(session.id())
+                .switchIfEmpty(Mono.error(error))
+                .flatMap(current -> current.lastSequence() >= sequence
+                    ? Mono.just(current) : Mono.error(error)));
   }
 
   private static Long mediaId(ContentReference reference) {

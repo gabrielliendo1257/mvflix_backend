@@ -15,6 +15,7 @@ import com.gcorp.service.app.mvflix_playback.domain.PlaybackSessionId;
 import com.gcorp.service.app.mvflix_playback.domain.ViewerId;
 import java.time.Instant;
 import java.util.UUID;
+import org.springframework.dao.OptimisticLockingFailureException;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Mono;
 
@@ -97,6 +98,42 @@ class RecordPlaybackProgressTest {
     assertThat(result).isSameAs(session);
     verify(sessions).save(session);
     verify(progress, never()).save(org.mockito.ArgumentMatchers.any());
+    verify(outbox, never()).append(org.mockito.ArgumentMatchers.anyString(), org.mockito.ArgumentMatchers.any(),
+        org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any());
+  }
+
+  @Test
+  void reloadsCurrentSessionWhenConcurrentRequestAlreadyAppliedSameSequence() {
+    var session = session();
+    var current = session();
+    current.recordProgress(new com.gcorp.service.app.mvflix_playback.domain.PlaybackPosition(42, 100), 1);
+    when(sessions.findById(sessionId)).thenReturn(Mono.just(session), Mono.just(current));
+    when(sessions.save(session)).thenReturn(Mono.error(new OptimisticLockingFailureException("cas")));
+    when(progress.find(viewer, session.catalogItemId())).thenReturn(Mono.empty());
+
+    var result = useCase.execute(sessionId, viewer, 1, 42, 100L, false).block();
+
+    assertThat(result).isSameAs(current);
+    verify(progress, never()).save(org.mockito.ArgumentMatchers.any());
+    verify(outbox, never()).append(org.mockito.ArgumentMatchers.anyString(), org.mockito.ArgumentMatchers.any(),
+        org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any());
+  }
+
+  @Test
+  void keepsSessionProgressWhenGlobalWatchProgressCasLoses() {
+    var session = session();
+    when(sessions.findById(sessionId)).thenReturn(Mono.just(session));
+    when(sessions.save(session)).thenReturn(Mono.just(session));
+    when(progress.find(viewer, session.catalogItemId())).thenReturn(Mono.empty());
+    when(progress.save(org.mockito.ArgumentMatchers.any()))
+        .thenReturn(Mono.error(new OptimisticLockingFailureException("cas")));
+    when(outbox.append(org.mockito.ArgumentMatchers.anyString(), org.mockito.ArgumentMatchers.any(),
+        org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any())).thenReturn(Mono.empty());
+
+    var result = useCase.execute(sessionId, viewer, 1, 42, 100L, false).block();
+
+    assertThat(result).isSameAs(session);
+    verify(sessions).save(session);
     verify(outbox, never()).append(org.mockito.ArgumentMatchers.anyString(), org.mockito.ArgumentMatchers.any(),
         org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any());
   }

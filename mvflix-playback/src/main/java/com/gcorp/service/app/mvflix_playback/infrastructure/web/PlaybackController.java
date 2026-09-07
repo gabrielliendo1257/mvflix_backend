@@ -7,6 +7,7 @@ import com.gcorp.service.app.mvflix_playback.domain.PlaybackSessionId;
 import com.gcorp.service.app.mvflix_playback.domain.ViewerId;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
+import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -46,6 +47,11 @@ public class PlaybackController {
         .map(session -> ResponseEntity.ok(new ProgressResponse(session.lastSequence(),
             session.lastPosition() == null ? null : session.lastPosition().seconds(),
             session.status().name())));
+  }
+
+  @org.springframework.web.bind.annotation.ExceptionHandler(OptimisticLockingFailureException.class)
+  public ResponseEntity<Void> optimisticLockConflict() {
+    return ResponseEntity.status(org.springframework.http.HttpStatus.CONFLICT).build();
   }
 
   public record ProgressRequest(long sequence, long positionSeconds, Long durationSeconds,
