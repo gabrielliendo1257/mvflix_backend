@@ -8,6 +8,7 @@ import com.gcorp.service.app.mvflix_playback.domain.PlaybackSession;
 import com.gcorp.service.app.mvflix_playback.domain.PlaybackSessionId;
 import com.gcorp.service.app.mvflix_playback.domain.ViewerId;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import reactor.core.publisher.Mono;
 
 @Service
@@ -23,6 +24,7 @@ public class RecordPlaybackProgress {
     this.outbox = outbox;
   }
 
+  @Transactional("connectionFactoryTransactionManager")
   public Mono<PlaybackSession> execute(PlaybackSessionId sessionId, ViewerId viewerId,
       long sequence, long positionSeconds, Long durationSeconds, boolean completed) {
     return sessions.findById(sessionId)
