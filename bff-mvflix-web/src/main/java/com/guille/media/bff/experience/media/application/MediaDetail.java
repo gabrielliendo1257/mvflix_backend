@@ -27,16 +27,31 @@ public record MediaDetail(
       String duration,
       String posterPath,
       String overviewText,
-      List<String> genres,
-      String director,
-      List<String> cast,
-      String kind,
+       List<String> genres,
+       String director,
+       List<String> cast,
+       String releaseDate,
+       String country,
+       String language,
+       List<String> awards,
+       Double popularity,
+       String kind,
       String visibility,
       String domainStatus,
       Long objectId,
       Long assetId,
-      Boolean assetPresent,
-      Long tmdbId) {}
+       Boolean assetPresent,
+       Long tmdbId) {
+    public Source(long mediaId, String title, String originalTitle, Integer year,
+        String duration, String posterPath, String overviewText, List<String> genres,
+        String director, List<String> cast, String kind, String visibility,
+        String domainStatus, Long objectId, Long assetId, Boolean assetPresent,
+        Long tmdbId) {
+      this(mediaId, title, originalTitle, year, duration, posterPath, overviewText,
+          genres, director, cast, null, null, null, null, null, kind, visibility,
+          domainStatus, objectId, assetId, assetPresent, tmdbId);
+    }
+  }
 
   public static MediaDetail from(Source s) {
     boolean managed = s.objectId() != null;
@@ -66,8 +81,9 @@ public record MediaDetail(
     boolean linked = s.tmdbId() != null;
 
     return new MediaDetail(
-        new Overview(s.title(), s.originalTitle(), s.year(), s.duration(),
-            s.posterPath(), s.overviewText(), s.genres(), s.director(), s.cast()),
+         new Overview(s.title(), s.originalTitle(), s.year(), s.duration(),
+             s.posterPath(), s.overviewText(), s.genres(), s.director(), s.cast(),
+             s.releaseDate(), s.country(), s.language(), s.awards(), s.popularity()),
         new Media(s.mediaId(), s.domainStatus(), displayStatus, s.kind(), s.visibility()),
         new Access(source, s.assetId(), local ? s.assetPresent() : null),
         new Provider(linked ? "LINKED" : "NONE", s.tmdbId()),
@@ -90,9 +106,14 @@ public record MediaDetail(
       String duration,
       String posterUrl,
       String overview,
-      List<String> genres,
-      String director,
-      List<String> cast) {}
+       List<String> genres,
+       String director,
+       List<String> cast,
+       String releaseDate,
+       String country,
+       String language,
+       List<String> awards,
+       Double popularity) {}
 
   public record Media(
       Long mediaId,

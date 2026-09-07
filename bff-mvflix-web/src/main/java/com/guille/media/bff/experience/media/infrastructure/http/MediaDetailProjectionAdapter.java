@@ -62,6 +62,11 @@ public class MediaDetailProjectionAdapter implements MediaDetailProjection {
             joined.getT1().genres(),
             joined.getT1().director(),
             joined.getT1().cast(),
+            joined.getT1().releaseDate(),
+            joined.getT1().country(),
+            joined.getT1().language(),
+            joined.getT1().awards(),
+            joined.getT1().popularity(),
             joined.getT1().kind(),
             joined.getT1().visibility(),
             joined.getT1().status(),
@@ -92,15 +97,29 @@ public class MediaDetailProjectionAdapter implements MediaDetailProjection {
       String duration,
       @com.fasterxml.jackson.annotation.JsonProperty("poster_path") String posterPath,
       String overview,
-      List<String> genres,
-      String director,
-      List<String> cast,
-      String kind,
+       List<String> genres,
+       String director,
+       List<String> cast,
+       @com.fasterxml.jackson.annotation.JsonProperty("release_date") String releaseDate,
+       String country,
+       String language,
+       List<String> awards,
+       Double popularity,
+       String kind,
       String visibility,
       String status,
-      @com.fasterxml.jackson.annotation.JsonProperty("enrichment_status") String enrichmentStatus,
-      @com.fasterxml.jackson.annotation.JsonProperty("object_id") Long objectId,
-      @com.fasterxml.jackson.annotation.JsonProperty("tmdb_id") Long tmdbId) {}
+       @com.fasterxml.jackson.annotation.JsonProperty("enrichment_status") String enrichmentStatus,
+       @com.fasterxml.jackson.annotation.JsonProperty("object_id") Long objectId,
+       @com.fasterxml.jackson.annotation.JsonProperty("tmdb_id") Long tmdbId) {
+    DownstreamMovie(long id, String title, String originalTitle, Integer year,
+        String duration, String posterPath, String overview, List<String> genres,
+        String director, List<String> cast, String kind, String visibility,
+        String status, String enrichmentStatus, Long objectId, Long tmdbId) {
+      this(id, title, originalTitle, year, duration, posterPath, overview, genres,
+          director, cast, null, null, null, null, null, kind, visibility, status,
+          enrichmentStatus, objectId, tmdbId);
+    }
+  }
 
   @JsonIgnoreProperties(ignoreUnknown = true)
   record DownstreamAsset(

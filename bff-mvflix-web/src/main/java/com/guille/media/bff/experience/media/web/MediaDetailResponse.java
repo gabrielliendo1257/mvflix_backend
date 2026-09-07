@@ -17,9 +17,11 @@ public record MediaDetailResponse(
         new OverviewResponse(
             detail.overview().title(), detail.overview().originalTitle(),
             detail.overview().year(), detail.overview().duration(),
-            detail.overview().posterUrl(), detail.overview().overview(),
-            detail.overview().genres(), detail.overview().director(),
-            detail.overview().cast()),
+             detail.overview().posterUrl(), detail.overview().overview(),
+             detail.overview().genres(), detail.overview().director(),
+             detail.overview().cast(), detail.overview().releaseDate(),
+             detail.overview().country(), detail.overview().language(),
+             detail.overview().awards(), detail.overview().popularity()),
         new MediaResponse(
             detail.media().mediaId(), detail.media().status(),
             detail.media().displayStatus(), detail.media().kind(),
@@ -41,7 +43,12 @@ public record MediaDetailResponse(
       String overview,
       List<String> genres,
       String director,
-      List<String> cast) {}
+      List<String> cast,
+      String releaseDate,
+      String country,
+      String language,
+      List<String> awards,
+      Double popularity) {}
 
   public record MediaResponse(
       Long mediaId,
