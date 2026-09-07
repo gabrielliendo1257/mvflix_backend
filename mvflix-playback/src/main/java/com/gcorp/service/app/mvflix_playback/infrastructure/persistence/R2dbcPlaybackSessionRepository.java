@@ -43,6 +43,35 @@ public class R2dbcPlaybackSessionRepository implements PlaybackSessionRepository
   }
 
   @Override
+  public Mono<PlaybackSession> create(PlaybackSession session) {
+    var statement = database.sql("""
+        INSERT INTO playback_session
+           (id, viewer_id, catalog_item_id, content_reference_type, content_reference_id, status, started_at, expires_at,
+           last_sequence, last_position_seconds, last_duration_seconds, updated_at)
+        VALUES (:id, :viewer, :catalog, :reference_type, :reference_id, :status, :started, :expires,
+                :sequence, :position, :duration, NOW())
+        ON CONFLICT DO NOTHING
+        RETURNING id
+        """)
+        .bind("id", session.id().value())
+        .bind("viewer", session.viewerId().value())
+        .bind("catalog", session.catalogItemId().value())
+        .bind("reference_type", session.contentReference().type())
+        .bind("reference_id", session.contentReference().value())
+        .bind("status", session.status().name())
+        .bind("started", session.startedAt())
+        .bind("expires", session.expiresAt())
+        .bind("sequence", session.lastSequence());
+    if (session.lastPosition() == null) {
+      statement = statement.bindNull("position", Long.class).bindNull("duration", Long.class);
+    } else {
+      statement = statement.bind("position", session.lastPosition().seconds())
+          .bind("duration", session.lastPosition().durationSeconds());
+    }
+    return statement.map((row, metadata) -> session).one();
+  }
+
+  @Override
   public Mono<PlaybackSession> save(PlaybackSession session) {
     var statement = database.sql("""
         INSERT INTO playback_session

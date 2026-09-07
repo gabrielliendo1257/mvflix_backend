@@ -9,5 +9,6 @@ public interface PlaybackSessionRepository {
   Mono<PlaybackSession> findActive(
       com.gcorp.service.app.mvflix_playback.domain.ViewerId viewerId,
       com.gcorp.service.app.mvflix_playback.domain.CatalogItemId catalogItemId);
+  Mono<PlaybackSession> create(PlaybackSession session);
   Mono<PlaybackSession> save(PlaybackSession session);
 }
