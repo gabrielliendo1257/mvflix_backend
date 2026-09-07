@@ -6,7 +6,7 @@ public final class PlaybackSession {
   private final PlaybackSessionId id;
   private final ViewerId viewerId;
   private final CatalogItemId catalogItemId;
-  private final AssetId assetId;
+  private final ContentReference contentReference;
   private final Instant startedAt;
   private final Instant expiresAt;
   private PlaybackSessionStatus status;
@@ -14,7 +14,7 @@ public final class PlaybackSession {
   private PlaybackPosition lastPosition;
 
   private PlaybackSession(PlaybackSessionId id, ViewerId viewerId, CatalogItemId catalogItemId,
-      AssetId assetId, Instant startedAt, Instant expiresAt, PlaybackSessionStatus status,
+      ContentReference contentReference, Instant startedAt, Instant expiresAt, PlaybackSessionStatus status,
       long lastSequence, PlaybackPosition lastPosition) {
     if (startedAt == null || expiresAt == null || !expiresAt.isAfter(startedAt)) {
       throw new IllegalArgumentException("Playback session timestamps are invalid");
@@ -25,7 +25,7 @@ public final class PlaybackSession {
     this.id = id;
     this.viewerId = viewerId;
     this.catalogItemId = catalogItemId;
-    this.assetId = assetId;
+    this.contentReference = contentReference;
     this.startedAt = startedAt;
     this.expiresAt = expiresAt;
     this.status = status;
@@ -34,15 +34,15 @@ public final class PlaybackSession {
   }
 
   public static PlaybackSession start(PlaybackSessionId id, ViewerId viewerId,
-      CatalogItemId catalogItemId, AssetId assetId, Instant startedAt, Instant expiresAt) {
-    return new PlaybackSession(id, viewerId, catalogItemId, assetId, startedAt, expiresAt,
+      CatalogItemId catalogItemId, ContentReference contentReference, Instant startedAt, Instant expiresAt) {
+    return new PlaybackSession(id, viewerId, catalogItemId, contentReference, startedAt, expiresAt,
         PlaybackSessionStatus.ACTIVE, 0, null);
   }
 
   public static PlaybackSession restore(PlaybackSessionId id, ViewerId viewerId,
-      CatalogItemId catalogItemId, AssetId assetId, Instant startedAt, Instant expiresAt,
+      CatalogItemId catalogItemId, ContentReference contentReference, Instant startedAt, Instant expiresAt,
       PlaybackSessionStatus status, long lastSequence, PlaybackPosition lastPosition) {
-    return new PlaybackSession(id, viewerId, catalogItemId, assetId, startedAt, expiresAt,
+    return new PlaybackSession(id, viewerId, catalogItemId, contentReference, startedAt, expiresAt,
         status, lastSequence, lastPosition);
   }
 
@@ -80,7 +80,7 @@ public final class PlaybackSession {
   public PlaybackSessionId id() { return id; }
   public ViewerId viewerId() { return viewerId; }
   public CatalogItemId catalogItemId() { return catalogItemId; }
-  public AssetId assetId() { return assetId; }
+  public ContentReference contentReference() { return contentReference; }
   public PlaybackSessionStatus status() { return status; }
   public Instant startedAt() { return startedAt; }
   public Instant expiresAt() { return expiresAt; }

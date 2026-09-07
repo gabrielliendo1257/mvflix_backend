@@ -8,8 +8,8 @@ import static org.mockito.Mockito.when;
 
 import com.gcorp.service.app.mvflix_playback.application.port.PlaybackSessionRepository;
 import com.gcorp.service.app.mvflix_playback.application.port.WatchProgressRepository;
-import com.gcorp.service.app.mvflix_playback.domain.AssetId;
 import com.gcorp.service.app.mvflix_playback.domain.CatalogItemId;
+import com.gcorp.service.app.mvflix_playback.domain.LibraryAssetReference;
 import com.gcorp.service.app.mvflix_playback.domain.PlaybackSession;
 import com.gcorp.service.app.mvflix_playback.domain.PlaybackSessionId;
 import com.gcorp.service.app.mvflix_playback.domain.ViewerId;
@@ -101,7 +101,7 @@ class RecordPlaybackProgressTest {
   }
 
   private PlaybackSession session() {
-    return PlaybackSession.start(sessionId, viewer, new CatalogItemId(42), new AssetId(77),
+    return PlaybackSession.start(sessionId, viewer, new CatalogItemId(42), new LibraryAssetReference(77),
         Instant.parse("2026-01-01T00:00:00Z"), Instant.parse("2026-01-01T01:00:00Z"));
   }
 }

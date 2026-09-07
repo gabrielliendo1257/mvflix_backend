@@ -48,6 +48,6 @@ reproductor, no necesariamente del servidor.
   la capability del BFF y su proxy.
 - Los primeros eventos son `PlaybackStarted.v1`, `PlaybackProgressed.v1`,
   `PlaybackCompleted.v1` y `PlaybackFailed.v1`.
-- `PlaybackProgressed` usa `viewerId`, `catalogItemId` y `assetId`; si el
-  contrato anterior ya estuviera publicado externamente, se versionaría como
-  `PlaybackProgressed.v2`.
+- Los eventos usan `viewerId`, `catalogItemId` y una `contentReference` tipada
+  (`MANAGED_OBJECT` o `LIBRARY_ASSET`); si el contrato anterior con `assetId`
+  ya estuviera publicado externamente, se versionaría como `*.v2`.

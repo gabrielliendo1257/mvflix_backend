@@ -51,7 +51,7 @@ class PlaybackSessionTest {
 
   private PlaybackSession session() {
     return PlaybackSession.start(new PlaybackSessionId(java.util.UUID.randomUUID()),
-        new ViewerId("viewer-1"), new CatalogItemId(42), new AssetId(7), startedAt,
+        new ViewerId("viewer-1"), new CatalogItemId(42), new LibraryAssetReference(7), startedAt,
         startedAt.plusSeconds(3600));
   }
 }

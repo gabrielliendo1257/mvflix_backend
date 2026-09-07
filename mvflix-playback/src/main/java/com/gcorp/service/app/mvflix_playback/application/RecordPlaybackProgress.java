@@ -51,7 +51,9 @@ public class RecordPlaybackProgress {
                     .flatMap(saved -> progress.save(watch)
                         .then(outbox.append(completed ? "PlaybackCompleted" : "PlaybackProgressed",
                             saved.id().value(), java.util.Map.of("viewerId", viewerId.value(),
-                                "catalogItemId", saved.catalogItemId().value(), "assetId", saved.assetId().value(),
+                                "catalogItemId", saved.catalogItemId().value(),
+                                "contentReferenceType", saved.contentReference().type(),
+                                "contentReferenceId", saved.contentReference().value(),
                                 "sessionId", saved.id().value(), "sequence", sequence,
                                 "positionSeconds", positionSeconds, "completed", completed)))
                         .thenReturn(saved));

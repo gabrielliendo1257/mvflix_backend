@@ -4,8 +4,10 @@ import com.gcorp.service.app.mvflix_playback.application.port.AuthorizedCatalog;
 import com.gcorp.service.app.mvflix_playback.application.port.ContentAccess;
 import com.gcorp.service.app.mvflix_playback.application.port.PlaybackSessionRepository;
 import com.gcorp.service.app.mvflix_playback.application.port.WatchProgressRepository;
-import com.gcorp.service.app.mvflix_playback.domain.AssetId;
 import com.gcorp.service.app.mvflix_playback.domain.CatalogItemId;
+import com.gcorp.service.app.mvflix_playback.domain.ContentReference;
+import com.gcorp.service.app.mvflix_playback.domain.LibraryAssetReference;
+import com.gcorp.service.app.mvflix_playback.domain.ManagedObjectReference;
 import com.gcorp.service.app.mvflix_playback.domain.PlaybackSession;
 import com.gcorp.service.app.mvflix_playback.domain.PlaybackSessionId;
 import com.gcorp.service.app.mvflix_playback.domain.ViewerId;
@@ -45,16 +47,19 @@ public class StartPlayback {
                 .defaultIfEmpty(new com.gcorp.service.app.mvflix_playback.domain.WatchProgress(
                     viewerId, catalogItemId))
                 .flatMap(watchProgress -> {
-              AssetId assetId = item.objectId() == null
-                  ? new AssetId(item.asset().id()) : new AssetId(item.objectId());
+              ContentReference contentReference = item.objectId() == null
+                  ? new LibraryAssetReference(item.asset().id())
+                  : new ManagedObjectReference(item.objectId());
               PlaybackSession session = PlaybackSession.start(PlaybackSessionId.generate(), viewerId,
-                  catalogItemId, assetId, startedAt, expiresAt);
+                  catalogItemId, contentReference, startedAt, expiresAt);
                   Long resume = watchProgress.position() == null || watchProgress.completed()
                       ? null : watchProgress.position().seconds();
                   return sessions.save(session)
                       .flatMap(saved -> outbox.append("PlaybackStarted", saved.id().value(),
                           java.util.Map.of("viewerId", viewerId.value(), "catalogItemId", catalogItemId.value(),
-                              "assetId", assetId.value(), "sessionId", saved.id().value()))
+                               "contentReferenceType", contentReference.type(),
+                               "contentReferenceId", contentReference.value(),
+                               "sessionId", saved.id().value()))
                           .thenReturn(new PlaybackStarted(saved, item, source, resume)));
                 })));
   }
