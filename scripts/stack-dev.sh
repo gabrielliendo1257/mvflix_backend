@@ -45,6 +45,9 @@ BFF_PORT=9091
 DB_TARGET_HOST="${DB_HOST:-127.0.0.1}"
 DB_TARGET_PORT="${DB_PORT:-5432}"
 MINIO_TARGET_URL="${MINIO_URL:-http://127.0.0.1:9000}"
+KAFKA_TARGET_HOST="${KAFKA_HOST:-127.0.0.1}"
+KAFKA_TARGET_PORT="${KAFKA_EXTERNAL_PORT:-9094}"
+KAFKA_REQUIRED="${MVFLIX_MESSAGING_KAFKA_ENABLED:-false}"
 STATE_DIR="${XDG_STATE_HOME:-$HOME/.local/state}/mvflix-dev"
 LOG_DIR="${STATE_DIR}/logs"
 PID_DIR="${STATE_DIR}/pids"
@@ -91,6 +94,28 @@ tcp_open() {
   else
     (exec 3<>"/dev/tcp/${host}/${port}") 2>/dev/null
   fi
+}
+
+kafka_responding() {
+  if ! tcp_open "${KAFKA_TARGET_HOST}" "${KAFKA_TARGET_PORT}"; then
+    return 1
+  fi
+  if command -v docker >/dev/null 2>&1 && docker inspect kafka >/dev/null 2>&1; then
+    docker exec kafka /opt/kafka/bin/kafka-topics.sh \
+      --bootstrap-server 127.0.0.1:9092 --list >/dev/null 2>&1
+  else
+    return 0
+  fi
+}
+
+wait_kafka() {
+  for _ in $(seq 1 60); do
+    if kafka_responding; then
+      return 0
+    fi
+    sleep 1
+  done
+  echo "  [WARN] kafka no respondio en ${KAFKA_TARGET_HOST}:${KAFKA_TARGET_PORT}"
 }
 
 port_free() {
@@ -184,6 +209,14 @@ start() {
   if ! url_responding "${MINIO_TARGET_URL}"; then
     echo "minio no responde en ${MINIO_TARGET_URL} -> revisa envs/.env"
   fi
+  if kafka_responding; then
+    echo "kafka responde en ${KAFKA_TARGET_HOST}:${KAFKA_TARGET_PORT}"
+  elif [ "${KAFKA_REQUIRED}" = "true" ]; then
+    echo "kafka es obligatorio; esperando disponibilidad en ${KAFKA_TARGET_HOST}:${KAFKA_TARGET_PORT}"
+    wait_kafka
+  else
+    echo "kafka no responde en ${KAFKA_TARGET_HOST}:${KAFKA_TARGET_PORT} (mensajeria deshabilitada)"
+  fi
 
   echo "== Compilando e instalando modulos compartidos =="
   "${MVN_CMD}" -q -pl mvflix-devseed -am install -DskipTests
@@ -243,6 +276,11 @@ status() {
     echo "  minio: UP (${MINIO_TARGET_URL})"
   else
     echo "  minio: DOWN (${MINIO_TARGET_URL})"
+  fi
+  if kafka_responding; then
+    echo "  kafka: UP (${KAFKA_TARGET_HOST}:${KAFKA_TARGET_PORT})"
+  else
+    echo "  kafka: DOWN (${KAFKA_TARGET_HOST}:${KAFKA_TARGET_PORT})"
   fi
   for name in mvflix-authorization mvflix-users mvflix-storage mvflix-movies mvflix-media-ingestion mvflix-playback bff-mvflix-web; do
     local port=${SERVICES[$name]}
