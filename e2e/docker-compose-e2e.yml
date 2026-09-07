@@ -146,6 +146,37 @@ services:
       kafka-init: { condition: service_completed_successfully }
       jwks-stub: { condition: service_healthy }
 
+  playback:
+    build:
+      context: ..
+      dockerfile: mvflix-playback/Dockerfile
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: mvflix_playback_db
+      SPRING_FLYWAY_ENABLED: "true"
+      SPRING_FLYWAY_URL: jdbc:postgresql://postgres:5432/mvflix_playback_db
+      SPRING_FLYWAY_USER: db_migrator
+      SPRING_FLYWAY_PASSWORD: 12345678
+      SERVICES_MOVIES_URL: http://movies:4040
+      SERVICES_STORAGE_URL: http://storage:6060
+      SERVICES_AUTHORIZATION_URL: http://jwks-stub:8080
+      SECURITY_OAUTH2_JWK_SET_URI: http://jwks-stub:8080/oauth2/jwks
+      MANAGEMENT_SERVER_PORT: 10071
+    ports:
+      - "${E2E_BIND_ADDRESS:-127.0.0.1}:17071:7070"
+      - "${E2E_BIND_ADDRESS:-127.0.0.1}:11071:10071"
+    depends_on:
+      postgres: { condition: service_healthy }
+      movies: { condition: service_healthy }
+      storage: { condition: service_healthy }
+      jwks-stub: { condition: service_healthy }
+    healthcheck:
+      test: ["CMD-SHELL", "curl --fail --silent http://localhost:10071/actuator/health/readiness"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+
   minio:
     image: ${MVFLIX_MINIO_IMAGE}
     environment:
@@ -279,6 +310,7 @@ services:
       SERVICES_STORAGE_URL: http://storage:6060
       SERVICES_MOVIES_URL: http://movies:4040
       SERVICES_ACTIVITY_URL: http://activity:8080
+      SERVICES_PLAYBACK_URL: http://playback:7070
       SERVICES_USERS_URL: ${SERVICES_USERS_URL:-http://users-policy-stub:8080}
       SECURITY_OAUTH2_JWK_SET_URI: http://jwks-stub:8080/oauth2/jwks
       AUTHORIZATION_ISSUER_URL: http://jwks-stub:8080
@@ -294,6 +326,7 @@ services:
       jwks-stub: { condition: service_healthy }
       media-ingestion: { condition: service_healthy }
       activity: { condition: service_healthy }
+      playback: { condition: service_healthy }
       storage: { condition: service_healthy }
       movies: { condition: service_healthy }
       users-policy-stub: { condition: service_healthy }

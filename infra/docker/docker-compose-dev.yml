@@ -204,6 +204,26 @@ services:
       kafka-init: { condition: service_completed_successfully }
     extra_hosts: ["host.docker.internal:host-gateway"]
 
+  playback:
+    build:
+      context: ../..
+      dockerfile: mvflix-playback/Dockerfile
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: mvflix_playback_db
+      SERVICES_MOVIES_URL: http://host.docker.internal:4040
+      SERVICES_STORAGE_URL: http://host.docker.internal:6060
+      SERVICES_AUTHORIZATION_URL: http://host.docker.internal:8081
+      SECURITY_OAUTH2_JWK_SET_URI: ${SECURITY_OAUTH2_JWK_SET_URI:-http://host.docker.internal:8081/oauth2/jwks}
+      MANAGEMENT_SERVER_PORT: 10071
+    ports:
+      - "${PLAYBACK_PORT:-7071}:7070"
+      - "${PLAYBACK_MANAGEMENT_PORT:-10071}:10071"
+    depends_on:
+      postgres: { condition: service_healthy }
+    extra_hosts: ["host.docker.internal:host-gateway"]
+
   prometheus:
     image: ${MVFLIX_PROMETHEUS_IMAGE}
     container_name: prometheus
