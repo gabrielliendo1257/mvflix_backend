@@ -163,6 +163,8 @@ start_one() {
     extra_args+=("-Dspring-boot.run.jvmArguments=-DPLAYBACK_PORT_INTERNAL=${PLAYBACK_PORT} -DSERVICES_MOVIES_URL=http://127.0.0.1:${MOVIES_PORT} -DSERVICES_STORAGE_URL=http://127.0.0.1:${STORAGE_PORT} -DSERVICES_AUTHORIZATION_URL=http://127.0.0.1:${AUTH_PORT} -DSECURITY_OAUTH2_JWK_SET_URI=http://127.0.0.1:${AUTH_PORT}/oauth2/jwks -DKAFKA_BOOTSTRAP_SERVERS=${KAFKA_BOOTSTRAP_SERVERS:-127.0.0.1:9094}")
   elif [ "${name}" = "bff-mvflix-web" ]; then
     extra_args+=("-Dspring-boot.run.jvmArguments=-DMEDIA_INGESTION_URL=http://127.0.0.1:${MEDIA_INGESTION_PORT} -DMEDIA_INGESTION_ENABLED=true -DPLAYBACK_URL=http://127.0.0.1:${PLAYBACK_PORT}")
+  elif [ "${name}" = "mvflix-users" ]; then
+    extra_args+=("-Dspring-boot.run.jvmArguments=-DDB_HOST=${DB_TARGET_HOST} -DDB_PORT=${DB_TARGET_PORT}")
   fi
   TMDB_API_TOKEN="${TMDB_API_TOKEN:-}" nohup "${MVN_CMD}" -q -pl "${name}" spring-boot:run \
     "${extra_args[@]}" \
