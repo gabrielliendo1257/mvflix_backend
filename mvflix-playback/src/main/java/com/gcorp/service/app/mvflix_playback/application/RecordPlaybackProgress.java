@@ -50,7 +50,7 @@ public class RecordPlaybackProgress {
                 var watchChanged = watch.update(position, session.id(), session.startedAt(), sequence, completed,
                     java.time.Instant.now());
                 if (!watchChanged) {
-                return saveSession(session, sequence);
+                  return saveSession(session, sequence).map(SessionSave::session);
                 }
                 var payload = new HashMap<String, Object>();
                 payload.put("ownerUsername", viewerId.value());
@@ -66,27 +66,30 @@ public class RecordPlaybackProgress {
                 var metadata = new PlaybackOutbox.EventMetadata(viewerId.value(), viewerId.value(),
                     UUID.randomUUID(), null);
                 return saveSession(session, sequence)
-                    .flatMap(saved -> saved == session
+                    .flatMap(saved -> saved.persisted()
                         ? progress.save(watch)
                             .then(Mono.defer(() -> outbox.append(
                                 completed ? "PlaybackCompleted" : "PlaybackProgressed",
-                                saved.id().value(), payload, metadata)))
+                                saved.session().id().value(), payload, metadata)))
                             .onErrorResume(OptimisticLockingFailureException.class,
                                 error -> Mono.empty())
-                            .thenReturn(saved)
-                        : Mono.just(saved));
+                            .thenReturn(saved.session())
+                        : Mono.just(saved.session()));
               });
          });
   }
 
-  private Mono<PlaybackSession> saveSession(PlaybackSession session, long sequence) {
+  private Mono<SessionSave> saveSession(PlaybackSession session, long sequence) {
     return sessions.save(session)
+        .map(saved -> new SessionSave(saved, true))
         .onErrorResume(OptimisticLockingFailureException.class, error ->
             sessions.findById(session.id())
                 .switchIfEmpty(Mono.error(error))
                 .flatMap(current -> current.lastSequence() >= sequence
-                    ? Mono.just(current) : Mono.error(error)));
+                    ? Mono.just(new SessionSave(current, false)) : Mono.error(error)));
   }
+
+  private record SessionSave(PlaybackSession session, boolean persisted) {}
 
   private static Long mediaId(ContentReference reference) {
     return reference instanceof LibraryAssetReference local ? local.assetId() : null;
