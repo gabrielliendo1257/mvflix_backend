@@ -202,6 +202,24 @@ components:
       contentType: application/json
       payload:
         $ref: '#/components/schemas/ManagedMediaDeletionRequestedEnvelope'
+      examples:
+        - name: managed-media-deletion-requested-v1
+          payload:
+            eventId: 88888888-8888-4888-8888-888888888888
+            eventType: ManagedMediaDeletionRequested
+            eventVersion: 1
+            occurredAt: '2026-08-28T12:00:00Z'
+            actorId: system
+            correlationId: 99999999-9999-4999-8999-999999999999
+            producer: mvflix-movies
+            aggregate:
+              type: Movie
+              id: '101'
+            payload:
+              movieId: 101
+              storageId: 42
+              ownerUsername: Javier
+              objectKey: Javier/videos/dune.mp4
       bindings:
         kafka:
           key:
@@ -281,6 +299,24 @@ components:
       contentType: application/json
       payload:
         $ref: '#/components/schemas/UploadFailedEnvelope'
+      examples:
+        - name: upload-failed-v1
+          payload:
+            eventId: aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa
+            eventType: UploadFailed
+            eventVersion: 1
+            occurredAt: '2026-08-28T12:05:00Z'
+            actorId: system
+            correlationId: bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb
+            producer: mvflix-storage
+            aggregate:
+              type: ManagedObject
+              id: '42'
+            payload:
+              storageId: 42
+              ownerUsername: Javier
+              objectKey: Javier/videos/dune.mp4
+              reason: VALIDATION_FAILED
 
     PlaybackProgressed:
       name: PlaybackProgressed
