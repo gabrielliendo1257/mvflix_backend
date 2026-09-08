@@ -307,6 +307,7 @@ components:
             eventVersion: 1
             occurredAt: '2026-08-28T12:05:00Z'
             actorId: system
+            audienceId: Javier
             correlationId: bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb
             producer: mvflix-storage
             aggregate:
