@@ -1,0 +1,28 @@
+name: Contracts
+
+on:
+  push:
+    paths:
+      - 'docs/asyncapi/**'
+      - 'docs/openapi/**'
+      - 'scripts/validate-*-api.sh'
+      - 'scripts/validate-contracts.sh'
+      - '.github/workflows/contracts.yml'
+  pull_request:
+    paths:
+      - 'docs/asyncapi/**'
+      - 'docs/openapi/**'
+      - 'scripts/validate-*-api.sh'
+      - 'scripts/validate-contracts.sh'
+      - '.github/workflows/contracts.yml'
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Validate AsyncAPI and OpenAPI
+        run: bash scripts/validate-contracts.sh
