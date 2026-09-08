@@ -14,7 +14,12 @@
         <java.version>21</java.version>
         <archunit.version>1.4.1</archunit.version>
     </properties>
-    <dependencies>
+  <dependencies>
+    <dependency>
+      <groupId>com.gcorp.mvflix</groupId>
+      <artifactId>mvflix-security-webflux-spring-boot-starter</artifactId>
+      <version>0.0.1-SNAPSHOT</version>
+    </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-webflux</artifactId>
