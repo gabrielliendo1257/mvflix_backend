@@ -114,7 +114,14 @@ class AddMediaE2ETest {
   }
 
   static JsonNode start(String token, String key, String body, int expected) throws Exception {
-    return JSON.readTree(request("POST", BFF + "/web/add-media", token, key, body, expected).body());
+    HttpResponse<String> response = await().atMost(Duration.ofSeconds(30))
+        .pollInterval(Duration.ofMillis(500)).until(() -> {
+          HttpResponse<String> candidate = request(
+              "POST", BFF + "/web/add-media", token, key, body);
+          return candidate.statusCode() == 503 ? null : candidate;
+        }, candidate -> candidate != null);
+    assertEquals(expected, response.statusCode(), response.body());
+    return JSON.readTree(response.body());
   }
 
   static void complete(String token, String id, int... expected) throws Exception {
@@ -220,6 +227,7 @@ class AddMediaE2ETest {
       throw new AssertionError("media-ingestion restart failed with exit "
           + (finished ? process.exitValue() : "timeout") + ": " + output);
     }
+    compose("up", "--wait", "-d", "media-ingestion");
   }
 
   private static void compose(String... arguments) throws Exception {
