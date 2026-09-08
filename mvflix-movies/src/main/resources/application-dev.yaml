@@ -9,10 +9,6 @@ management:
 spring:
   application:
     name: mvflix-movies
-  security:
-    user:
-      name: ${ACTUATOR_METRICS_USER:metrics}
-      password: ${ACTUATOR_METRICS_PASSWORD:change-me}
   kafka:
     bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:127.0.0.1:9094}
     consumer:
@@ -45,6 +41,9 @@ mvflix:
   messaging:
     kafka:
       enabled: true
+  security:
+    actuator-username: ${ACTUATOR_METRICS_USER:metrics}
+    actuator-password: ${ACTUATOR_METRICS_PASSWORD:change-me}
 
 movies:
   draft:

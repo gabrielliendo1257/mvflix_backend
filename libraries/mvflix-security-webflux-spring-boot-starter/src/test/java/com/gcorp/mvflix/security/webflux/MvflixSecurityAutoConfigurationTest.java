@@ -60,6 +60,17 @@ class MvflixSecurityAutoConfigurationTest {
     });
   }
 
+  @Test
+  void bindsActuatorCredentialsFromSharedProperties() {
+    runner.withPropertyValues(
+        "mvflix.security.actuator-username=prometheus",
+        "mvflix.security.actuator-password=real-secret").run(context -> {
+          var properties = context.getBean(MvflixSecurityProperties.class);
+          assertThat(properties.actuatorUsername()).isEqualTo("prometheus");
+          assertThat(properties.actuatorPassword()).isEqualTo("real-secret");
+        });
+  }
+
   @Configuration(proxyBeanMethods = false)
   @EnableWebFluxSecurity
   static class TestWebSecurity {

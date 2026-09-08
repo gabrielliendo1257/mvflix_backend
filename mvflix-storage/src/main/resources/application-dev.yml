@@ -8,11 +8,6 @@ api:
 spring:
   application:
     name: powercine
-  security:
-    user:
-      name: ${ACTUATOR_METRICS_USER:metrics}
-      password: ${ACTUATOR_METRICS_PASSWORD:change-me}
-
   autoconfigure:
     exclude:
       #- org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
@@ -44,6 +39,9 @@ mvflix:
   messaging:
     kafka:
       enabled: true
+  security:
+    actuator-username: ${ACTUATOR_METRICS_USER:metrics}
+    actuator-password: ${ACTUATOR_METRICS_PASSWORD:change-me}
 
 services:
   authorization:

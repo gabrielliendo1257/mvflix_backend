@@ -16,14 +16,16 @@ spring:
     enabled: true
 
   security:
-    user:
-      name: ${ACTUATOR_METRICS_USER:metrics}
-      password: ${ACTUATOR_METRICS_PASSWORD:change-me}
     oauth2:
       resourceserver:
         jwt:
           issuer-uri: ${SECURITY_OAUTH2_ISSUER_URI:http://127.0.0.1:9090}
           jwk-set-uri: ${SECURITY_OAUTH2_JWK_SET_URI:http://127.0.0.1:9090/oauth2/jwks}
+
+mvflix:
+  security:
+    actuator-username: ${ACTUATOR_METRICS_USER:metrics}
+    actuator-password: ${ACTUATOR_METRICS_PASSWORD:change-me}
 
 services:
   authorization:

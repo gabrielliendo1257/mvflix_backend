@@ -4,9 +4,6 @@ spring:
   codec:
     max-in-memory-size: 32MB
   security:
-    user:
-      name: ${ACTUATOR_METRICS_USER:metrics}
-      password: ${ACTUATOR_METRICS_PASSWORD:change-me}
     oauth2:
       client:
         registration:
@@ -23,6 +20,7 @@ spring:
             client-id: movies-playback
             client-secret: ${STORAGE_PLAYBACK_SECRET:super-secret}
             authorization-grant-type: client_credentials
+
             scope: storage.stream
         provider:
           mvflix-auth:
@@ -30,6 +28,11 @@ spring:
             token-uri: ${AUTHORIZATION_URL:http://127.0.0.1:9090}/oauth2/token
             user-info-uri: ${AUTHORIZATION_URL:http://127.0.0.1:9090}/userinfo
             jwk-set-uri: ${SECURITY_OAUTH2_JWK_SET_URI:http://127.0.0.1:9090/oauth2/jwks}
+
+mvflix:
+  security:
+    actuator-username: ${ACTUATOR_METRICS_USER:metrics}
+    actuator-password: ${ACTUATOR_METRICS_PASSWORD:change-me}
 
 server:
   port: 9091
