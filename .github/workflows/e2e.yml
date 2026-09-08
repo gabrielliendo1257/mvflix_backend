@@ -1,0 +1,43 @@
+name: E2E
+
+on:
+  pull_request:
+  schedule:
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  system-e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+
+      - name: Run system E2E smoke
+        if: github.event_name == 'pull_request'
+        env:
+          E2E_TEST_GROUP: smoke
+        run: ./scripts/e2e.sh
+
+      - name: Run complete system E2E
+        if: github.event_name != 'pull_request'
+        run: ./scripts/e2e.sh
+
+      - name: Upload system E2E logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: system-e2e-logs
+          path: |
+            e2e/logs/
+            e2e/runner/target/surefire-reports/
