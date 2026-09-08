@@ -19,8 +19,8 @@ trap cleanup EXIT
 "${MAKE[@]}" up-e2e-d
 export KAFKA_E2E_BOOTSTRAP="${KAFKA_E2E_BOOTSTRAP:-localhost:${KAFKA_E2E_PORT:-19092}}"
 if [[ -n "${E2E_TEST_GROUP:-}" ]]; then
-  "${PROJECT_ROOT}/mvnw" -f "${PROJECT_ROOT}/e2e/runner/pom.xml" \
-    -Dgroups="${E2E_TEST_GROUP}" test
-else
-  "${PROJECT_ROOT}/mvnw" -f "${PROJECT_ROOT}/e2e/runner/pom.xml" test
-fi
+    "${PROJECT_ROOT}/mvnw" -f "${PROJECT_ROOT}/e2e/runner/pom.xml" \
+      -Dgroups="${E2E_TEST_GROUP}" clean test
+  else
+    "${PROJECT_ROOT}/mvnw" -f "${PROJECT_ROOT}/e2e/runner/pom.xml" clean test
+  fi
