@@ -320,8 +320,9 @@ public class MediaIngestionService {
               if (current.phase() == Phase.COMPLETED || current.phase() == Phase.CANCELLED)
                 return Mono.just(current);
               var x =
-                  current.failed(
-                      e.getClass().getSimpleName() + ":" + String.valueOf(e.getMessage()));
+                   current.failed(
+                       "DOWNSTREAM_UNAVAILABLE",
+                       e.getClass().getSimpleName() + ":" + String.valueOf(e.getMessage()));
                Mono<Void> cleanup = scheduleCompensations(current);
               return inTransaction(
                   repository

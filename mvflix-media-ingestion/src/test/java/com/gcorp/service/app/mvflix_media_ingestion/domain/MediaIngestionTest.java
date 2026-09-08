@@ -31,4 +31,17 @@ class MediaIngestionTest {
     var done=finalizing.transition(MediaIngestion.Phase.COMPLETED,null,null,null);
     assertThrows(IllegalStateException.class,()->done.transition(MediaIngestion.Phase.CANCELLING,null,null,null));
   }
+
+  @Test
+  void failedKeepsCodeBoundedAndStoresDiagnosticDetailSeparately() {
+    var now = Instant.now();
+    var ingestion = new MediaIngestion(UUID.randomUUID(), "actor", null, null,
+        MediaIngestion.Phase.STARTING, null, 1, 0, now, now, now, "key", "x.mp4", 10,
+        "video/mp4", null);
+
+    var failed = ingestion.failed("x".repeat(121), "connection refused".repeat(20));
+
+    assertEquals("INTERNAL_ERROR", failed.failureCode());
+    assertEquals("connection refused".repeat(20), failed.failureDetail());
+  }
 }

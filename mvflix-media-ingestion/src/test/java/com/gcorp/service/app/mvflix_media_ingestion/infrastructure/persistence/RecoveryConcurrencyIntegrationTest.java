@@ -31,7 +31,7 @@ import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 
 @SpringBootTest(properties = {
-    "spring.main.web-application-type=none",
+    "spring.main.web-application-type=reactive",
     "mvflix.messaging.kafka.enabled=false",
     "mvflix.compensation.enabled=false"
 })

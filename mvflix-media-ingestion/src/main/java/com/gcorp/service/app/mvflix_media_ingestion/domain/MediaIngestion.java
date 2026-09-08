@@ -190,7 +190,11 @@ public record MediaIngestion(
   }
 
   public MediaIngestion failed(String code) {
-    return recovery(Phase.FAILED, code, null, 30);
+    return failed(code, null);
+  }
+
+  public MediaIngestion failed(String code, String detail) {
+    return recovery(Phase.FAILED, boundedCode(code), detail, 30);
   }
 
   public MediaIngestion recovery(Phase next, String reason, long delaySeconds) {
@@ -204,7 +208,7 @@ public record MediaIngestion(
         catalogItemId,
         uploadId,
         next,
-         code,
+         boundedCode(code),
          detail,
         version + 1,
         retryCount + 1,
@@ -233,7 +237,7 @@ public record MediaIngestion(
         catalogItemId,
         uploadId,
         next,
-         code,
+         boundedCode(code),
          detail,
         version + 1,
         retryCount,
@@ -256,5 +260,9 @@ public record MediaIngestion(
         failureDetail, version, retryCount, createdAt, updatedAt, nextAttemptAt, idempotencyKey, fileName,
          fileSize, mimeType, uploadUrl, storageId, storageKey, requestFingerprint, causation,
          audienceId);
+  }
+
+  private static String boundedCode(String code) {
+    return code == null || code.isBlank() || code.length() > 120 ? "INTERNAL_ERROR" : code;
   }
 }
