@@ -6,8 +6,6 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.gcorp.service.app.mvflix_movies.shared.application.security.AuthenticatedUser;
-import com.gcorp.service.app.mvflix_movies.shared.application.security.UserProvider;
 import com.gcorp.service.app.mvflix_movies.catalog.domain.movie.EnrichmentStatus;
 import com.gcorp.service.app.mvflix_movies.catalog.domain.item.CatalogItemKind;
 import com.gcorp.service.app.mvflix_movies.catalog.domain.item.CatalogItem;
@@ -36,8 +34,6 @@ import java.time.Instant;
 class UpdateCatalogItemUseCaseTest {
 
     @Mock private CatalogItemRepository movieRepository;
-    @Mock private UserProvider userProvider;
-
     @InjectMocks private UpdateCatalogItemUseCase useCase;
 
     private static final MovieMetadata METADATA = new MovieMetadata(
@@ -67,8 +63,6 @@ class UpdateCatalogItemUseCaseTest {
                 "Overview", "/poster.jpg", "2024-03-01", "USA", "English",
                 List.of("Oscar"), 438631L));
 
-        when(this.userProvider.getAuthenticatedUser())
-                .thenReturn(Mono.just(new AuthenticatedUser("Javier", "j@m.com")));
         when(this.movieRepository.findById(CatalogItemId.of(1L))).thenReturn(Mono.just(movie));
         when(this.movieRepository.updateDetails(any(CatalogItem.class)))
                 .thenReturn(Mono.just(updated));
@@ -77,7 +71,7 @@ class UpdateCatalogItemUseCaseTest {
                 "Dune: Part Two", "Dune: Part Two", 2024, List.of("Sci-Fi", "Adventure"),
                 null, null, null, null, null, "2024-03-01", null, null, null, null, null);
 
-        StepVerifier.create(this.useCase.execute(CatalogItemId.of(1L), command))
+        StepVerifier.create(this.useCase.execute(new CatalogActor("Javier", java.util.Set.of()), CatalogItemId.of(1L), command))
                 .expectNext(updated)
                 .verifyComplete();
 
@@ -148,13 +142,11 @@ class UpdateCatalogItemUseCaseTest {
     void videoItemCanBePartiallyUpdatedWithoutExplicitKind() {
         Instant recordedAt = Instant.parse("2024-01-01T00:00:00Z");
         CatalogItem video = video(1L, "Javier", new VideoMetadata("Clip", "Description", recordedAt));
-        when(this.userProvider.getAuthenticatedUser())
-                .thenReturn(Mono.just(new AuthenticatedUser("Javier", "j@m.com")));
         when(this.movieRepository.findById(CatalogItemId.of(1L))).thenReturn(Mono.just(video));
         when(this.movieRepository.updateDetails(any(CatalogItem.class)))
                 .thenAnswer(invocation -> Mono.just(invocation.getArgument(0)));
 
-        StepVerifier.create(this.useCase.execute(CatalogItemId.of(1L), new UpdateCatalogItemCommand(
+        StepVerifier.create(this.useCase.execute(new CatalogActor("Javier", java.util.Set.of()), CatalogItemId.of(1L), new UpdateCatalogItemCommand(
                         "Edited clip", null, null, null, null, null, null, null,
                         null, null, null, null, null, null, null)))
                 .assertNext(updated -> {
@@ -181,13 +173,11 @@ class UpdateCatalogItemUseCaseTest {
     void switchingToOtherClearsProviderMetadata() {
         CatalogItem movie = movie(1L, "Javier", METADATA);
 
-        when(this.userProvider.getAuthenticatedUser())
-                .thenReturn(Mono.just(new AuthenticatedUser("Javier", "j@m.com")));
         when(this.movieRepository.findById(CatalogItemId.of(1L))).thenReturn(Mono.just(movie));
         when(this.movieRepository.updateDetails(any(CatalogItem.class)))
                 .thenAnswer(invocation -> Mono.just(invocation.getArgument(0)));
 
-        StepVerifier.create(this.useCase.execute(CatalogItemId.of(1L), new UpdateCatalogItemCommand(
+        StepVerifier.create(this.useCase.execute(new CatalogActor("Javier", java.util.Set.of()), CatalogItemId.of(1L), new UpdateCatalogItemCommand(
                         "Mi grabacion", null, null, null, null, null, null, null,
                         null, null, null, null, null, null, CatalogItemKind.VIDEO)))
                 .expectNextCount(1)
@@ -209,13 +199,11 @@ class UpdateCatalogItemUseCaseTest {
                  EnrichmentStatus.RAW, null, new VideoMetadata("Imported clip", null, null),
                 Visibility.PRIVATE, java.util.Set.of(), CatalogItemKind.VIDEO);
 
-        when(this.userProvider.getAuthenticatedUser())
-                .thenReturn(Mono.just(new AuthenticatedUser("Javier", "j@m.com")));
         when(this.movieRepository.findById(CatalogItemId.of(1L))).thenReturn(Mono.just(other));
         when(this.movieRepository.updateDetails(any(CatalogItem.class)))
                 .thenAnswer(invocation -> Mono.just(invocation.getArgument(0)));
 
-        StepVerifier.create(this.useCase.execute(CatalogItemId.of(1L), new UpdateCatalogItemCommand(
+        StepVerifier.create(this.useCase.execute(new CatalogActor("Javier", java.util.Set.of()), CatalogItemId.of(1L), new UpdateCatalogItemCommand(
                         "Identifiable movie", null, null, null, null, null, null, null,
                         null, null, null, null, null, null, CatalogItemKind.MOVIE)))
                 .assertNext(updated -> {
@@ -233,11 +221,9 @@ class UpdateCatalogItemUseCaseTest {
     void nonOwnerIsDenied() {
         CatalogItem movie = movie(1L, "Javier", METADATA);
 
-        when(this.userProvider.getAuthenticatedUser())
-                .thenReturn(Mono.just(new AuthenticatedUser("Maria", "m@m.com")));
         when(this.movieRepository.findById(CatalogItemId.of(1L))).thenReturn(Mono.just(movie));
 
-        StepVerifier.create(this.useCase.execute(CatalogItemId.of(1L), new UpdateCatalogItemCommand(
+        StepVerifier.create(this.useCase.execute(new CatalogActor("Maria", java.util.Set.of()), CatalogItemId.of(1L), new UpdateCatalogItemCommand(
                         "Otro", null, null, null, null, null, null, null,
                         null, null, null, null, null, null, null)))
                 .expectError(CatalogItemAccessDeniedException.class)
@@ -250,14 +236,11 @@ class UpdateCatalogItemUseCaseTest {
     void adminCanModerateMoviesOfOthers() {
         CatalogItem movie = movie(1L, "Javier", METADATA);
 
-        when(this.userProvider.getAuthenticatedUser())
-                .thenReturn(Mono.just(new AuthenticatedUser("Admin", "a@m.com",
-                        java.util.Set.of(AuthenticatedUser.ADMIN_ROLE))));
         when(this.movieRepository.findById(CatalogItemId.of(1L))).thenReturn(Mono.just(movie));
         when(this.movieRepository.updateDetails(any(CatalogItem.class)))
                 .thenAnswer(invocation -> Mono.just(invocation.getArgument(0)));
 
-        StepVerifier.create(this.useCase.execute(CatalogItemId.of(1L), new UpdateCatalogItemCommand(
+        StepVerifier.create(this.useCase.execute(new CatalogActor("Admin", java.util.Set.of("ROLE_ADMIN")), CatalogItemId.of(1L), new UpdateCatalogItemCommand(
                         "Moderado", null, null, null, null, null, null, null,
                         null, null, null, null, null, null, null)))
                 .expectNextCount(1)
@@ -271,11 +254,9 @@ class UpdateCatalogItemUseCaseTest {
         CatalogItem movie = movie(1L, "Javier", METADATA);
 
         // Username "Admin" sin el rol: la política la decide el token, no el nombre.
-        when(this.userProvider.getAuthenticatedUser())
-                .thenReturn(Mono.just(new AuthenticatedUser("Admin", "a@m.com")));
         when(this.movieRepository.findById(CatalogItemId.of(1L))).thenReturn(Mono.just(movie));
 
-        StepVerifier.create(this.useCase.execute(CatalogItemId.of(1L), new UpdateCatalogItemCommand(
+        StepVerifier.create(this.useCase.execute(new CatalogActor("Admin", java.util.Set.of()), CatalogItemId.of(1L), new UpdateCatalogItemCommand(
                         "X", null, null, null, null, null, null, null,
                         null, null, null, null, null, null, null)))
                 .expectError(CatalogItemAccessDeniedException.class)
@@ -284,11 +265,9 @@ class UpdateCatalogItemUseCaseTest {
 
     @Test
     void missingMovieIsDeniedWithoutRevealingExistence() {
-        when(this.userProvider.getAuthenticatedUser())
-                .thenReturn(Mono.just(new AuthenticatedUser("Javier", "j@m.com")));
         when(this.movieRepository.findById(CatalogItemId.of(99L))).thenReturn(Mono.empty());
 
-        StepVerifier.create(this.useCase.execute(CatalogItemId.of(99L), new UpdateCatalogItemCommand(
+        StepVerifier.create(this.useCase.execute(new CatalogActor("Javier", java.util.Set.of()), CatalogItemId.of(99L), new UpdateCatalogItemCommand(
                         "X", null, null, null, null, null, null, null,
                         null, null, null, null, null, null, null)))
                 .expectError(CatalogItemAccessDeniedException.class)

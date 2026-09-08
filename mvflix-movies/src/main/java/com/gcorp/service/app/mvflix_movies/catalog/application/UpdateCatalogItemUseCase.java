@@ -1,7 +1,5 @@
 package com.gcorp.service.app.mvflix_movies.catalog.application;
 
-import com.gcorp.mvflix.security.webflux.AuthenticatedActor;
-import com.gcorp.service.app.mvflix_movies.shared.application.security.UserProvider;
 import com.gcorp.service.app.mvflix_movies.catalog.domain.item.CatalogItemKind;
 import com.gcorp.service.app.mvflix_movies.catalog.domain.item.CatalogItem;
 import com.gcorp.service.app.mvflix_movies.catalog.domain.item.CatalogItemAccessDeniedException;
@@ -33,23 +31,14 @@ import java.util.List;
 public class UpdateCatalogItemUseCase {
 
     private final CatalogItemRepository movieRepository;
-    private final UserProvider userProvider;
-
     @Transactional(transactionManager = "connectionFactoryTransactionManager")
-    public Mono<CatalogItem> execute(CatalogItemId id, UpdateCatalogItemCommand command) {
-        return this.userProvider
-                .getAuthenticatedUser()
-                .flatMap(user -> this.execute(id, command,
-                        new AuthenticatedActor(user.subject(), user.roles())));
-    }
-
     public Mono<CatalogItem> execute(
-            CatalogItemId id, UpdateCatalogItemCommand command, AuthenticatedActor actor) {
+            CatalogActor actor, CatalogItemId id, UpdateCatalogItemCommand command) {
         return this.movieRepository
                         .findById(id)
                         .switchIfEmpty(Mono.error(new CatalogItemAccessDeniedException(
                                 "Movie not accessible: " + id.value())))
-                        .filter(movie -> movie.isOwnedBy(actor.subject()) || actor.isAdmin())
+                        .filter(movie -> movie.isOwnedBy(actor.subject()) || actor.canModerateCatalog())
                         .switchIfEmpty(Mono.error(new CatalogItemAccessDeniedException(
                                 "CatalogItem not owned: " + id.value())))
                         .flatMap(movie -> this.update(movie, command))

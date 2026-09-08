@@ -1,6 +1,9 @@
 package com.gcorp.service.app.mvflix_movies.catalog.infrastructure.web;
 
 import com.gcorp.service.app.mvflix_movies.catalog.application.BulkVisibilityUseCase;
+import com.gcorp.mvflix.security.webflux.AuthenticatedActor;
+import com.gcorp.mvflix.security.webflux.CurrentActor;
+import com.gcorp.service.app.mvflix_movies.catalog.application.CatalogActor;
 import com.gcorp.service.app.mvflix_movies.catalog.application.CatalogQueryUseCase;
 import com.gcorp.service.app.mvflix_movies.catalog.application.CompleteCatalogItemUseCase;
 import com.gcorp.service.app.mvflix_movies.catalog.application.CreateCatalogItemCommand;
@@ -316,9 +319,11 @@ public class MovieController {
   /** Edición manual de la metadata del dueño (merge: null conserva el valor actual). */
   @PutMapping(value = "/{id}", consumes = MediaType.APPLICATION_JSON_VALUE)
   public Mono<MovieResponse> update(
+      @CurrentActor AuthenticatedActor principal,
       @PathVariable Long id, @Valid @RequestBody UpdateMovieRequest request) {
     return this.updateMovieUseCase
-        .execute(CatalogItemId.of(id), this.mapper.toCommand(request))
+        .execute(new CatalogActor(principal.subject(), principal.authorities()),
+            CatalogItemId.of(id), this.mapper.toCommand(request))
         .flatMap(this::response);
   }
 

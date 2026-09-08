@@ -55,7 +55,8 @@ class UpdateCatalogItemUseCaseIntegrationTest extends PostgresIntegrationTest {
         .rowsUpdated()
         .block();
 
-    StepVerifier.create(this.useCase.execute(movie.getId(), switchToOther("Edited title")))
+    StepVerifier.create(this.useCase.execute(
+        new CatalogActor("pepe", java.util.Set.of()), movie.getId(), switchToOther("Edited title")))
         .expectError(DataIntegrityViolationException.class)
         .verify();
 
