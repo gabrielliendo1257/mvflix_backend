@@ -99,7 +99,6 @@ class AddMediaE2ETest {
     JsonNode started = start(token, key, request("restart.mp4", 4, "restart movie"), 201);
     String id = started.get("addMediaId").asText();
     upload(started.get("upload"));
-    boolean moviesRunning = false;
     try {
       compose("stop", "movies");
       complete(token, id, 202, 200);
@@ -108,11 +107,10 @@ class AddMediaE2ETest {
       restartIngestion();
       awaitIngestionPhase(token, id, Set.of("RECONCILIATION_REQUIRED"));
 
-      compose("start", "movies");
-      moviesRunning = true;
+      compose("up", "--no-deps", "--wait", "-d", "movies");
       awaitIngestionPhase(token, id, Set.of("COMPLETED"));
     } finally {
-      if (!moviesRunning) compose("start", "movies");
+      compose("up", "--no-deps", "--wait", "-d", "movies");
     }
   }
 
@@ -230,7 +228,7 @@ class AddMediaE2ETest {
       throw new AssertionError("media-ingestion restart failed with exit "
           + (finished ? process.exitValue() : "timeout") + ": " + output);
     }
-    compose("up", "--wait", "-d", "media-ingestion");
+    compose("up", "--no-deps", "--wait", "-d", "media-ingestion");
   }
 
   private static void compose(String... arguments) throws Exception {
