@@ -405,7 +405,8 @@ public class MediaIngestionService {
                  objectId,
                  objectKey,
                  i.requestFingerprint(),
-                 i.causationId());
+                 i.causationId(),
+                 i.audienceId());
      return repository.compareAndSet(i, n)
         .flatMap(
             ok ->
@@ -436,8 +437,9 @@ public class MediaIngestionService {
             i.actorId(),
             i.catalogItemId(),
             i.uploadId(),
-            Phase.RECONCILIATION_REQUIRED,
-            e.toString(),
+                 Phase.RECONCILIATION_REQUIRED,
+                 "CATALOG_UNAVAILABLE",
+                 e.toString(),
             i.version() + 1,
             i.retryCount() + 1,
             i.createdAt(),
@@ -451,7 +453,8 @@ public class MediaIngestionService {
                 i.storageId(),
                  i.storageKey(),
                  i.requestFingerprint(),
-                 i.causationId());
+                  i.causationId(),
+                  i.audienceId());
     return inTransaction(
         repository
             .compareAndSet(i, n)

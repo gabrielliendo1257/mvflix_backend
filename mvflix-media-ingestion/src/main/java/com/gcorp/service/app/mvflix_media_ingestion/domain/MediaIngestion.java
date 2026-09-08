@@ -10,6 +10,7 @@ public record MediaIngestion(
     String uploadId,
     Phase phase,
     String failureCode,
+    String failureDetail,
     long version,
     int retryCount,
     Instant createdAt,
@@ -30,8 +31,18 @@ public record MediaIngestion(
       int retries, Instant created, Instant updated, Instant next, String key, String name,
       long size, String mime, String url, Long storageId, String storageKey,
       String requestFingerprint, UUID causationId) {
-    this(id, actor, catalog, upload, phase, failure, version, retries, created, updated, next, key,
+    this(id, actor, catalog, upload, phase, failure, null, version, retries, created, updated, next, key,
         name, size, mime, url, storageId, storageKey, requestFingerprint, causationId, actor);
+  }
+
+  public MediaIngestion(
+      UUID id, String actor, Long catalog, String upload, Phase phase, String failure, long version,
+      int retries, Instant created, Instant updated, Instant next, String key, String name,
+      long size, String mime, String url, Long storageId, String storageKey,
+      String requestFingerprint, UUID causationId, String audienceId) {
+    this(id, actor, catalog, upload, phase, failure, null, version, retries, created, updated, next,
+        key, name, size, mime, url, storageId, storageKey, requestFingerprint, causationId,
+        audienceId);
   }
 
   public MediaIngestion(
@@ -52,7 +63,7 @@ public record MediaIngestion(
       String mime,
       String url) {
     this(
-        id, actor, catalog, upload, phase, failure, version, retries, created, updated, next, key,
+        id, actor, catalog, upload, phase, failure, null, version, retries, created, updated, next, key,
          name, size, mime, url, null, null, null, null, actor);
   }
 
@@ -75,7 +86,7 @@ public record MediaIngestion(
       String url,
       Long storageId) {
     this(
-        id, actor, catalog, upload, phase, failure, version, retries, created, updated, next, key,
+        id, actor, catalog, upload, phase, failure, null, version, retries, created, updated, next, key,
          name, size, mime, url, storageId, null, null, null, actor);
   }
 
@@ -83,7 +94,7 @@ public record MediaIngestion(
       UUID id, String actor, Long catalog, String upload, Phase phase, String failure, long version,
       int retries, Instant created, Instant updated, Instant next, String key, String name,
       long size, String mime, String url, Long storageId, String storageKey) {
-    this(id, actor, catalog, upload, phase, failure, version, retries, created, updated, next,
+    this(id, actor, catalog, upload, phase, failure, null, version, retries, created, updated, next,
         key, name, size, mime, url, storageId, storageKey, null, null, actor);
   }
 
@@ -183,13 +194,18 @@ public record MediaIngestion(
   }
 
   public MediaIngestion recovery(Phase next, String reason, long delaySeconds) {
+    return recovery(next, "RECOVERY_REQUIRED", reason, delaySeconds);
+  }
+
+  public MediaIngestion recovery(Phase next, String code, String detail, long delaySeconds) {
     return new MediaIngestion(
         ingestionId,
         actorId,
         catalogItemId,
         uploadId,
         next,
-        reason,
+         code,
+         detail,
         version + 1,
         retryCount + 1,
         createdAt,
@@ -207,13 +223,18 @@ public record MediaIngestion(
   }
 
   public MediaIngestion rescheduled(Phase next, String reason, long delaySeconds) {
+    return rescheduled(next, "RECOVERY_REQUIRED", reason, delaySeconds);
+  }
+
+  public MediaIngestion rescheduled(Phase next, String code, String detail, long delaySeconds) {
     return new MediaIngestion(
         ingestionId,
         actorId,
         catalogItemId,
         uploadId,
         next,
-        reason,
+         code,
+         detail,
         version + 1,
         retryCount,
         createdAt,
@@ -232,7 +253,7 @@ public record MediaIngestion(
 
   public MediaIngestion withCausationId(UUID causation) {
     return new MediaIngestion(ingestionId, actorId, catalogItemId, uploadId, phase, failureCode,
-        version, retryCount, createdAt, updatedAt, nextAttemptAt, idempotencyKey, fileName,
+        failureDetail, version, retryCount, createdAt, updatedAt, nextAttemptAt, idempotencyKey, fileName,
          fileSize, mimeType, uploadUrl, storageId, storageKey, requestFingerprint, causation,
          audienceId);
   }

@@ -30,7 +30,8 @@ public class R2dbcMediaIngestionRepository implements MediaIngestionRepository {
         r.get("catalog_item_id", Long.class),
         r.get("upload_id", String.class),
         MediaIngestion.Phase.valueOf(r.get("phase", String.class)),
-        r.get("failure_code", String.class),
+         r.get("failure_code", String.class),
+         r.get("failure_detail", String.class),
         r.get("version", Long.class),
         r.get("retry_count", Integer.class),
         r.get("created_at", Instant.class),
@@ -119,7 +120,7 @@ public class R2dbcMediaIngestionRepository implements MediaIngestionRepository {
     var s =
         db.sql(
             "UPDATE media_ingestions SET"
-                + " catalog_item_id=:c,upload_id=:u,storage_id=:sid,storage_key=:skey,upload_url=:url,request_fingerprint=:fp,causation_id=:cause,phase=:p,failure_code=:f,version=:nv,updated_at=:now,retry_count=:r,next_attempt_at=:next,recovery_claimed_until=NULL"
+                + " catalog_item_id=:c,upload_id=:u,storage_id=:sid,storage_key=:skey,upload_url=:url,request_fingerprint=:fp,causation_id=:cause,phase=:p,failure_code=:f,failure_detail=:fd,version=:nv,updated_at=:now,retry_count=:r,next_attempt_at=:next,recovery_claimed_until=NULL"
                 + " WHERE ingestion_id=:id AND version=:ov");
     s = bind(s, "c", n.catalogItemId(), Long.class);
     s = bind(s, "u", n.uploadId(), String.class);
@@ -130,6 +131,7 @@ public class R2dbcMediaIngestionRepository implements MediaIngestionRepository {
     s = bind(s, "cause", n.causationId(), UUID.class);
     s = bind(s, "p", n.phase().name(), String.class);
     s = bind(s, "f", n.failureCode(), String.class);
+    s = bind(s, "fd", n.failureDetail(), String.class);
     s = bind(s, "nv", n.version(), Long.class);
     s = bind(s, "now", n.updatedAt(), Instant.class);
     s = bind(s, "r", n.retryCount(), Integer.class);

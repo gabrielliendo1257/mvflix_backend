@@ -173,7 +173,7 @@ public class RecoveryService {
 
   private Mono<MediaIngestion> mark(MediaIngestion i, Phase phase, String reason) {
     long delay = Math.min(3600, 30L * (1L << Math.min(i.retryCount(), 6)));
-    var next = i.rescheduled(phase, reason, delay);
+     var next = i.rescheduled(phase, "RECOVERY_REQUIRED", reason, delay);
     return transactions.transactional(
         repository
             .compareAndSet(i, next)
