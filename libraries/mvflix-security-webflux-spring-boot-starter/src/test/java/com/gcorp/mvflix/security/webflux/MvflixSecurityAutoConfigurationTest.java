@@ -6,18 +6,22 @@ import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.autoconfigure.security.reactive.ReactiveSecurityAutoConfiguration;
 import org.springframework.boot.autoconfigure.security.reactive.ReactiveUserDetailsServiceAutoConfiguration;
+import org.springframework.boot.test.context.runner.ReactiveWebApplicationContextRunner;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.reactive.EnableWebFluxSecurity;
 
 class MvflixSecurityAutoConfigurationTest {
-  private final ApplicationContextRunner runner = new ApplicationContextRunner()
+  private final ReactiveWebApplicationContextRunner runner = new ReactiveWebApplicationContextRunner()
       .withConfiguration(AutoConfigurations.of(
            ReactiveSecurityAutoConfiguration.class,
            ReactiveUserDetailsServiceAutoConfiguration.class,
            MvflixSecurityAutoConfiguration.class))
       .withUserConfiguration(TestWebSecurity.class);
+
+  private final ApplicationContextRunner nonReactiveRunner = new ApplicationContextRunner()
+      .withConfiguration(AutoConfigurations.of(MvflixSecurityAutoConfiguration.class));
 
   @Test
   void createsOnePropertiesBeanAndBothSecurityChains() {
@@ -38,6 +42,21 @@ class MvflixSecurityAutoConfigurationTest {
           .isSameAs(ConsumerOverrides.UNAUTHORIZED);
       assertThat(context).getBean(MvflixAccessDeniedHandler.class)
           .isSameAs(ConsumerOverrides.DENIED);
+    });
+  }
+
+  @Test
+  void isNotActivatedForNonReactiveApplications() {
+    nonReactiveRunner.run(context -> assertThat(context)
+        .doesNotHaveBean(MvflixSecurityProperties.class));
+  }
+
+  @Test
+  void rejectsTheDefaultPasswordInProduction() {
+    runner.withPropertyValues("spring.profiles.active=prod").run(context -> {
+      assertThat(context).hasFailed();
+      assertThat(context.getStartupFailure()).hasRootCauseInstanceOf(IllegalStateException.class)
+          .hasRootCauseMessage("mvflix.security.actuator-password must be configured in production");
     });
   }
 

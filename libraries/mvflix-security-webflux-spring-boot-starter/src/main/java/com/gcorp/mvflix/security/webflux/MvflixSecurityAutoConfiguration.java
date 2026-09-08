@@ -1,10 +1,14 @@
 package com.gcorp.mvflix.security.webflux;
 
 import org.springframework.boot.autoconfigure.AutoConfiguration;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.core.annotation.Order;
+import org.springframework.core.env.Environment;
+import org.springframework.core.env.Profiles;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.security.authentication.ReactiveAuthenticationManager;
 import org.springframework.security.authentication.UserDetailsRepositoryReactiveAuthenticationManager;
@@ -18,6 +22,8 @@ import reactor.core.publisher.Mono;
 
 @AutoConfiguration
 @EnableConfigurationProperties(MvflixSecurityProperties.class)
+@ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.REACTIVE)
+@ConditionalOnClass({ServerHttpSecurity.class, SecurityWebFilterChain.class})
 public class MvflixSecurityAutoConfiguration {
   @Bean
   @ConditionalOnMissingBean
@@ -29,7 +35,12 @@ public class MvflixSecurityAutoConfiguration {
   @ConditionalOnMissingBean(name = "mvflixActuatorSecurityWebFilterChain")
   @Order(0)
   SecurityWebFilterChain mvflixActuatorSecurityWebFilterChain(ServerHttpSecurity http,
-      MvflixSecurityProperties properties) {
+      MvflixSecurityProperties properties, Environment environment) {
+    if (environment.acceptsProfiles(Profiles.of("prod", "production"))
+        && "change-me".equals(properties.actuatorPassword())) {
+      throw new IllegalStateException(
+          "mvflix.security.actuator-password must be configured in production");
+    }
     return http.securityMatcher(ServerWebExchangeMatchers.pathMatchers("/actuator/**"))
         .csrf(ServerHttpSecurity.CsrfSpec::disable)
         .authenticationManager(metricsAuthenticationManager(properties.actuatorUsername(),
