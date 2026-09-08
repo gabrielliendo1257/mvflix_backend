@@ -59,8 +59,3 @@ authorization:
 server:
   address: 0.0.0.0
   port: 9090
-
-management:
-  server:
-    address: ${MANAGEMENT_SERVER_ADDRESS:0.0.0.0}
-    port: ${MANAGEMENT_SERVER_PORT:10090}

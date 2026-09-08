@@ -112,12 +112,13 @@ services:
       MOVIES_URL: ${MOVIES_URL:-http://movies:4040}
       STORAGE_URL: ${STORAGE_URL:-http://storage:6060}
       USERS_URL: ${USERS_URL:-http://users-policy-stub:8080}
-      MANAGEMENT_SERVER_PORT: 10080
+      MANAGEMENT_SERVER_ADDRESS: 0.0.0.0
+      MANAGEMENT_SERVER_PORT: 10081
     ports:
       - "${E2E_BIND_ADDRESS:-127.0.0.1}:17080:8080"
-      - "${E2E_BIND_ADDRESS:-127.0.0.1}:11080:10080"
+      - "${E2E_BIND_ADDRESS:-127.0.0.1}:11081:10081"
     healthcheck:
-      test: ["CMD-SHELL", "curl --fail --silent http://localhost:10080/actuator/health/readiness"]
+      test: ["CMD-SHELL", "curl --fail --silent http://localhost:10081/actuator/health/readiness"]
       interval: 5s
       timeout: 3s
       retries: 30
@@ -139,6 +140,7 @@ services:
       KAFKA_BOOTSTRAP_SERVERS: kafka:9092
       MVFLIX_MESSAGING_KAFKA_ENABLED: "true"
       SECURITY_OAUTH2_JWK_SET_URI: http://jwks-stub:8080/oauth2/jwks
+      MANAGEMENT_SERVER_ADDRESS: 0.0.0.0
       MANAGEMENT_SERVER_PORT: 10070
     ports:
       - "${E2E_BIND_ADDRESS:-127.0.0.1}:17070:8080"
@@ -166,6 +168,7 @@ services:
       SERVICES_STORAGE_URL: http://storage:6060
       SERVICES_AUTHORIZATION_URL: http://jwks-stub:8080
       SECURITY_OAUTH2_JWK_SET_URI: http://jwks-stub:8080/oauth2/jwks
+      MANAGEMENT_SERVER_ADDRESS: 0.0.0.0
       MANAGEMENT_SERVER_PORT: 10071
     ports:
       - "${E2E_BIND_ADDRESS:-127.0.0.1}:17071:7070"

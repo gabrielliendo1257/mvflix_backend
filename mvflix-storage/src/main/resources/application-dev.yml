@@ -1,11 +1,6 @@
 server:
   port: 6060
 
-management:
-  server:
-    address: ${MANAGEMENT_SERVER_ADDRESS:0.0.0.0}
-    port: ${MANAGEMENT_SERVER_PORT:10060}
-
 api:
   path:
     base: /api/v1/movie

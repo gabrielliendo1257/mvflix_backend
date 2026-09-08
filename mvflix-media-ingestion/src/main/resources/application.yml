@@ -37,7 +37,10 @@ spring:
   kafka.consumer.auto-offset-reset: earliest
 management.endpoints.web.exposure.include: health,info,metrics,prometheus
 management.endpoint.health.probes.enabled: true
-management.server.port: ${MANAGEMENT_SERVER_PORT:10080}
+management:
+  server:
+    address: ${MANAGEMENT_SERVER_ADDRESS:0.0.0.0}
+    port: ${MANAGEMENT_SERVER_PORT:10081}
 spring.security.oauth2.resourceserver.jwt.jwk-set-uri: ${SECURITY_OAUTH2_JWK_SET_URI:http://localhost:8081/oauth2/jwks}
 mvflix:
   messaging.kafka.enabled: ${MVFLIX_MESSAGING_KAFKA_ENABLED:false}

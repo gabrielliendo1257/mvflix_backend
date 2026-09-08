@@ -22,7 +22,9 @@ spring:
 management:
   endpoints.web.exposure.include: health,info,metrics,prometheus
   endpoint.health.probes.enabled: true
-  server.port: ${MANAGEMENT_SERVER_PORT:10070}
+  server:
+    address: ${MANAGEMENT_SERVER_ADDRESS:0.0.0.0}
+    port: ${MANAGEMENT_SERVER_PORT:10070}
   tracing.sampling.probability: ${OTEL_TRACING_SAMPLING_PROBABILITY:1.0}
   otlp.tracing.endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT:http://localhost:4318/v1/traces}
 security.oauth2.jwk-set-uri: ${SECURITY_OAUTH2_JWK_SET_URI:http://localhost:8081/oauth2/jwks}
