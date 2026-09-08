@@ -45,6 +45,16 @@ al arrancarlas con Maven.
 make up-dev
 ```
 
+Si PostgreSQL ya tenía el volumen creado antes de corregir el bootstrap, aplica
+los permisos retroactivos sin borrar datos:
+
+```bash
+make repair-postgres-permissions
+```
+
+El comando ejecuta `infra/postgres/03-repair-permissions.sql` dentro del
+contenedor existente. La reparación es idempotente.
+
 Levanta postgres (crea `mvflix_users_db`, `mvflix_uploads_db`, `mvflix_authorized_db`, ...)
 y MinIO con el bucket raiz y el webhook hacia el storage en `:6060`.
 Requiere `infra/docker/.env` (gitignored; hay una copia con valores dev). Para
