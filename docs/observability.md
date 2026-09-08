@@ -33,10 +33,29 @@ por Basic Auth:
 | Storage | 10060 |
 | Users | 10080 |
 | Authorization | 10090 |
+| Activity | 10070 |
+| Playback | 10070 |
+| Media ingestion | 10080 |
 
 La ruta es `/actuator/prometheus`. Prometheus usa `ACTUATOR_METRICS_USER` y
 `ACTUATOR_METRICS_PASSWORD`; no se deben usar las credenciales por defecto
 fuera de desarrollo.
+
+Los servicios que permiten configurar el bind address y el puerto usan las
+variables `MANAGEMENT_SERVER_ADDRESS` y `MANAGEMENT_SERVER_PORT`. Son variables
+por proceso: si se ejecutan varios servicios Java con el mismo `envs/.env`, no
+se debe definir un único puerto global porque todos intentarían usarlo. Los
+valores por defecto de cada servicio son los de la tabla anterior. Para cambiar
+el puerto de un proceso ejecutado individualmente:
+
+```bash
+MANAGEMENT_SERVER_ADDRESS=0.0.0.0 \
+MANAGEMENT_SERVER_PORT=10090 \
+./mvnw -pl mvflix-authorization spring-boot:run -Dspring-boot.run.profiles=dev
+```
+
+En Docker Compose los puertos de management se configuran por servicio; no se
+requiere definir estas variables en `envs/.env`.
 
 ## Traces desde Termux
 
