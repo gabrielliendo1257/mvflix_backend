@@ -1,5 +1,6 @@
 package com.gcorp.service.app.mvflix_movies.catalog.application;
 
+import com.gcorp.mvflix.security.webflux.AuthenticatedActor;
 import com.gcorp.service.app.mvflix_movies.shared.application.security.UserProvider;
 import com.gcorp.service.app.mvflix_movies.catalog.domain.item.CatalogItemKind;
 import com.gcorp.service.app.mvflix_movies.catalog.domain.item.CatalogItem;
@@ -38,18 +39,24 @@ public class UpdateCatalogItemUseCase {
     public Mono<CatalogItem> execute(CatalogItemId id, UpdateCatalogItemCommand command) {
         return this.userProvider
                 .getAuthenticatedUser()
-                .flatMap(user -> this.movieRepository
+                .flatMap(user -> this.execute(id, command,
+                        new AuthenticatedActor(user.subject(), user.roles())));
+    }
+
+    public Mono<CatalogItem> execute(
+            CatalogItemId id, UpdateCatalogItemCommand command, AuthenticatedActor actor) {
+        return this.movieRepository
                         .findById(id)
                         .switchIfEmpty(Mono.error(new CatalogItemAccessDeniedException(
                                 "Movie not accessible: " + id.value())))
-                        .filter(movie -> movie.isOwnedBy(user.subject()) || user.isAdmin())
+                        .filter(movie -> movie.isOwnedBy(actor.subject()) || actor.isAdmin())
                         .switchIfEmpty(Mono.error(new CatalogItemAccessDeniedException(
                                 "CatalogItem not owned: " + id.value())))
                         .flatMap(movie -> this.update(movie, command))
                         .doOnNext(updated -> log.info(
                                 "CatalogItem {} metadata actualizada manualmente{}",
                                 id.value(),
-                                updated.isOwnedBy(user.subject()) ? "" : " (moderacion)")));
+                                updated.isOwnedBy(actor.subject()) ? "" : " (moderacion)"));
     }
 
     private Mono<CatalogItem> update(CatalogItem movie, UpdateCatalogItemCommand command) {

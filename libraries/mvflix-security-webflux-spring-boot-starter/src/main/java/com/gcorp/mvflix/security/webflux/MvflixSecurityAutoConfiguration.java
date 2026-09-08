@@ -18,13 +18,20 @@ import org.springframework.security.core.userdetails.User;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.web.server.SecurityWebFilterChain;
 import org.springframework.security.web.server.util.matcher.ServerWebExchangeMatchers;
+import org.springframework.web.reactive.config.WebFluxConfigurer;
 import reactor.core.publisher.Mono;
 
 @AutoConfiguration
 @EnableConfigurationProperties(MvflixSecurityProperties.class)
 @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.REACTIVE)
 @ConditionalOnClass({ServerHttpSecurity.class, SecurityWebFilterChain.class})
-public class MvflixSecurityAutoConfiguration {
+public class MvflixSecurityAutoConfiguration implements WebFluxConfigurer {
+  @Override
+  public void configureArgumentResolvers(
+      org.springframework.web.reactive.result.method.annotation.ArgumentResolverConfigurer configurer) {
+    configurer.addCustomResolver(new AuthenticatedActorArgumentResolver());
+  }
+
   @Bean
   @ConditionalOnMissingBean
   MvflixJwtAuthenticationConverter mvflixJwtAuthenticationConverter() {
