@@ -1,0 +1,72 @@
+openapi: 3.0.3
+info:
+  title: MVFlix Web BFF API
+  version: 1.0.0
+  description: Fachada web autenticada por sesion para la aplicacion MVFlix.
+servers:
+  - url: http://localhost:9091
+security:
+  - sessionCookie: []
+paths:
+  /web/session:
+    get:
+      summary: Obtiene el estado de la sesion web
+      security: []
+      responses:
+        '200': { description: Sesion actual }
+  /web/movies:
+    get:
+      summary: Lista y busca peliculas
+      responses:
+        '200': { description: Resultados del catalogo }
+  /web/movies/{movieId}:
+    get:
+      summary: Obtiene una pelicula
+      parameters:
+        - $ref: '#/components/parameters/MovieId'
+      responses:
+        '200': { description: Pelicula encontrada }
+        '404': { description: Pelicula no encontrada }
+  /web/movies/{movieId}/stream:
+    get:
+      summary: Obtiene la fuente de streaming de una pelicula
+      parameters:
+        - $ref: '#/components/parameters/MovieId'
+      responses:
+        '200': { description: Redireccion o fuente de streaming }
+  /web/playback/{mediaId}/session:
+    post:
+      summary: Inicia playback desde la experiencia web
+      parameters:
+        - in: path
+          name: mediaId
+          required: true
+          schema: { type: integer, format: int64 }
+      responses:
+        '200': { description: Sesion y fuente de playback }
+  /web/add-media:
+    post:
+      summary: Inicia un flujo de alta de media
+      requestBody:
+        required: true
+        content:
+          application/json: { schema: { type: object } }
+      responses:
+        '200': { description: Flujo de alta creado }
+  /web/logout:
+    post:
+      summary: Invalida la sesion local
+      responses:
+        '303': { description: Redireccion a la sesion web }
+components:
+  parameters:
+    MovieId:
+      in: path
+      name: movieId
+      required: true
+      schema: { type: integer, format: int64 }
+  securitySchemes:
+    sessionCookie:
+      type: apiKey
+      in: cookie
+      name: __Host-SESSION

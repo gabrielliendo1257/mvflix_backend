@@ -1,0 +1,37 @@
+openapi: 3.0.3
+info:
+  title: MVFlix Activity API
+  version: 1.0.0
+  description: Historial y actividad de reproduccion del usuario.
+servers:
+  - url: http://localhost:8082
+security:
+  - bearerAuth: []
+paths:
+  /api/v1/activity/history:
+    get:
+      summary: Obtiene el historial de reproduccion
+      responses:
+        '200': { description: Historial del usuario }
+  /api/v1/activity/continue-watching:
+    get:
+      summary: Obtiene contenido para continuar viendo
+      responses:
+        '200': { description: Actividad proyectada }
+  /api/v1/activity/movies/{movieId}:
+    get:
+      summary: Obtiene la actividad de un item
+      parameters:
+        - in: path
+          name: movieId
+          required: true
+          schema: { type: integer, format: int64 }
+      responses:
+        '200': { description: Actividad del item }
+        '404': { description: Actividad no encontrada }
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

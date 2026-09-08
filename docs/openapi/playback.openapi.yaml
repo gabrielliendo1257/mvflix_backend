@@ -1,0 +1,42 @@
+openapi: 3.0.3
+info:
+  title: MVFlix Playback API
+  version: 1.0.0
+  description: Sesiones y progreso de reproduccion.
+servers:
+  - url: http://localhost:8083
+security:
+  - bearerAuth: []
+paths:
+  /api/v1/playback/sessions/{catalogItemId}:
+    post:
+      summary: Inicia o recupera una sesion de playback
+      parameters:
+        - in: path
+          name: catalogItemId
+          required: true
+          schema: { type: integer, format: int64 }
+      responses:
+        '200': { description: Sesion de playback }
+        '404': { description: Item no reproducible }
+  /api/v1/playback/sessions/{sessionId}/progress:
+    post:
+      summary: Registra progreso de playback
+      parameters:
+        - in: path
+          name: sessionId
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json: { schema: { type: object } }
+      responses:
+        '200': { description: Progreso registrado }
+        '409': { description: Secuencia o estado incompatible }
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
