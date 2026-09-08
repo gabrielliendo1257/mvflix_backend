@@ -6,6 +6,8 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.boot.autoconfigure.ImportAutoConfiguration;
+import com.gcorp.mvflix.security.webflux.MvflixSecurityAutoConfiguration;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.reactive.server.WebTestClient;
@@ -18,6 +20,7 @@ import org.springframework.test.web.reactive.server.WebTestClient;
  */
 @WebFluxTest(controllers = StorageSecurityMatrixTest.NoControllers.class)
 @Import(SecurityConfiguration.class)
+@ImportAutoConfiguration(MvflixSecurityAutoConfiguration.class)
 @TestPropertySource(
     properties = {
       "services.authorization.url=http://authorization.invalid",
