@@ -4,7 +4,12 @@
   <parent><groupId>gcorp.microservicesarm.app</groupId><artifactId>mvflix</artifactId><version>1.0.1</version></parent>
   <artifactId>mvflix-media-ingestion</artifactId><groupId>com.gcorp.service.app</groupId><version>0.0.1-SNAPSHOT</version>
   <properties><testcontainers.version>1.21.4</testcontainers.version></properties>
-  <dependencies>
+<dependencies>
+    <dependency>
+      <groupId>com.gcorp.mvflix</groupId>
+      <artifactId>mvflix-security-webflux-spring-boot-starter</artifactId>
+      <version>0.0.1-SNAPSHOT</version>
+    </dependency>
     <dependency><groupId>org.springframework.boot</groupId><artifactId>spring-boot-starter-webflux</artifactId></dependency>
     <dependency><groupId>org.springframework.boot</groupId><artifactId>spring-boot-starter-validation</artifactId></dependency>
     <dependency><groupId>org.springframework.boot</groupId><artifactId>spring-boot-starter-data-r2dbc</artifactId></dependency>
