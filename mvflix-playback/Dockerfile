@@ -13,7 +13,7 @@ WORKDIR /app
 COPY --from=build /workspace/mvflix-playback/target/*.jar app.jar
 RUN chown app:app app.jar
 USER app
-EXPOSE 7070 10070
+EXPOSE 7070 10071
 HEALTHCHECK --interval=10s --timeout=3s --start-period=30s --retries=6 \
-  CMD curl --fail --silent http://127.0.0.1:10070/actuator/health/readiness || exit 1
+  CMD curl --fail --silent http://127.0.0.1:10071/actuator/health/readiness || exit 1
 ENTRYPOINT ["java", "-jar", "/app/app.jar"]

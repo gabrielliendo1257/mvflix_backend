@@ -5,6 +5,12 @@
 !mvnw
 !pom.xml
 
+!libraries/
+!libraries/mvflix-security-webflux-spring-boot-starter/
+!libraries/mvflix-security-webflux-spring-boot-starter/pom.xml
+!libraries/mvflix-security-webflux-spring-boot-starter/src/
+!libraries/mvflix-security-webflux-spring-boot-starter/src/**
+
 !mvflix-devseed/
 !mvflix-devseed/pom.xml
 !mvflix-devseed/src/
