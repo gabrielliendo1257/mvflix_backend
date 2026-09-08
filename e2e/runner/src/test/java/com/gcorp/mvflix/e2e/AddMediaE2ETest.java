@@ -107,10 +107,10 @@ class AddMediaE2ETest {
       restartIngestion();
       awaitIngestionPhase(token, id, Set.of("RECONCILIATION_REQUIRED"));
 
-      compose("up", "--no-deps", "--wait", "-d", "movies");
+      compose("up", "--no-deps", "--no-recreate", "--wait", "-d", "movies");
       awaitIngestionPhase(token, id, Set.of("COMPLETED"));
     } finally {
-      compose("up", "--no-deps", "--wait", "-d", "movies");
+      compose("up", "--no-deps", "--no-recreate", "--wait", "-d", "movies");
     }
   }
 
@@ -228,7 +228,7 @@ class AddMediaE2ETest {
       throw new AssertionError("media-ingestion restart failed with exit "
           + (finished ? process.exitValue() : "timeout") + ": " + output);
     }
-    compose("up", "--no-deps", "--wait", "-d", "media-ingestion");
+    compose("up", "--no-deps", "--no-recreate", "--wait", "-d", "media-ingestion");
   }
 
   private static void compose(String... arguments) throws Exception {
