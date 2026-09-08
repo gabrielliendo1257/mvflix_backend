@@ -14,20 +14,12 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
-import org.springframework.security.authentication.AbstractAuthenticationToken;
-import org.springframework.security.authentication.ReactiveAuthenticationManager;
-import org.springframework.security.authentication.UserDetailsRepositoryReactiveAuthenticationManager;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.reactive.EnableWebFluxSecurity;
 import org.springframework.security.config.web.server.ServerHttpSecurity;
 import org.springframework.security.core.AuthenticationException;
-import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.userdetails.MapReactiveUserDetailsService;
-import org.springframework.security.core.userdetails.User;
 import org.springframework.security.oauth2.client.registration.ReactiveClientRegistrationRepository;
 import org.springframework.security.oauth2.jwt.Jwt;
-import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
-import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
 import org.springframework.security.web.server.SecurityWebFilterChain;
 import org.springframework.security.web.server.ServerAuthenticationEntryPoint;
 import org.springframework.security.web.server.authentication.RedirectServerAuthenticationEntryPoint;
@@ -37,6 +29,7 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.reactive.UrlBasedCorsConfigurationSource;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
+import com.gcorp.mvflix.security.webflux.MvflixJwtAuthenticationConverter;
 
 /**
  * Seguridad del BFF: patrón oauth2-client (el navegador nunca ve tokens).
@@ -63,23 +56,6 @@ public class WebSecurityConfig {
   @Value("${bff.cors.allowed-origins:}")
   private String extraAllowedOrigins;
 
-  @Bean
-  @Order(0)
-  SecurityWebFilterChain actuatorSecurityWebFilterChain(
-      ServerHttpSecurity http,
-      @Value("${ACTUATOR_METRICS_USER:metrics}") String username,
-      @Value("${ACTUATOR_METRICS_PASSWORD:change-me}") String password) {
-    return http.securityMatcher(org.springframework.security.web.server.util.matcher.ServerWebExchangeMatchers
-            .pathMatchers("/actuator/**"))
-        .csrf(ServerHttpSecurity.CsrfSpec::disable)
-        .authenticationManager(metricsAuthenticationManager(username, password))
-        .httpBasic(Customizer.withDefaults())
-        .authorizeExchange(exchanges -> exchanges
-            .pathMatchers("/actuator/health", "/actuator/health/**").permitAll()
-            .anyExchange().hasRole("METRICS"))
-        .build();
-  }
-
   /**
    * Dev-token (Bearer) para Postman/curl en dev. En WebFlux no se pueden combinar
    * oauth2Login + oauth2ResourceServer en la misma cadena (el filtro Bearer nunca
@@ -89,7 +65,8 @@ public class WebSecurityConfig {
   @Bean
   @Order(1)
   @Profile("dev")
-  SecurityWebFilterChain bearerDevSecurityWebFilterChain(ServerHttpSecurity http) {
+  SecurityWebFilterChain bearerDevSecurityWebFilterChain(ServerHttpSecurity http,
+      MvflixJwtAuthenticationConverter converter) {
     return http.securityMatcher(this::hasAuthorizationHeader)
         .csrf(ServerHttpSecurity.CsrfSpec::disable)
         .cors(Customizer.withDefaults())
@@ -114,7 +91,7 @@ public class WebSecurityConfig {
                     jwtSpec ->
                         jwtSpec
                             .jwkSetUri(this.resolveJwkSetUri())
-                            .jwtAuthenticationConverter(this.jwtAuthenticationConverter())))
+                             .jwtAuthenticationConverter(converter)))
         .build();
   }
 
@@ -189,48 +166,11 @@ public class WebSecurityConfig {
     };
   }
 
-  // No es @Bean a proposito: WebFlux registra todos los Converter beans en el
-  // webFluxConversionService y una lambda no retiene la info generica (spring-framework#22509).
-  Converter<Jwt, Mono<AbstractAuthenticationToken>> jwtAuthenticationConverter() {
-    var authoritiesConverter = new JwtGrantedAuthoritiesConverter(); // claim "scope" -> SCOPE_*
-    var rolesConverter = new JwtGrantedAuthoritiesConverter();
-    rolesConverter.setAuthoritiesClaimName("roles");
-    rolesConverter.setAuthorityPrefix("");
-
-    return jwt ->
-        Mono.just(
-            new JwtAuthenticationToken(
-                jwt, mergeAuthorities(authoritiesConverter, rolesConverter, jwt)));
-  }
-
-  private List<GrantedAuthority> mergeAuthorities(
-      JwtGrantedAuthoritiesConverter scopeConverter,
-      JwtGrantedAuthoritiesConverter rolesConverter,
-      Jwt jwt) {
-    var authorities = new java.util.ArrayList<org.springframework.security.core.GrantedAuthority>();
-    if (scopeConverter.convert(jwt) != null) {
-      authorities.addAll(scopeConverter.convert(jwt));
-    }
-    if (rolesConverter.convert(jwt) != null) {
-      authorities.addAll(rolesConverter.convert(jwt));
-    }
-    return authorities;
-  }
-
   private String resolveJwkSetUri() {
     if (this.jwkSetUriOverride != null && !this.jwkSetUriOverride.isBlank()) {
       return this.jwkSetUriOverride;
     }
     return this.authorizationUrl + "/oauth2/jwks";
-  }
-
-  private ReactiveAuthenticationManager metricsAuthenticationManager(String username, String password) {
-    var user = User.withUsername(username)
-        .password("{noop}" + password)
-        .roles("METRICS")
-        .build();
-    return new UserDetailsRepositoryReactiveAuthenticationManager(
-        new MapReactiveUserDetailsService(user));
   }
 
   @Bean
