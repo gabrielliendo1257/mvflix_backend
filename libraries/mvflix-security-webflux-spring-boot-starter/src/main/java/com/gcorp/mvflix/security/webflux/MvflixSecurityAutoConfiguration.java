@@ -1,0 +1,68 @@
+package com.gcorp.mvflix.security.webflux;
+
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.AutoConfiguration;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.context.annotation.Bean;
+import org.springframework.core.annotation.Order;
+import org.springframework.security.authentication.AbstractAuthenticationToken;
+import org.springframework.security.authentication.ReactiveAuthenticationManager;
+import org.springframework.security.authentication.UserDetailsRepositoryReactiveAuthenticationManager;
+import org.springframework.security.config.web.server.ServerHttpSecurity;
+import org.springframework.security.core.userdetails.MapReactiveUserDetailsService;
+import org.springframework.security.core.userdetails.User;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.web.server.SecurityWebFilterChain;
+import org.springframework.security.web.server.util.matcher.ServerWebExchangeMatchers;
+import reactor.core.publisher.Mono;
+
+@AutoConfiguration
+@EnableConfigurationProperties(MvflixSecurityProperties.class)
+public class MvflixSecurityAutoConfiguration {
+  @Bean
+  @ConditionalOnMissingBean
+  MvflixJwtAuthenticationConverter mvflixJwtAuthenticationConverter() {
+    return new MvflixJwtAuthenticationConverter();
+  }
+
+  @Bean
+  MvflixSecurityProperties mvflixSecurityProperties(
+      @Value("${mvflix.security.actuator-username:${ACTUATOR_METRICS_USER:metrics}}") String username,
+      @Value("${mvflix.security.actuator-password:${ACTUATOR_METRICS_PASSWORD:change-me}}") String password) {
+    return new MvflixSecurityProperties(username, password);
+  }
+
+  @Bean
+  @ConditionalOnMissingBean(name = "mvflixActuatorSecurityWebFilterChain")
+  @Order(0)
+  SecurityWebFilterChain mvflixActuatorSecurityWebFilterChain(ServerHttpSecurity http,
+      MvflixSecurityProperties properties) {
+    return http.securityMatcher(ServerWebExchangeMatchers.pathMatchers("/actuator/**"))
+        .csrf(ServerHttpSecurity.CsrfSpec::disable)
+        .authenticationManager(metricsAuthenticationManager(properties.actuatorUsername(),
+            properties.actuatorPassword()))
+        .httpBasic(org.springframework.security.config.Customizer.withDefaults())
+        .authorizeExchange(exchanges -> exchanges
+            .pathMatchers("/actuator/health", "/actuator/health/**").permitAll()
+            .anyExchange().hasRole("METRICS"))
+        .build();
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
+  MvflixUnauthorizedHandler mvflixUnauthorizedHandler() {
+    return new MvflixUnauthorizedHandler();
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
+  MvflixAccessDeniedHandler mvflixAccessDeniedHandler() {
+    return new MvflixAccessDeniedHandler();
+  }
+
+  private ReactiveAuthenticationManager metricsAuthenticationManager(String username, String password) {
+    var user = User.withUsername(username).password("{noop}" + password).roles("METRICS").build();
+    return new UserDetailsRepositoryReactiveAuthenticationManager(new MapReactiveUserDetailsService(user));
+  }
+}

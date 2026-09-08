@@ -27,6 +27,7 @@
 	</dependencyManagement>
 
 	<modules>
+        <module>libraries/mvflix-security-webflux-spring-boot-starter</module>
         <module>mvflix-devseed</module>
         <module>mvflix-authorization</module>
         <module>mvflix-storage</module>
