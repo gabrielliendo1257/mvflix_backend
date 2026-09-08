@@ -190,11 +190,11 @@ public record MediaIngestion(
   }
 
   public MediaIngestion failed(String code) {
-    return recovery(Phase.FAILED, code, 30);
+    return recovery(Phase.FAILED, code, null, 30);
   }
 
   public MediaIngestion recovery(Phase next, String reason, long delaySeconds) {
-    return recovery(next, "RECOVERY_REQUIRED", reason, delaySeconds);
+    return recovery(next, reason, null, delaySeconds);
   }
 
   public MediaIngestion recovery(Phase next, String code, String detail, long delaySeconds) {
@@ -223,7 +223,7 @@ public record MediaIngestion(
   }
 
   public MediaIngestion rescheduled(Phase next, String reason, long delaySeconds) {
-    return rescheduled(next, "RECOVERY_REQUIRED", reason, delaySeconds);
+    return rescheduled(next, reason, null, delaySeconds);
   }
 
   public MediaIngestion rescheduled(Phase next, String code, String detail, long delaySeconds) {
