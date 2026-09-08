@@ -27,6 +27,7 @@ import org.jose4j.jws.JsonWebSignature;
 import org.jose4j.jwk.JsonWebKey;
 import org.jose4j.jwk.RsaJsonWebKey;
 import org.jose4j.jwt.JwtClaims;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 class AddMediaE2ETest {
@@ -36,6 +37,7 @@ class AddMediaE2ETest {
   private static final HttpClient HTTP = HttpClient.newHttpClient();
 
   @Test
+  @Tag("smoke")
   void completesAddMediaThroughBffAndKeepsReplayIdempotent() throws Exception {
     String key = "e2e-add-media-" + UUID.randomUUID();
     String body = request("e2e-flow.mp4", 4, "e2e movie");
@@ -89,6 +91,7 @@ class AddMediaE2ETest {
   }
 
   @Test
+  @Tag("resilience")
   void recoversWhenIngestionRestartsAfterUploadCompletion() throws Exception {
     String key = "e2e-add-media-restart-" + UUID.randomUUID();
     String token = token(USER, "media-ingestion");

@@ -11,6 +11,7 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 class PlaybackLifecycleE2ETest {
@@ -21,6 +22,7 @@ class PlaybackLifecycleE2ETest {
   private static final HttpClient HTTP = HttpClient.newHttpClient();
 
   @Test
+  @Tag("smoke")
   void recordsPlaybackLifecycleIdempotentlyAndProjectsOneActivity() throws Exception {
     String setupToken = AddMediaE2ETest.token(USER, "media-ingestion");
     AddMediaE2ETest.provisionStorage(AddMediaE2ETest.token(USER, "storage.write"));

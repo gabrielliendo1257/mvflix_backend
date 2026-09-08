@@ -29,6 +29,7 @@ import org.jose4j.jws.JsonWebSignature;
 import org.jose4j.jwk.JsonWebKey;
 import org.jose4j.jwk.RsaJsonWebKey;
 import org.jose4j.jwt.JwtClaims;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 class ActivityProjectionsE2ETest {
@@ -38,6 +39,7 @@ class ActivityProjectionsE2ETest {
   private static final HttpClient HTTP = HttpClient.newHttpClient();
 
   @Test
+  @Tag("smoke")
   void projectsCatalogAccessChangedIntoActivityFeed() throws Exception {
     UUID eventId = UUID.randomUUID();
     publish("mvflix.catalog-item-access-changed.v1", eventId.toString(), """
