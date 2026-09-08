@@ -1,0 +1,96 @@
+openapi: 3.0.3
+info:
+  title: MVFlix Movies API
+  version: 1.0.0
+  description: Catalogo, assets multimedia y contexto de playback.
+servers:
+  - url: http://localhost:4040
+security:
+  - bearerAuth: []
+paths:
+  /api/v1/movies:
+    get:
+      summary: Busca y pagina items del catalogo
+      responses:
+        '200': { description: Pagina de resultados }
+    post:
+      summary: Crea un item de catalogo
+      requestBody:
+        required: true
+        content:
+          application/json: { schema: { type: object } }
+      responses:
+        '201': { description: Item creado }
+        '400': { $ref: '#/components/responses/BadRequest' }
+  /api/v1/movies/{id}:
+    parameters:
+      - $ref: '#/components/parameters/MovieId'
+    get:
+      summary: Obtiene un item del catalogo
+      responses:
+        '200': { description: Item encontrado }
+        '404': { $ref: '#/components/responses/NotFound' }
+    put:
+      summary: Actualiza los detalles del item
+      responses:
+        '200': { description: Item actualizado }
+    delete:
+      summary: Elimina el item del catalogo
+      responses:
+        '204': { description: Item eliminado }
+  /api/v1/movies/{id}/playback-context:
+    get:
+      summary: Resuelve el contexto reproducible del item
+      parameters:
+        - $ref: '#/components/parameters/MovieId'
+      responses:
+        '200': { description: Contexto de playback }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /api/v1/movies/{id}/visibility:
+    post:
+      summary: Cambia la visibilidad del item
+      parameters:
+        - $ref: '#/components/parameters/MovieId'
+      responses:
+        '200': { description: Visibilidad actualizada }
+        '409': { description: Conflicto de estado }
+  /api/v1/movies/{id}/shares:
+    post:
+      summary: Actualiza los usuarios compartidos
+      parameters:
+        - $ref: '#/components/parameters/MovieId'
+      responses:
+        '200': { description: Compartidos actualizados }
+  /api/v1/movies/{id}/complete:
+    post:
+      summary: Completa un draft identificado
+      parameters:
+        - $ref: '#/components/parameters/MovieId'
+      responses:
+        '200': { description: Draft completado }
+  /api/v1/media-assets/{id}/identify:
+    post:
+      summary: Identifica un asset multimedia
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer, format: int64 }
+      responses:
+        '200': { description: Asset identificado }
+        '404': { $ref: '#/components/responses/NotFound' }
+components:
+  parameters:
+    MovieId:
+      in: path
+      name: id
+      required: true
+      schema: { type: integer, format: int64 }
+  responses:
+    BadRequest: { description: Request invalida }
+    NotFound: { description: Recurso no encontrado }
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

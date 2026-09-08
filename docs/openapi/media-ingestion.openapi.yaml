@@ -1,0 +1,57 @@
+openapi: 3.0.3
+info:
+  title: MVFlix Media Ingestion API
+  version: 1.0.0
+  description: Ciclo de vida de una ingestion de media.
+servers:
+  - url: http://localhost:7070
+security:
+  - bearerAuth: []
+paths:
+  /api/v1/ingestions:
+    post:
+      summary: Inicia una ingestion
+      requestBody:
+        required: true
+        content:
+          application/json: { schema: { type: object } }
+      responses:
+        '201': { description: Ingestion creada }
+        '400': { description: Request invalida }
+        '409': { description: Ingestion duplicada o estado incompatible }
+  /api/v1/ingestions/{id}:
+    get:
+      summary: Obtiene el estado de una ingestion
+      parameters:
+        - $ref: '#/components/parameters/IngestionId'
+      responses:
+        '200': { description: Estado de ingestion }
+        '404': { description: Ingestion no encontrada }
+  /api/v1/ingestions/{id}/complete:
+    post:
+      summary: Marca una ingestion como completada
+      parameters:
+        - $ref: '#/components/parameters/IngestionId'
+      responses:
+        '200': { description: Ingestion completada }
+        '409': { description: Transicion incompatible }
+  /api/v1/ingestions/{id}/cancel:
+    post:
+      summary: Cancela una ingestion
+      parameters:
+        - $ref: '#/components/parameters/IngestionId'
+      responses:
+        '200': { description: Ingestion cancelada }
+        '409': { description: Transicion incompatible }
+components:
+  parameters:
+    IngestionId:
+      in: path
+      name: id
+      required: true
+      schema: { type: string, format: uuid }
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
