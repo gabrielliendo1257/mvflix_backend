@@ -1,11 +1,9 @@
 package com.gcorp.mvflix.security.webflux;
 
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Primary;
 import org.springframework.core.annotation.Order;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.security.authentication.ReactiveAuthenticationManager;
@@ -25,14 +23,6 @@ public class MvflixSecurityAutoConfiguration {
   @ConditionalOnMissingBean
   MvflixJwtAuthenticationConverter mvflixJwtAuthenticationConverter() {
     return new MvflixJwtAuthenticationConverter();
-  }
-
-  @Bean
-  @Primary
-  MvflixSecurityProperties mvflixSecurityProperties(
-      @Value("${mvflix.security.actuator-username:${ACTUATOR_METRICS_USER:metrics}}") String username,
-      @Value("${mvflix.security.actuator-password:${ACTUATOR_METRICS_PASSWORD:change-me}}") String password) {
-    return new MvflixSecurityProperties(username, password);
   }
 
   @Bean

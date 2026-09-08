@@ -8,14 +8,16 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.beans.factory.annotation.Autowired;
+import com.gcorp.mvflix.security.webflux.MvflixSecurityAutoConfiguration;
 import org.springframework.test.web.reactive.server.WebTestClient;
 
 @WebFluxTest(controllers = ActuatorSecurityTest.Endpoint.class)
-@Import({SandboxSecurityConfiguration.class, ActuatorSecurityTest.Endpoint.class})
-@ActiveProfiles("sandbox")
+@Import({SecurityConfig.class, MvflixSecurityAutoConfiguration.class, ActuatorSecurityTest.Endpoint.class})
+@ActiveProfiles("security-test")
 @TestPropertySource(properties = {
         "ACTUATOR_METRICS_USER=metrics",
-        "ACTUATOR_METRICS_PASSWORD=change-me"
+        "ACTUATOR_METRICS_PASSWORD=change-me",
+        "security.oauth2.jwk-set-uri=http://authorization.invalid/oauth2/jwks"
 })
 class ActuatorSecurityTest {
 

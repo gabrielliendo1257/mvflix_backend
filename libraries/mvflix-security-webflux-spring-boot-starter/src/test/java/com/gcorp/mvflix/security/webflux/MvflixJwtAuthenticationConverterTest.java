@@ -18,12 +18,12 @@ class MvflixJwtAuthenticationConverterTest {
         .issuedAt(Instant.EPOCH)
         .expiresAt(Instant.MAX)
         .claim("scope", "movies.read storage.write")
-        .claim("roles", List.of("ADMIN"))
+        .claim("roles", List.of("ROLE_ADMIN"))
         .build();
 
     var authorities = converter.convert(jwt).block().getAuthorities();
 
     assertThat(authorities).extracting("authority")
-        .containsExactlyInAnyOrder("SCOPE_movies.read", "SCOPE_storage.write", "ADMIN");
+        .containsExactlyInAnyOrder("SCOPE_movies.read", "SCOPE_storage.write", "ROLE_ADMIN");
   }
 }
