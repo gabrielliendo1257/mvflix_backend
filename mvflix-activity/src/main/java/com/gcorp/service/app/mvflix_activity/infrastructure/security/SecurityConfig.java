@@ -5,6 +5,7 @@ import org.springframework.context.annotation.*;
 import org.springframework.security.config.annotation.web.reactive.EnableWebFluxSecurity;
 import org.springframework.security.config.web.server.ServerHttpSecurity;
 import org.springframework.security.web.server.SecurityWebFilterChain;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import com.gcorp.mvflix.security.webflux.MvflixAccessDeniedHandler;
 import com.gcorp.mvflix.security.webflux.MvflixJwtAuthenticationConverter;
 import com.gcorp.mvflix.security.webflux.MvflixUnauthorizedHandler;
@@ -12,6 +13,24 @@ import com.gcorp.mvflix.security.webflux.MvflixUnauthorizedHandler;
 @Configuration
 @EnableWebFluxSecurity
 public class SecurityConfig {
+  @Bean
+  @ConditionalOnMissingBean
+  MvflixJwtAuthenticationConverter jwtAuthenticationConverter() {
+    return new MvflixJwtAuthenticationConverter();
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
+  MvflixUnauthorizedHandler unauthorizedHandler() {
+    return new MvflixUnauthorizedHandler();
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
+  MvflixAccessDeniedHandler accessDeniedHandler() {
+    return new MvflixAccessDeniedHandler();
+  }
+
   @Bean SecurityWebFilterChain security(ServerHttpSecurity http,
       @Value("${security.oauth2.jwk-set-uri}") String jwk,
       MvflixJwtAuthenticationConverter converter,

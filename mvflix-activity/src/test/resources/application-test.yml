@@ -1,0 +1,3 @@
+mvflix:
+  security:
+    actuator-password: test-only
