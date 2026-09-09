@@ -6,6 +6,7 @@ import com.gcorp.service.app.mvflix_activity.feed.application.GetActivityFeed;
 import com.gcorp.service.app.mvflix_activity.feed.application.ProjectActivityEvent;
 import com.gcorp.service.app.mvflix_activity.feed.application.ProjectCatalogItemAccessChanged;
 import com.gcorp.service.app.mvflix_activity.feed.application.ProjectUploadFailed;
+import com.gcorp.service.app.mvflix_activity.feed.application.ProjectPlaybackActivity;
 import com.gcorp.service.app.mvflix_activity.feed.application.port.ActivityFeedInbox;
 import com.gcorp.service.app.mvflix_activity.feed.application.port.ActivityFeedRepository;
 import org.springframework.context.annotation.Bean;
@@ -29,4 +30,8 @@ public class ActivityConfiguration {
   @Bean ProjectUploadFailed projectUploadFailed(ActivityFeedInbox inbox, ActivityFeedRepository projection,
       TransactionalOperator tx) { return new ProjectUploadFailed(inbox, projection, tx); }
   @Bean GetActivityFeed getActivityFeed(ActivityFeedRepository repository) { return new GetActivityFeed(repository); }
+  @Bean ProjectPlaybackActivity projectPlaybackActivity(ActivityFeedInbox inbox,
+      ActivityFeedRepository projection, TransactionalOperator tx) {
+    return new ProjectPlaybackActivity(inbox, projection, tx);
+  }
 }
