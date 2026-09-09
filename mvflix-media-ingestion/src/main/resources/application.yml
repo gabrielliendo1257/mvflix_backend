@@ -50,7 +50,11 @@ mvflix:
   downstream.storage-url: ${STORAGE_URL:http://localhost:6060}
   downstream.users-url: ${USERS_URL:http://localhost:8080}
   downstream.response-timeout-seconds: ${MVFLIX_DOWNSTREAM_RESPONSE_TIMEOUT_SECONDS:10}
+  downstream.connect-timeout-ms: ${MVFLIX_DOWNSTREAM_CONNECT_TIMEOUT_MS:2000}
   recovery.enabled: ${MVFLIX_RECOVERY_ENABLED:true}
   recovery.poll-ms: ${MVFLIX_RECOVERY_POLL_MS:5000}
   recovery.stale-after-seconds: ${MVFLIX_RECOVERY_STALE_AFTER_SECONDS:30}
+  recovery.backoff.initial: ${MVFLIX_RECOVERY_BACKOFF_INITIAL:30s}
+  recovery.backoff.maximum: ${MVFLIX_RECOVERY_BACKOFF_MAXIMUM:1h}
+  recovery.backoff.jitter: ${MVFLIX_RECOVERY_BACKOFF_JITTER:0.20}
   compensation.enabled: ${MVFLIX_COMPENSATION_ENABLED:true}

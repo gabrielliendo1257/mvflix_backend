@@ -146,11 +146,12 @@ public class R2dbcMediaIngestionRepository implements MediaIngestionRepository {
   public Flux<MediaIngestion> claimDueRecoverable(int limit, Duration lease) {
     return db.sql(
             "UPDATE media_ingestions i SET recovery_claimed_until=now() +"
-                + " (:lease * interval '1 second'), retry_count=i.retry_count+1,"
+                + " (:lease * interval '1 second'),"
                 + " version=i.version+1, updated_at=now() WHERE i.ingestion_id IN ("
                 + "SELECT ingestion_id FROM media_ingestions WHERE phase IN"
                 + " ('STARTING','PREPARING_CATALOG','PREPARING_UPLOAD','FINALIZING_CATALOG','RECONCILIATION_REQUIRED')"
                 + " AND ((phase IN ('STARTING','PREPARING_CATALOG','PREPARING_UPLOAD')"
+                + " AND next_attempt_at<=now()"
                 + " AND updated_at<=now() - (:stale * interval '1 second'))"
                 + " OR (phase IN ('FINALIZING_CATALOG','RECONCILIATION_REQUIRED')"
                 + " AND next_attempt_at<=now()))"
