@@ -41,6 +41,7 @@ STORAGE_PORT=6060
 MOVIES_PORT=4040
 MEDIA_INGESTION_PORT=7080
 PLAYBACK_PORT=7071
+ACTIVITY_PORT=7070
 BFF_PORT=9091
 DB_TARGET_HOST="${DB_HOST:-127.0.0.1}"
 DB_TARGET_PORT="${DB_PORT:-5432}"
@@ -60,6 +61,7 @@ declare -A SERVICES=(
   [mvflix-movies]=$MOVIES_PORT
   [mvflix-media-ingestion]=$MEDIA_INGESTION_PORT
   [mvflix-playback]=$PLAYBACK_PORT
+  [mvflix-activity]=$ACTIVITY_PORT
   [bff-mvflix-web]=$BFF_PORT
 )
 
@@ -161,8 +163,10 @@ start_one() {
     extra_args+=("-Dspring-boot.run.jvmArguments=-DMEDIA_INGESTION_PORT_INTERNAL=${MEDIA_INGESTION_PORT} -DMVFLIX_INTERNAL_TOKEN_URI=http://127.0.0.1:${AUTH_PORT}/oauth2/token -DSECURITY_OAUTH2_JWK_SET_URI=http://127.0.0.1:${AUTH_PORT}/oauth2/jwks")
   elif [ "${name}" = "mvflix-playback" ]; then
     extra_args+=("-Dspring-boot.run.jvmArguments=-DPLAYBACK_PORT_INTERNAL=${PLAYBACK_PORT} -DSERVICES_MOVIES_URL=http://127.0.0.1:${MOVIES_PORT} -DSERVICES_STORAGE_URL=http://127.0.0.1:${STORAGE_PORT} -DSERVICES_AUTHORIZATION_URL=http://127.0.0.1:${AUTH_PORT} -DSECURITY_OAUTH2_JWK_SET_URI=http://127.0.0.1:${AUTH_PORT}/oauth2/jwks -DKAFKA_BOOTSTRAP_SERVERS=${KAFKA_BOOTSTRAP_SERVERS:-127.0.0.1:9094}")
+  elif [ "${name}" = "mvflix-activity" ]; then
+    extra_args+=("-Dspring-boot.run.jvmArguments=-DACTIVITY_PORT_INTERNAL=${ACTIVITY_PORT} -DSECURITY_OAUTH2_JWK_SET_URI=http://127.0.0.1:${AUTH_PORT}/oauth2/jwks -DKAFKA_BOOTSTRAP_SERVERS=${KAFKA_BOOTSTRAP_SERVERS:-127.0.0.1:9094} -DMVFLIX_MESSAGING_KAFKA_ENABLED=true")
   elif [ "${name}" = "bff-mvflix-web" ]; then
-    extra_args+=("-Dspring-boot.run.jvmArguments=-DMEDIA_INGESTION_URL=http://127.0.0.1:${MEDIA_INGESTION_PORT} -DMEDIA_INGESTION_ENABLED=true -DPLAYBACK_URL=http://127.0.0.1:${PLAYBACK_PORT}")
+    extra_args+=("-Dspring-boot.run.jvmArguments=-DMEDIA_INGESTION_URL=http://127.0.0.1:${MEDIA_INGESTION_PORT} -DMEDIA_INGESTION_ENABLED=true -DPLAYBACK_URL=http://127.0.0.1:${PLAYBACK_PORT} -DACTIVITY_URL=http://127.0.0.1:${ACTIVITY_PORT}")
   elif [ "${name}" = "mvflix-users" ]; then
     extra_args+=("-Dspring-boot.run.jvmArguments=-DDB_HOST=${DB_TARGET_HOST} -DDB_PORT=${DB_TARGET_PORT}")
   fi
@@ -227,17 +231,19 @@ start() {
   start_one mvflix-authorization
   wait_port "$AUTH_PORT" mvflix-authorization
 
-  echo "== Arrancando users, storage, movies, media-ingestion y playback en paralelo =="
+  echo "== Arrancando users, storage, movies, media-ingestion, playback y activity en paralelo =="
   start_one mvflix-users
   start_one mvflix-storage
   start_one mvflix-movies
   start_one mvflix-media-ingestion
   start_one mvflix-playback
+  start_one mvflix-activity
   wait_port "$USERS_PORT" mvflix-users
   wait_port "$STORAGE_PORT" mvflix-storage
   wait_port "$MOVIES_PORT" mvflix-movies
   wait_port "$MEDIA_INGESTION_PORT" mvflix-media-ingestion
   wait_port "$PLAYBACK_PORT" mvflix-playback
+  wait_port "$ACTIVITY_PORT" mvflix-activity
 
   echo "== Arrancando BFF (requiere auth arriba) =="
   start_one bff-mvflix-web
@@ -251,6 +257,7 @@ start() {
   echo "  movies  http://127.0.0.1:${MOVIES_PORT}"
   echo "  media-ingestion http://127.0.0.1:${MEDIA_INGESTION_PORT}"
   echo "  playback http://127.0.0.1:${PLAYBACK_PORT}"
+  echo "  activity http://127.0.0.1:${ACTIVITY_PORT}"
   echo "  bff     http://127.0.0.1:${BFF_PORT}"
   echo "Dev token: curl -s -X POST http://127.0.0.1:${AUTH_PORT}/oauth2/dev-token"
   echo "           -H 'Content-Type: application/json' -d '{\"username\":\"Javier\",\"password\":\"JavierPassword\"}'"
@@ -261,6 +268,7 @@ stop() {
   stop_one bff-mvflix-web
   stop_one mvflix-media-ingestion
   stop_one mvflix-playback
+  stop_one mvflix-activity
   stop_one mvflix-users
   stop_one mvflix-storage
   stop_one mvflix-movies
@@ -284,7 +292,7 @@ status() {
   else
     echo "  kafka: DOWN (${KAFKA_TARGET_HOST}:${KAFKA_TARGET_PORT})"
   fi
-  for name in mvflix-authorization mvflix-users mvflix-storage mvflix-movies mvflix-media-ingestion mvflix-playback bff-mvflix-web; do
+  for name in mvflix-authorization mvflix-users mvflix-storage mvflix-movies mvflix-media-ingestion mvflix-playback mvflix-activity bff-mvflix-web; do
     local port=${SERVICES[$name]}
     local pid
     if http_responding "${port}"; then
