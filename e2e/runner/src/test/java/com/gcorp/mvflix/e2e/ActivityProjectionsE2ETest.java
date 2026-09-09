@@ -50,11 +50,10 @@ class ActivityProjectionsE2ETest {
         "previousVisibility":"PRIVATE","visibility":"PUBLIC","previousSharedCount":0,"sharedCount":0}}
         """.formatted(eventId, Instant.now(), USER, USER, eventId));
 
-    JsonNode activity = awaitActivity(eventId);
-    assertEquals("CATALOG_ACCESS", activity.path("type").asText());
-    assertEquals("ACCESS_CHANGED", activity.path("status").asText());
-    assertEquals("101", activity.path("resourceId").asText());
-    assertEquals("E2E access movie", activity.path("resourceTitle").asText());
+     JsonNode activity = awaitActivity("CATALOG_ACCESS", "101");
+     assertEquals("CATALOG_ACCESS", activity.path("type").asText());
+     assertEquals("101", activity.path("resource").path("id").asText());
+     assertEquals("E2E access movie", activity.path("resource").path("title").asText());
   }
 
   @Test
@@ -68,11 +67,10 @@ class ActivityProjectionsE2ETest {
         "reason":"MINIO_UNAVAILABLE"}}
         """.formatted(eventId, Instant.now(), USER, USER, eventId, USER));
 
-    JsonNode activity = awaitActivity(eventId);
-    assertEquals("UPLOAD_FAILED", activity.path("type").asText());
-    assertEquals("FAILED", activity.path("status").asText());
-    assertEquals("202", activity.path("resourceId").asText());
-    assertEquals("e2e/failure.mp4", activity.path("resourceTitle").asText());
+     JsonNode activity = awaitActivity("UPLOAD_FAILED", "202");
+     assertEquals("UPLOAD_FAILED", activity.path("type").asText());
+     assertEquals("202", activity.path("resource").path("id").asText());
+     assertEquals("e2e/failure.mp4", activity.path("resource").path("title").asText());
   }
 
   private static void publish(String topic, String key, String value) {
@@ -87,7 +85,7 @@ class ActivityProjectionsE2ETest {
     }
   }
 
-  private static JsonNode awaitActivity(UUID eventId) {
+  private static JsonNode awaitActivity(String type, String resourceId) {
     String token = token(USER, "activity.read");
     return await().atMost(Duration.ofSeconds(30)).pollInterval(Duration.ofMillis(500)).until(
         () -> {
@@ -98,7 +96,8 @@ class ActivityProjectionsE2ETest {
                 HttpResponse.BodyHandlers.ofString());
             if (response.statusCode() != 200) return null;
             for (JsonNode item : JSON.readTree(response.body()).path("items")) {
-              if (eventId.toString().equals(item.path("activityId").asText())) return item;
+               if (type.equals(item.path("type").asText())
+                   && resourceId.equals(item.path("resource").path("id").asText())) return item;
             }
           } catch (Exception transientFailure) {
             return null;

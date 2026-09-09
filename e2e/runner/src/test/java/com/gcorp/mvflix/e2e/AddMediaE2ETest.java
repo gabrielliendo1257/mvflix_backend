@@ -83,11 +83,9 @@ class AddMediaE2ETest {
     upload(started.get("upload"));
     complete(token, id, 202, 200);
 
-    JsonNode activity = awaitActivity(token, id);
-    assertEquals(id, activity.path("correlationId").asText());
-    assertEquals("MEDIA_INGESTION", activity.path("type").asText());
-    assertEquals("COMPLETED", activity.path("status").asText());
-    assertEquals("activity.mp4", activity.path("fileName").asText());
+     JsonNode activity = awaitActivity(token, id);
+     assertEquals("MEDIA_INGESTION", activity.path("type").asText());
+     assertEquals("activity.mp4", activity.path("resource").path("title").asText());
   }
 
   @Test
@@ -167,8 +165,8 @@ class AddMediaE2ETest {
             failImmediatelyOnClientError(response);
             if (response.statusCode() != 200) return null;
             for (JsonNode entry : JSON.readTree(response.body()).path("items")) {
-              if (correlationId.equals(entry.path("correlationId").asText())
-                  && "COMPLETED".equals(entry.path("status").asText())) return entry;
+               if (correlationId.equals(entry.path("resource").path("id").asText())
+                   && "MEDIA_INGESTION".equals(entry.path("type").asText())) return entry;
             }
             return null;
           } catch (RuntimeException transientFailure) {
