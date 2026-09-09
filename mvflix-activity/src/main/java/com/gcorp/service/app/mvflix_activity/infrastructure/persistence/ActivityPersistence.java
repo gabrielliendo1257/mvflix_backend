@@ -1,7 +1,6 @@
 package com.gcorp.service.app.mvflix_activity.infrastructure.persistence;
 
 import com.gcorp.service.app.mvflix_activity.application.ActivityQueryService.ActivityRecord;
-import com.gcorp.service.app.mvflix_activity.application.port.ActivityInbox;
 import com.gcorp.service.app.mvflix_activity.application.port.WatchActivityRepository;
 import com.gcorp.service.app.mvflix_activity.domain.PlaybackProgressed;
 import com.gcorp.service.app.mvflix_activity.feed.application.port.ActivityFeedInbox;
@@ -27,29 +26,6 @@ public class ActivityPersistence implements WatchActivityRepository, ActivityFee
   public ActivityPersistence(DatabaseClient db, ObjectMapper mapper) {
     this.db = db;
     this.mapper = mapper;
-  }
-
-  public Mono<Void> recordReceived(String id, String type) {
-    return db.sql("INSERT INTO activity_inbox(event_id,event_type,status) VALUES(:id,:type,'RECEIVED') ON CONFLICT(event_id) DO NOTHING")
-        .bind("id", UUID.fromString(id)).bind("type", type).fetch().rowsUpdated().then();
-  }
-
-  public Mono<Boolean> isCompleted(String id) {
-    return db.sql("SELECT status FROM activity_inbox WHERE event_id=:id")
-        .bind("id", UUID.fromString(id))
-        .map((r, m) -> "COMPLETED".equals(r.get("status", String.class))).one()
-        .defaultIfEmpty(false);
-  }
-
-  public Mono<Void> markCompleted(String id) {
-    return db.sql("UPDATE activity_inbox SET status='COMPLETED',completed_at=NOW(),updated_at=NOW(),last_error=NULL WHERE event_id=:id")
-        .bind("id", UUID.fromString(id)).fetch().rowsUpdated().then();
-  }
-
-  public Mono<Void> markFailed(String id, String type, String error) {
-    return db.sql("INSERT INTO activity_inbox(event_id,event_type,status,last_error) VALUES(:id,:type,'FAILED',:error) ON CONFLICT(event_id) DO UPDATE SET status='FAILED',last_error=:error,updated_at=NOW()")
-        .bind("id", UUID.fromString(id)).bind("type", type).bind("error", error)
-        .fetch().rowsUpdated().then();
   }
 
   public Mono<Void> upsert(PlaybackProgressed e) {
