@@ -88,7 +88,7 @@ public class ActivityWebClientAdapter implements ActivityProjection {
   private static String description(String type, DownstreamEntry entry) {
     if (type.equals("CATALOG_ACCESS_CHANGED")) {
       String previous = value(entry.context(), "previousVisibility");
-      String current = value(entry.context(), "newVisibility");
+       String current = value(entry.context(), "visibility");
       return previous == null || current == null ? "Visibility changed"
           : firstNonBlank(entry.resourceTitle(), "Media", "Media")
               + " changed from " + previous + " to " + current;
