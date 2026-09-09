@@ -9,6 +9,10 @@ import com.gcorp.service.app.mvflix_activity.feed.application.CatalogItemAccessC
 import com.gcorp.service.app.mvflix_activity.feed.application.ProjectCatalogItemAccessChanged;
 import com.gcorp.service.app.mvflix_activity.feed.application.ProjectUploadFailed;
 import com.gcorp.service.app.mvflix_activity.feed.application.UploadFailedCommand;
+import com.gcorp.service.app.mvflix_activity.feed.application.PlaybackActivityCommand;
+import com.gcorp.service.app.mvflix_activity.feed.application.ProjectPlaybackActivity;
+import com.gcorp.service.app.mvflix_activity.application.ActivityProcessor;
+import com.gcorp.service.app.mvflix_activity.domain.PlaybackProgressed;
 import java.time.Instant;
 import java.util.UUID;
 import org.junit.jupiter.api.AfterEach;
@@ -48,6 +52,8 @@ class ActivityFeedIntegrationTest {
   @Autowired ProjectActivityEvent projector;
   @Autowired ProjectCatalogItemAccessChanged catalogAccessProjector;
   @Autowired ProjectUploadFailed uploadFailedProjector;
+  @Autowired ProjectPlaybackActivity playbackProjector;
+  @Autowired ActivityProcessor watchActivityProcessor;
   @Autowired DatabaseClient database;
   @MockBean ReactiveJwtDecoder jwtDecoder;
 
@@ -173,6 +179,31 @@ class ActivityFeedIntegrationTest {
            assertThat(activity.context().get("reason"))
                .isEqualTo(reason);
          });
+  }
+
+  @Test
+  void projectsPlaybackCompletedIndependentlyIntoWatchAndFeed() {
+    UUID eventId = UUID.randomUUID();
+    UUID correlationId = UUID.randomUUID();
+    var watchEvent = new PlaybackProgressed(eventId.toString(), "PlaybackCompleted", 1,
+        "mvflix-playback", "PlaybackSession", "session-1", "user-123", 42L, 7L,
+        600L, 600L, true, 2L);
+    var feedEvent = new PlaybackActivityCommand(eventId, "PlaybackCompleted", 1,
+        Instant.parse("2026-09-01T16:00:00Z"), "mvflix-playback", "user-123", "user-123",
+        correlationId, "PlaybackSession", "session-1", 42L, 7L, "MOVIE", "42", 600L,
+        600L, true, 2L);
+
+    watchActivityProcessor.process(watchEvent).block();
+    playbackProjector.handle(feedEvent).block();
+
+    assertThat(persistence.movie("user-123", 42L).block()).isNotNull()
+        .extracting(record -> record.completed()).isEqualTo(true);
+    assertThat(persistence.feed("user-123", null, 20).collectList().block())
+        .singleElement().extracting(entry -> entry.type()).isEqualTo("PLAYBACK");
+    assertThat(database.sql("SELECT projection_name,status FROM activity_inbox WHERE event_id=:id")
+        .bind("id", eventId).map((row, metadata) -> row.get("projection_name", String.class)
+            + ":" + row.get("status", String.class)).all().collectList().block())
+        .containsExactlyInAnyOrder("watch_activity:COMPLETED", "activity_feed:COMPLETED");
   }
 
   private static CatalogItemAccessChangedCommand catalogAccessEvent(UUID eventId,

@@ -87,10 +87,11 @@ public class ActivityPersistence implements WatchActivityRepository, ActivityFee
         .bind("actor", e.actorId()).bind("correlation", e.correlationId())
         .bind("type", e.type()).bind("status", e.status()).bind("started", e.startedAt())
         .bind("occurred", e.occurredAt())
-        .bind("event", e.eventId()).bind("eventType", e.eventType())
-        .bind("activityKey", e.activityKey()).bind("category", e.category())
-        .bind("severity", e.severity()).bind("resourceType", e.resourceType())
-        .bind("resourceId", e.resourceId()).bind("resourceTitle", e.resourceTitle())
+         .bind("event", e.eventId()).bind("eventType", e.eventType())
+         .bind("activityKey", e.activityKey()).bind("category", e.category())
+         .bind("severity", e.severity()).bind("resourceType", e.resourceType())
+         .bind("resourceId", e.resourceId());
+    s = bind(s, "resourceTitle", e.resourceTitle(), String.class)
         .bind("context", context(e.context()));
     s = bind(s, "fileName", e.fileName(), String.class);
     s = bind(s, "catalog", e.catalogItemId(), Long.class);
