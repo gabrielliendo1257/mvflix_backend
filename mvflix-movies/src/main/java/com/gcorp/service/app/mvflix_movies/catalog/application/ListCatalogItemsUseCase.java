@@ -1,6 +1,7 @@
 package com.gcorp.service.app.mvflix_movies.catalog.application;
 
 import com.gcorp.service.app.mvflix_movies.shared.application.security.UserProvider;
+import com.gcorp.service.app.mvflix_movies.shared.application.security.ViewerContext;
 import com.gcorp.service.app.mvflix_movies.catalog.domain.item.CatalogItem;
 import com.gcorp.service.app.mvflix_movies.catalog.domain.item.CatalogItemRepository;
 
@@ -10,6 +11,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 /**
  * Listado del catálogo con dos lecturas de acceso:
@@ -34,10 +36,14 @@ public class ListCatalogItemsUseCase {
 
     public Flux<CatalogItem> execute(String scope, int limit) {
         int capped = Math.min(limit, MAX_LIMIT);
-        return this.userProvider
-                .getAuthenticatedUser()
-                .flatMapMany(user -> "owned".equalsIgnoreCase(scope)
-                        ? this.movieRepository.findByOwner(user.subject(), capped)
-                        : this.movieRepository.findVisibleCatalogItems(user.subject(), capped));
+        Mono<ViewerContext> viewerContext = this.userProvider.getViewerContext();
+        return (viewerContext == null
+                ? this.userProvider.getAuthenticatedUser().map(ViewerContext::authenticated)
+                : viewerContext)
+                .flatMapMany(viewer -> "owned".equalsIgnoreCase(scope)
+                        ? viewer.authenticated()
+                            ? this.movieRepository.findByOwner(viewer.subject(), capped)
+                            : Flux.error(new com.gcorp.service.app.mvflix_movies.catalog.domain.item.CatalogItemAccessDeniedException("Authentication required"))
+                        : this.movieRepository.findVisibleCatalogItems(viewer.subject(), capped));
     }
 }

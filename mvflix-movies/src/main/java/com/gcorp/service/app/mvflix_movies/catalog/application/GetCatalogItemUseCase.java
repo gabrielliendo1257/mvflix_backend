@@ -28,12 +28,12 @@ public class GetCatalogItemUseCase {
      */
     public Mono<CatalogItem> execute(CatalogItemId id) {
         return this.userProvider
-                .getAuthenticatedUser()
-                .flatMap(user -> this.movieRepository
+                .getViewerContext()
+                .flatMap(viewer -> this.movieRepository
                         .findById(id)
                         .switchIfEmpty(Mono.error(new CatalogItemAccessDeniedException(
                                 "Movie not accessible: " + id.value())))
-                        .filter(movie -> movie.isVisibleTo(user.subject()))
+                         .filter(movie -> movie.isVisibleTo(viewer.subject()))
                         .switchIfEmpty(Mono.error(new CatalogItemAccessDeniedException(
                                 "Movie not accessible: " + id.value()))));
     }

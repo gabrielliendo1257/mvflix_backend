@@ -16,7 +16,7 @@ public class GetAuthorizedPlaybackContext {
   private final UserProvider userProvider;
 
   public Mono<PlayableCatalogItem> execute(CatalogItemId catalogItemId) {
-    return userProvider.getAuthenticatedUser()
+    return userProvider.getViewerContext()
         .flatMap(user -> catalogRepository.findAuthorizedPlaybackContext(catalogItemId, user.subject()))
         .switchIfEmpty(Mono.error(new CatalogItemAccessDeniedException(
             "Movie not accessible: " + catalogItemId.value())));

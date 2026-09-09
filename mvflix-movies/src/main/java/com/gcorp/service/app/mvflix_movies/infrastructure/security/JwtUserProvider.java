@@ -2,6 +2,7 @@ package com.gcorp.service.app.mvflix_movies.infrastructure.security;
 
 import com.gcorp.service.app.mvflix_movies.shared.application.security.AuthenticatedUser;
 import com.gcorp.service.app.mvflix_movies.shared.application.security.UserProvider;
+import com.gcorp.service.app.mvflix_movies.shared.application.security.ViewerContext;
 
 import org.springframework.context.annotation.Profile;
 import org.springframework.security.authentication.AuthenticationCredentialsNotFoundException;
@@ -22,6 +23,14 @@ public class JwtUserProvider implements UserProvider {
     return ReactiveSecurityContextHolder.getContext()
         .map(SecurityContext::getAuthentication)
         .flatMap(this::toAuthenticatedUser);
+  }
+
+  @Override
+  public Mono<ViewerContext> getViewerContext() {
+    return this.getAuthenticatedUser()
+        .map(ViewerContext::authenticated)
+        .onErrorResume(AuthenticationCredentialsNotFoundException.class,
+            ignored -> Mono.just(ViewerContext.anonymous()));
   }
 
   private Mono<AuthenticatedUser> toAuthenticatedUser(Authentication authentication) {
