@@ -8,6 +8,11 @@ import reactor.core.publisher.Mono;
 
 public interface PlaybackOutbox {
   Mono<Void> append(String type, UUID aggregateId, Object payload, EventMetadata metadata);
+
+  default Mono<Void> appendIdempotent(String type, UUID eventId, UUID aggregateId,
+      Object payload, EventMetadata metadata) {
+    return append(type, aggregateId, payload, metadata);
+  }
   Flux<Message> claim(int limit, int maxAttempts, Duration lease);
   Mono<Void> markPublished(UUID eventId);
   Mono<Void> markFailed(UUID eventId, String error, Duration delay);

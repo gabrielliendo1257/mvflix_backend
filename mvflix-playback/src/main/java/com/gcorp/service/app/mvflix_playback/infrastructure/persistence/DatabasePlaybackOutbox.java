@@ -24,8 +24,18 @@ public class DatabasePlaybackOutbox implements PlaybackOutbox {
   @Override
   public Mono<Void> append(String type, UUID aggregateId, Object payload,
       PlaybackOutbox.EventMetadata metadata) {
+    return append(UUID.randomUUID(), type, aggregateId, payload, metadata, false);
+  }
+
+  @Override
+  public Mono<Void> appendIdempotent(String type, UUID eventId, UUID aggregateId, Object payload,
+      PlaybackOutbox.EventMetadata metadata) {
+    return append(eventId, type, aggregateId, payload, metadata, true);
+  }
+
+  private Mono<Void> append(UUID eventId, String type, UUID aggregateId, Object payload,
+      PlaybackOutbox.EventMetadata metadata, boolean idempotent) {
     try {
-      var eventId = UUID.randomUUID();
       var occurredAt = Instant.now();
       var envelope = new java.util.LinkedHashMap<String, Object>();
       envelope.put("eventId", eventId);
@@ -39,7 +49,9 @@ public class DatabasePlaybackOutbox implements PlaybackOutbox {
       envelope.put("producer", "mvflix-playback");
       envelope.put("aggregate", Map.of("type", "PlaybackSession", "id", aggregateId));
       envelope.put("payload", payload);
-      return database.sql("INSERT INTO playback_outbox(event_id,event_type,aggregate_id,occurred_at,payload) VALUES(:id,:type,:aggregate,:occurred,CAST(:payload AS jsonb))")
+      String sql = "INSERT INTO playback_outbox(event_id,event_type,aggregate_id,occurred_at,payload) VALUES(:id,:type,:aggregate,:occurred,CAST(:payload AS jsonb))"
+          + (idempotent ? " ON CONFLICT (event_id) DO NOTHING" : "");
+      return database.sql(sql)
           .bind("id", eventId).bind("type", type).bind("aggregate", aggregateId)
            .bind("occurred", occurredAt).bind("payload", mapper.writeValueAsString(envelope))
           .fetch().rowsUpdated().then();

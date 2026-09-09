@@ -37,9 +37,15 @@ class RecordPlaybackProgressTest {
         Mono.just(invocation.getArgument(0)));
     when(outbox.append(org.mockito.ArgumentMatchers.anyString(), org.mockito.ArgumentMatchers.any(),
         org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any())).thenReturn(Mono.empty());
+    when(outbox.appendIdempotent(org.mockito.ArgumentMatchers.eq("QualifiedView"),
+        org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.eq(sessionId.value()),
+        org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any())).thenReturn(Mono.empty());
 
     var saved = useCase.execute(sessionId, viewer, 1, 42, 100L, false).block();
     assertThat(saved.lastPosition().seconds()).isEqualTo(42);
+    verify(outbox).appendIdempotent(org.mockito.ArgumentMatchers.eq("QualifiedView"),
+        org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.eq(sessionId.value()),
+        org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any());
   }
 
   @Test

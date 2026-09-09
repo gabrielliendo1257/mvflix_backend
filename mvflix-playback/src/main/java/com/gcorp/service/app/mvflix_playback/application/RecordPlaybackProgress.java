@@ -11,6 +11,7 @@ import com.gcorp.service.app.mvflix_playback.domain.ContentReference;
 import com.gcorp.service.app.mvflix_playback.domain.LibraryAssetReference;
 import java.util.HashMap;
 import java.util.UUID;
+import java.nio.charset.StandardCharsets;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -71,6 +72,11 @@ public class RecordPlaybackProgress {
                             .then(Mono.defer(() -> outbox.append(
                                 completed ? "PlaybackCompleted" : "PlaybackProgressed",
                                 saved.session().id().value(), payload, metadata)))
+                            .then(isQualified(positionSeconds, durationSeconds)
+                                ? Mono.justOrEmpty(outbox.appendIdempotent("QualifiedView",
+                                    qualifiedEventId(saved.session().id().value()),
+                                    saved.session().id().value(), payload, metadata))
+                                : Mono.empty())
                             .onErrorResume(OptimisticLockingFailureException.class,
                                 error -> Mono.empty())
                             .thenReturn(saved.session())
@@ -93,6 +99,16 @@ public class RecordPlaybackProgress {
 
   private static Long mediaId(ContentReference reference) {
     return reference instanceof LibraryAssetReference local ? local.assetId() : null;
+  }
+
+  private static boolean isQualified(long positionSeconds, Long durationSeconds) {
+    return positionSeconds >= 30
+        || (durationSeconds != null && durationSeconds > 0
+            && positionSeconds >= Math.ceil(durationSeconds * 0.10));
+  }
+
+  private static UUID qualifiedEventId(UUID sessionId) {
+    return UUID.nameUUIDFromBytes(("QualifiedView:" + sessionId).getBytes(StandardCharsets.UTF_8));
   }
 
   private Mono<PlaybackSession> validateOwner(PlaybackSession session, ViewerId viewerId) {
