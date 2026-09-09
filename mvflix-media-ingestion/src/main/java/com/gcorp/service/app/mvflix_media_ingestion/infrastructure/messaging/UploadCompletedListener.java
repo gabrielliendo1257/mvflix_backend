@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.gcorp.service.app.mvflix_media_ingestion.application.InboxRepository;
 import com.gcorp.service.app.mvflix_media_ingestion.application.MediaIngestionService;
+import com.gcorp.service.app.mvflix_media_ingestion.application.IngestionCorrelationNotFoundException;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.annotation.RetryableTopic;
@@ -36,9 +37,13 @@ public class UploadCompletedListener {
       JsonNode payload=envelope.path("payload");
       UUID correlation=envelope.path("correlationId").isNull()?null:UUID.fromString(envelope.path("correlationId").asText());
       long storageId=payload.path("storageId").asLong(); String key=payload.path("objectKey").asText();
-      String causation = envelope.path("causationId").isNull()
-          ? eventId.toString() : envelope.path("causationId").asText();
-      Mono<Void> work=correlation!=null?service.uploadCompleted(correlation,storageId,key,causation):service.uploadCompletedByStorageId(storageId,storageId,key);
+       String causation = eventId.toString();
+      Mono<Void> work = correlation != null
+          ? service.uploadCompleted(correlation, storageId, key, causation)
+              .onErrorResume(error -> isUnknownCorrelation(error)
+                   ? service.uploadCompletedByStorageId(storageId, storageId, key, causation)
+                  : Mono.error(error))
+           : service.uploadCompletedByStorageId(storageId, storageId, key, causation);
       UUID completedEventId=eventId;
       work.then(Mono.defer(() -> inbox.markCompleted(completedEventId))).block();
     } catch (Exception error) {
@@ -51,9 +56,16 @@ public class UploadCompletedListener {
     if (!"UploadCompleted".equals(text(n,"eventType")) || n.path("eventVersion").asInt(0)!=1 || !"mvflix-storage".equals(text(n,"producer"))) throw new IllegalArgumentException("invalid UploadCompleted envelope");
     JsonNode aggregate=n.path("aggregate"); if (!"ManagedObject".equals(text(aggregate,"type")) || text(aggregate,"id")==null) throw new IllegalArgumentException("invalid aggregate");
     if (!n.has("correlationId") || (!n.path("correlationId").isNull() && !isUuid(n.path("correlationId").asText()))) throw new IllegalArgumentException("invalid correlationId");
-    JsonNode p=n.path("payload"); if (!p.isObject() || !p.hasNonNull("storageId") || !p.hasNonNull("ownerUsername") || !p.hasNonNull("objectKey") || !p.hasNonNull("contentType") || !p.hasNonNull("contentLength")) throw new IllegalArgumentException("invalid payload");
+     JsonNode p=n.path("payload");
+     if (!p.isObject() || !p.hasNonNull("storageId") || p.path("storageId").asLong() <= 0
+         || !p.hasNonNull("ownerUsername") || !p.hasNonNull("objectKey")
+         || p.path("objectKey").asText().isBlank() || !p.hasNonNull("contentType")
+         || !p.hasNonNull("contentLength")) throw new IllegalArgumentException("invalid payload");
   }
   private String text(JsonNode n,String field){String value=n.path(field).asText(null);return value==null||value.isBlank()?null:value;}
   private boolean isUuid(String value){try{UUID.fromString(value);return true;}catch(Exception e){return false;}}
   private UUID requiredUuid(JsonNode n,String field){if(n==null||!n.hasNonNull(field))throw new IllegalArgumentException("missing "+field);return UUID.fromString(n.path(field).asText());}
+  private boolean isUnknownCorrelation(Throwable error) {
+    return error instanceof IngestionCorrelationNotFoundException;
+  }
 }
