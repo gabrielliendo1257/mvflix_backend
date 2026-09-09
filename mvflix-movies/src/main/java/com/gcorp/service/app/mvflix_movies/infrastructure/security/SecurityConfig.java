@@ -44,7 +44,7 @@ public class SecurityConfig {
                 exchanges
                     .pathMatchers("/error")
                     .permitAll()
-                    .pathMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html")
+                    .pathMatchers("/v3/api-docs/**", "/webjars/**", "/swagger-ui/**", "/swagger-ui.html")
                     .permitAll()
                     .pathMatchers("/admin/outbox/**")
                     .hasRole("ADMIN")
