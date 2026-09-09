@@ -64,17 +64,39 @@ declare -A SERVICES=(
   [mvflix-activity]=$ACTIVITY_PORT
   [bff-mvflix-web]=$BFF_PORT
 )
+declare -A HEALTH_PORTS=(
+  [mvflix-authorization]=10090
+  [mvflix-users]=10080
+  [mvflix-storage]=10060
+  [mvflix-movies]=10040
+  [mvflix-media-ingestion]=10081
+  [mvflix-playback]=10071
+  [mvflix-activity]=10070
+  [bff-mvflix-web]=10091
+)
 
 wait_port() {
   local port=$1
   local name=$2
   for _ in $(seq 1 90); do
-    if http_responding "${port}"; then
+    if readiness_responding "${name}"; then
       return 0
     fi
     sleep 1
   done
   echo "  [WARN] ${name} no respondio en 90s (revisa ${LOG_DIR}/stack-${name}.log)"
+}
+
+readiness_responding() {
+  local name=$1
+  local health_port=${HEALTH_PORTS[$name]}
+  local body
+  body="$(curl --silent --show-error --connect-timeout 1 --max-time 2 \
+    "http://127.0.0.1:${health_port}/actuator/health/readiness" 2>/dev/null || true)"
+  case "${body}" in
+    *'"status":"UP"'*) return 0 ;;
+    *) return 1 ;;
+  esac
 }
 
 http_responding() {
@@ -295,7 +317,7 @@ status() {
   for name in mvflix-authorization mvflix-users mvflix-storage mvflix-movies mvflix-media-ingestion mvflix-playback mvflix-activity bff-mvflix-web; do
     local port=${SERVICES[$name]}
     local pid
-    if http_responding "${port}"; then
+    if readiness_responding "${name}"; then
       if pid="$(managed_pid "${name}")"; then
         echo "  ${name}: UP (:${port}, pid ${pid})"
       else
