@@ -24,11 +24,7 @@ spring:
             scope: storage.stream
         provider:
           mvflix-auth:
-            authorization-uri: ${AUTHORIZATION_URL:${AUTHORIZATION_ISSUER_URL:http://127.0.0.1:9090}}/oauth2/authorize
-            token-uri: ${AUTHORIZATION_URL:${AUTHORIZATION_ISSUER_URL:http://127.0.0.1:9090}}/oauth2/token
-            user-info-uri: ${AUTHORIZATION_URL:${AUTHORIZATION_ISSUER_URL:http://127.0.0.1:9090}}/userinfo
-            user-name-attribute: sub
-            jwk-set-uri: ${SECURITY_OAUTH2_JWK_SET_URI:${AUTHORIZATION_URL:${AUTHORIZATION_ISSUER_URL:http://127.0.0.1:9090}}/oauth2/jwks}
+            issuer-uri:  ${AUTHORIZATION_ISSUER_URL:http://127.0.0.1:9090}
 
 mvflix:
   security:
