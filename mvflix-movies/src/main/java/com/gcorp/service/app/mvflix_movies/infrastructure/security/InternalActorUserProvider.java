@@ -57,14 +57,15 @@ public class InternalActorUserProvider implements UserProvider {
                 .anyMatch(authority -> PLAYBACK_AUTHORITY.equals(authority.getAuthority()));
            var actor = serverWebExchange.getRequest().getHeaders().getFirst(
                 playback ? "X-Viewer-Id" : "X-Actor-Id");
-          return Mono.justOrEmpty(actor)
+           String requiredHeader = playback ? "X-Viewer-Id" : "X-Actor-Id";
+           return Mono.justOrEmpty(actor)
               .filter(value -> !value.isBlank())
               .map(
                   value -> new AuthenticatedUser(value, null, java.util.Set.of(INTERNAL_AUTHORITY)))
               .switchIfEmpty(
                   Mono.error(
                       new AuthenticationCredentialsNotFoundException(
-                          "X-Actor-Id required for internal authentication")));
+                           requiredHeader + " required for internal authentication")));
         });
   }
 }
