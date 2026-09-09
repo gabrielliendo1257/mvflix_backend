@@ -46,22 +46,76 @@ public class ActivityWebClientAdapter implements ActivityProjection {
   }
 
   static ActivityEntry toApplication(DownstreamEntry entry) {
-    String title = firstNonBlank(entry.resourceTitle(), entry.fileName(), "Activity");
-    String description = entry.failureCode() == null
-        ? firstNonBlank(entry.status(), null, "Activity updated")
-        : humanize(entry.failureCode());
+    String type = normalizedType(entry);
+    String title = title(type, entry);
+    String description = description(type, entry);
     Resource resource = entry.resourceType() == null ? null : new Resource(entry.resourceType(),
-        entry.resourceId(), entry.resourceTitle(), mediaThumbnail(entry.resourceId()));
-    var actions = resource == null || resource.id() == null ? Collections.<Action>emptyList()
-        : List.of(new Action("VIEW_DETAILS", "View details", "/media/" + resource.id()));
-    return new ActivityEntry(entry.activityId(), normalizedType(entry.type()), entry.category(),
+        entry.resourceId(), entry.resourceTitle(), null);
+    var actions = actionsFor(type, resource);
+    return new ActivityEntry(entry.activityId(), type, category(type, entry.category()),
         entry.severity(), title, description,
         entry.lastOccurredAt() == null ? entry.startedAt() : entry.lastOccurredAt(), resource,
         entry.context() == null ? Map.of() : entry.context(), actions, entry.cursor());
   }
 
-  private static String normalizedType(String type) {
-    return type == null ? "ACTIVITY" : type.toUpperCase().replace('-', '_');
+  private static String normalizedType(DownstreamEntry entry) {
+    return switch (entry.type() == null ? "" : entry.type()) {
+      case "PLAYBACK" -> "COMPLETED".equals(entry.status())
+          ? "PLAYBACK_COMPLETED" : "PLAYBACK_STARTED";
+      case "MEDIA_INGESTION" -> "MEDIA_INGESTION_" + entry.status();
+      default -> entry.type() == null ? "ACTIVITY" : entry.type().toUpperCase().replace('-', '_');
+    };
+  }
+
+  private static String category(String type, String category) {
+    if (type.startsWith("PLAYBACK_")) return "PLAYBACK";
+    if (type.equals("UPLOAD_FAILED")) return "STORAGE";
+    return firstNonBlank(category, null, "SYSTEM");
+  }
+
+  private static String title(String type, DownstreamEntry entry) {
+    return switch (type) {
+      case "UPLOAD_FAILED", "MEDIA_INGESTION_FAILED" ->
+          firstNonBlank(entry.resourceTitle(), entry.fileName(), "Upload") + " upload failed";
+      case "CATALOG_ACCESS_CHANGED" -> "Visibility changed";
+      case "PLAYBACK_COMPLETED" -> "Playback completed";
+      case "PLAYBACK_STARTED" -> "Playback started";
+      case "MEDIA_INGESTION_COMPLETED" -> "Upload completed";
+      default -> firstNonBlank(entry.resourceTitle(), entry.fileName(), "Activity");
+    };
+  }
+
+  private static String description(String type, DownstreamEntry entry) {
+    if (type.equals("CATALOG_ACCESS_CHANGED")) {
+      String previous = value(entry.context(), "previousVisibility");
+      String current = value(entry.context(), "newVisibility");
+      return previous == null || current == null ? "Visibility changed"
+          : firstNonBlank(entry.resourceTitle(), "Media", "Media")
+              + " changed from " + previous + " to " + current;
+    }
+    if (type.equals("UPLOAD_FAILED") || type.equals("MEDIA_INGESTION_FAILED")) {
+      return firstNonBlank(value(entry.context(), "reason"),
+          entry.failureCode() == null ? null : humanize(entry.failureCode()), "Upload failed");
+    }
+    return switch (type) {
+      case "PLAYBACK_COMPLETED" -> "Playback completed";
+      case "PLAYBACK_STARTED" -> "Playback started";
+      default -> firstNonBlank(entry.failureCode(), entry.status(), "Activity updated");
+    };
+  }
+
+  private static List<Action> actionsFor(String type, Resource resource) {
+    if ((type.equals("CATALOG_ACCESS_CHANGED") || type.startsWith("PLAYBACK_"))
+        && resource != null && resource.id() != null
+        && ("CatalogItem".equalsIgnoreCase(resource.type()) || "MEDIA".equalsIgnoreCase(resource.type()))) {
+      return List.of(new Action("VIEW_DETAILS", "View details", "/media/" + resource.id()));
+    }
+    return Collections.emptyList();
+  }
+
+  private static String value(Map<String, Object> context, String key) {
+    Object value = context == null ? null : context.get(key);
+    return value == null ? null : String.valueOf(value);
   }
 
   private static String firstNonBlank(String first, String second, String fallback) {
@@ -73,9 +127,6 @@ public class ActivityWebClientAdapter implements ActivityProjection {
     return value.toLowerCase().replace('_', ' ');
   }
 
-  private static String mediaThumbnail(String resourceId) {
-    return resourceId == null ? null : "/web/media/" + resourceId + "/poster";
-  }
 
   @JsonIgnoreProperties(ignoreUnknown = true)
   record DownstreamEntry(

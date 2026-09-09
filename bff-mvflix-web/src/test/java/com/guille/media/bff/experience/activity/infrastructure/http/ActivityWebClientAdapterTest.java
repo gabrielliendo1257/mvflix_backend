@@ -102,11 +102,11 @@ class ActivityWebClientAdapterTest {
     var mapped = ActivityWebClientAdapter.toApplication(entry);
 
     assertThat(mapped.id()).isEqualTo(activityId);
-    assertThat(mapped.type()).isEqualTo("MEDIA_INGESTION");
-    assertThat(mapped.title()).isEqualTo("Interstellar");
+    assertThat(mapped.type()).isEqualTo("MEDIA_INGESTION_FAILED");
+    assertThat(mapped.title()).isEqualTo("Interstellar upload failed");
     assertThat(mapped.description()).isEqualTo("catalog failed");
     assertThat(mapped.resource().id()).isEqualTo("42");
-    assertThat(mapped.actions()).hasSize(1);
+    assertThat(mapped.actions()).isEmpty();
   }
 
   private ActivityWebClientAdapter adapter() {
