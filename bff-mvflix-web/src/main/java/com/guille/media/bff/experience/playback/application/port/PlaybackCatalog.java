@@ -18,6 +18,10 @@ public interface PlaybackCatalog {
    */
   Mono<PlaybackMedia> loadVisibleMedia(long mediaId);
 
+  default Mono<PlaybackMedia> loadVisibleMedia(long mediaId, String viewerId) {
+    return loadVisibleMedia(mediaId);
+  }
+
   /** Vista mínima del catálogo para la experiencia; nada de modelo interno de movies. */
   record PlaybackMedia(PlaybackMovie movie, PlayableAsset asset) {}
 

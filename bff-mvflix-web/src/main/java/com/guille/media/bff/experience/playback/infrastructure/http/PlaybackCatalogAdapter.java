@@ -37,31 +37,33 @@ public class PlaybackCatalogAdapter implements PlaybackCatalog {
 
   private final WebClient moviesWebClient;
 
-  public PlaybackCatalogAdapter(@Qualifier("moviesWebClient") WebClient moviesWebClient) {
+  public PlaybackCatalogAdapter(@Qualifier("playbackCatalogWebClient") WebClient moviesWebClient) {
     this.moviesWebClient = moviesWebClient;
   }
 
   @Override
   public Mono<PlaybackMedia> loadVisibleMedia(long mediaId) {
-    var movie = this.moviesWebClient
+    return loadVisibleMedia(mediaId, null);
+  }
+
+  @Override
+  public Mono<PlaybackMedia> loadVisibleMedia(long mediaId, String viewerId) {
+    return this.moviesWebClient
         .get()
-        .uri(API + "/" + mediaId)
+        .uri(API + "/" + mediaId + "/playback-context")
+        .headers(headers -> { if (viewerId != null) headers.set("X-Viewer-Id", viewerId); })
         .retrieve()
-        .bodyToMono(MovieDto.class)
-        // movies responde 403 cuando la media no existe o no es visible (no
-        // revela existencia); un 404 real queda como defensa.
-        .onErrorMap(WebClientResponseException.class, error -> translateMovie(mediaId, error));
-    var asset = this.moviesWebClient
-        .get()
-        .uri(API + "/media-assets/by-movie/" + mediaId)
-        .retrieve()
-        .bodyToMono(MediaAssetDto.class)
-        // Sin asset de biblioteca vinculado es estado normal (uploads MANAGED,
-        // o media recién creada), no fallo de permisos ni infraestructura.
-        .onErrorResume(WebClientResponseException.NotFound.class, error -> Mono.empty())
-        .onErrorMap(WebClientResponseException.class, error -> translate(mediaId, error));
-    return Mono.zip(movie, asset.defaultIfEmpty(NO_ASSET))
-        .map(joined -> compose(mediaId, joined.getT1(), joined.getT2()));
+        .bodyToMono(PlaybackContextDto.class)
+        .onErrorMap(WebClientResponseException.class, error -> translateMovie(mediaId, error))
+        .map(context -> compose(mediaId, context.movie(), context.asset()));
+  }
+
+  record PlaybackContextDto(Long id, String status, String title, String posterPath, String duration,
+      Long objectId, MediaAssetDto asset) {
+    MovieDto movie() {
+      return new MovieDto(id, status, objectId, "PUBLIC", null, title, null, null, null,
+          null, duration, null, null, null, posterPath, null, null, null, null, null);
+    }
   }
 
   /** Puro y package-private para testearlo sin servidor HTTP. */

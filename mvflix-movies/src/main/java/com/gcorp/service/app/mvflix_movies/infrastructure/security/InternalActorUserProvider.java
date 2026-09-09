@@ -19,6 +19,7 @@ import reactor.core.publisher.Mono;
 public class InternalActorUserProvider implements UserProvider {
   public static final Object EXCHANGE_CONTEXT_KEY = InternalActorUserProvider.class.getName();
   private static final String INTERNAL_AUTHORITY = "SCOPE_media-ingestion";
+  private static final String PLAYBACK_AUTHORITY = "SCOPE_playback.sessions.write";
 
   private final JwtUserProvider publicUserProvider;
 
@@ -38,7 +39,8 @@ public class InternalActorUserProvider implements UserProvider {
     if (authentication == null
         || !authentication.isAuthenticated()
         || authentication.getAuthorities().stream()
-            .noneMatch(authority -> INTERNAL_AUTHORITY.equals(authority.getAuthority()))) {
+            .noneMatch(authority -> INTERNAL_AUTHORITY.equals(authority.getAuthority())
+                || PLAYBACK_AUTHORITY.equals(authority.getAuthority()))) {
       return Mono.empty();
     }
     return Mono.deferContextual(
@@ -49,7 +51,10 @@ public class InternalActorUserProvider implements UserProvider {
                 new AuthenticationCredentialsNotFoundException(
                     "Request context required for internal authentication"));
           }
-          var actor = serverWebExchange.getRequest().getHeaders().getFirst("X-Actor-Id");
+           boolean playback = authentication.getAuthorities().stream()
+               .anyMatch(authority -> PLAYBACK_AUTHORITY.equals(authority.getAuthority()));
+           var actor = serverWebExchange.getRequest().getHeaders().getFirst(
+               playback ? "X-Viewer-Id" : "X-Actor-Id");
           return Mono.justOrEmpty(actor)
               .filter(value -> !value.isBlank())
               .map(

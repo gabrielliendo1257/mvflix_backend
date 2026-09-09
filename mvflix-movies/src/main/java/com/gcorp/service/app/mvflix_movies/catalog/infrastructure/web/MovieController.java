@@ -223,10 +223,26 @@ public class MovieController {
   }
 
   @GetMapping("/{id}/playback-context")
-  public Mono<com.gcorp.service.app.mvflix_movies.catalog.domain.item.PlayableCatalogItem>
+  public Mono<PlaybackContextResponse>
       authorizedPlaybackContext(@PathVariable Long id) {
-    return this.authorizedPlaybackContext.execute(CatalogItemId.of(id));
+    return this.authorizedPlaybackContext.execute(CatalogItemId.of(id))
+        .map(PlaybackContextResponse::from);
   }
+
+  record PlaybackContextResponse(Long id, String status, String title, String posterPath, String duration,
+      Long objectId, PlaybackAssetResponse asset) {
+    static PlaybackContextResponse from(
+        com.gcorp.service.app.mvflix_movies.catalog.domain.item.PlayableCatalogItem value) {
+      var asset = value.asset() == null ? null
+          : new PlaybackAssetResponse(value.asset().id(), value.asset().libraryId(),
+              value.asset().relativePath(), value.asset().size(), value.asset().mimeType());
+      return new PlaybackContextResponse(value.id().value(), "READY", value.title(), value.posterPath(),
+          value.duration(), value.objectId(), asset);
+    }
+  }
+
+  record PlaybackAssetResponse(long id, long libraryId, String relativePath, long size,
+      String mimeType) {}
 
   @PostMapping("/{id}/visibility")
   public Mono<MovieResponse> updateVisibility(

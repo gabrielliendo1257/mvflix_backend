@@ -47,8 +47,9 @@ public class StartPlayback {
   }
 
   public Mono<PlaybackSession> handle(String subject, long mediaId) {
-    return this.catalog
-        .loadVisibleMedia(mediaId)
+    var visibleMedia = this.catalog.loadVisibleMedia(mediaId, subject);
+    if (visibleMedia == null) visibleMedia = this.catalog.loadVisibleMedia(mediaId);
+    return visibleMedia
         .flatMap(media -> this.requirePlayable(mediaId, media))
         .flatMap(resolved -> this.openSource(subject, mediaId, resolved)
             .map(opened -> this.compose(resolved, opened)));
