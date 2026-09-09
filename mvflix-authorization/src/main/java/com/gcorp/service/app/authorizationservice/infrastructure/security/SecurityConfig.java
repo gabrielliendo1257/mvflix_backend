@@ -32,6 +32,7 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.server.authorization.OAuth2TokenType;
+import org.springframework.security.oauth2.core.oidc.endpoint.OidcParameterNames;
 import org.springframework.security.oauth2.server.authorization.token.JwtEncodingContext;
 import org.springframework.security.oauth2.server.authorization.token.OAuth2TokenCustomizer;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
@@ -112,7 +113,8 @@ public class SecurityConfig {
                 authentication instanceof
                     UsernamePasswordAuthenticationToken authenticationToken
             ) {
-                if (context.getTokenType() == OAuth2TokenType.ACCESS_TOKEN) {
+                if (context.getTokenType() == OAuth2TokenType.ACCESS_TOKEN
+                    || OidcParameterNames.ID_TOKEN.equals(context.getTokenType().getValue())) {
                     List<String> roles = new ArrayList<>(
                         authenticationToken
                             .getAuthorities()
@@ -120,9 +122,11 @@ public class SecurityConfig {
                             .map(GrantedAuthority::getAuthority)
                             .toList());
 
-                    context.getClaims().audience(new ArrayList<>(List.of(applicationName)));
-                    context.getClaims().subject(authenticationToken.getName());
                     context.getClaims().claim("roles", roles);
+                    if (context.getTokenType() == OAuth2TokenType.ACCESS_TOKEN) {
+                        context.getClaims().audience(new ArrayList<>(List.of(applicationName)));
+                        context.getClaims().subject(authenticationToken.getName());
+                    }
 
                     log.info("Roles: {}", roles);
                 }

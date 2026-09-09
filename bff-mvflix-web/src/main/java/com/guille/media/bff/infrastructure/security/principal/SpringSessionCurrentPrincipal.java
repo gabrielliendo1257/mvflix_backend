@@ -6,6 +6,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.ReactiveSecurityContextHolder;
 import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.oauth2.core.oidc.user.OidcUser;
 import org.springframework.stereotype.Component;
 
 import reactor.core.publisher.Mono;
@@ -22,10 +23,19 @@ public class SpringSessionCurrentPrincipal implements CurrentPrincipal {
         return ReactiveSecurityContextHolder.getContext()
             .map(SecurityContext::getAuthentication)
             .filter(Authentication::isAuthenticated)
-            .map(auth -> new PrincipalIdentity(
-                auth.getName(),
-                auth.getAuthorities().stream()
+            .map(auth -> {
+                var authorities = auth.getAuthorities().stream()
                     .map(GrantedAuthority::getAuthority)
-                    .collect(Collectors.toUnmodifiableSet())));
+                    .collect(Collectors.toSet());
+                if (auth.getPrincipal() instanceof OidcUser oidcUser) {
+                    Object roles = oidcUser.getClaims().get("roles");
+                    if (roles instanceof Iterable<?> values) {
+                        for (Object role : values) {
+                            if (role != null) authorities.add(String.valueOf(role));
+                        }
+                    }
+                }
+                return new PrincipalIdentity(auth.getName(), Set.copyOf(authorities));
+            });
     }
 }
