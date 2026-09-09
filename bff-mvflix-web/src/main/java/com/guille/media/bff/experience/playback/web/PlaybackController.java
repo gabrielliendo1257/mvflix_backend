@@ -1,9 +1,9 @@
 package com.guille.media.bff.experience.playback.web;
 
-import com.guille.media.bff.app.service.WebSessionService;
 import com.guille.media.bff.app.ports.StorageWebClient;
 import com.guille.media.bff.experience.playback.application.LocalStreamTokenException;
 import com.guille.media.bff.experience.playback.application.StartPlayback;
+import com.guille.media.bff.infrastructure.security.AnonymousViewerIdentity;
 import com.guille.media.bff.experience.playback.application.port.LocalPlaybackAccess;
 import com.guille.media.bff.experience.playback.application.port.PlaybackService;
 
@@ -47,20 +47,20 @@ public class PlaybackController {
   private final StartPlayback startPlayback;
   private final LocalPlaybackAccess localAccess;
   private final StorageWebClient storage;
-  private final WebSessionService session;
   private final PlaybackService playbackService;
+  private final AnonymousViewerIdentity viewerIdentity;
 
   public PlaybackController(
       StartPlayback startPlayback,
       LocalPlaybackAccess localAccess,
       StorageWebClient storage,
-      WebSessionService session,
-      PlaybackService playbackService) {
+      PlaybackService playbackService,
+      AnonymousViewerIdentity viewerIdentity) {
     this.startPlayback = startPlayback;
     this.localAccess = localAccess;
     this.storage = storage;
-    this.session = session;
     this.playbackService = playbackService;
+    this.viewerIdentity = viewerIdentity;
   }
 
   @PostMapping(value = "/sessions/{sessionId}/progress", produces = MediaType.APPLICATION_JSON_VALUE)
@@ -79,8 +79,9 @@ public class PlaybackController {
 
   @Operation(summary = "Inicia la reproducción: autoriza, resuelve contenido y compone la sesión")
   @PostMapping(value = "/{mediaId}/session", produces = MediaType.APPLICATION_JSON_VALUE)
-  public Mono<ResponseEntity<StartPlaybackResponse>> start(@PathVariable long mediaId) {
-    return this.subject()
+  public Mono<ResponseEntity<StartPlaybackResponse>> start(
+      @PathVariable long mediaId, org.springframework.web.server.ServerWebExchange exchange) {
+    return this.viewerIdentity.resolve(exchange)
         .flatMap(subject -> this.startPlayback.handle(subject, mediaId))
         .map(result -> ResponseEntity.status(HttpStatus.CREATED)
             .body(StartPlaybackResponse.from(result)));
@@ -121,11 +122,4 @@ public class PlaybackController {
         .contextWrite(ReactiveSecurityContextHolder.withAuthentication(subjectAuth));
   }
 
-  /**
-   * Sujeto dueño de la sesión de playback. Fallback "sandbox" SOLO para el
-   * perfil sin auth; en producción la cadena de seguridad ya filtra anónimos.
-   */
-  private Mono<String> subject() {
-    return this.session.currentSubject().defaultIfEmpty("sandbox");
-  }
 }

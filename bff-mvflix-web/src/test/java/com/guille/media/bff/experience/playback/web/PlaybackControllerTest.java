@@ -12,6 +12,7 @@ import com.guille.media.bff.experience.playback.application.PlaybackForbiddenExc
 import com.guille.media.bff.experience.playback.application.PlaybackMediaNotFoundException;
 import com.guille.media.bff.experience.playback.application.PlaybackSourceUnavailableException;
 import com.guille.media.bff.experience.playback.application.StartPlayback;
+import com.guille.media.bff.infrastructure.security.AnonymousViewerIdentity;
 import com.guille.media.bff.experience.playback.application.port.LocalPlaybackAccess;
 import com.guille.media.bff.experience.playback.application.port.PlaybackCatalog;
 import com.guille.media.bff.experience.playback.application.port.PlaybackService;
@@ -52,8 +53,8 @@ class PlaybackControllerTest {
         new StartPlayback(this.catalog, this.playbackService, this.localAccess),
         this.localAccess,
         this.storage,
-        this.session,
-        this.playbackService);
+        this.playbackService,
+        new AnonymousViewerIdentity(this.session));
     this.client = WebTestClient.bindToController(controller)
         .controllerAdvice(new ApiExceptionHandler())
         .build();
