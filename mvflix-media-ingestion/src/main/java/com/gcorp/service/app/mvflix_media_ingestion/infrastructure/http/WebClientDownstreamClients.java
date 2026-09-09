@@ -11,6 +11,7 @@ import org.springframework.security.oauth2.client.web.reactive.function.client.S
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.http.client.reactive.ReactorClientHttpConnector;
+import io.netty.channel.ChannelOption;
 import reactor.netty.http.client.HttpClient;
 import reactor.core.publisher.Mono;
 
@@ -27,10 +28,11 @@ public class WebClientDownstreamClients implements DownstreamClients {
       @Value("${mvflix.downstream.users-url:http://localhost:8080}") String usersUrl,
       WebClient.Builder builder,
       ReactiveOAuth2AuthorizedClientManager authorizedClientManager,
-      @Value("${mvflix.downstream.response-timeout-seconds:10}") long responseTimeoutSeconds) {
-    this.movies = client(builder, moviesUrl, authorizedClientManager, "movies", responseTimeoutSeconds);
-    this.storage = client(builder, storageUrl, authorizedClientManager, "storage", responseTimeoutSeconds);
-    this.users = client(builder, usersUrl, authorizedClientManager, "users", responseTimeoutSeconds);
+      @Value("${mvflix.downstream.response-timeout-seconds:10}") long responseTimeoutSeconds,
+      @Value("${mvflix.downstream.connect-timeout-ms:2000}") int connectTimeoutMillis) {
+    this.movies = client(builder, moviesUrl, authorizedClientManager, "movies", responseTimeoutSeconds, connectTimeoutMillis);
+    this.storage = client(builder, storageUrl, authorizedClientManager, "storage", responseTimeoutSeconds, connectTimeoutMillis);
+    this.users = client(builder, usersUrl, authorizedClientManager, "users", responseTimeoutSeconds, connectTimeoutMillis);
   }
 
   public WebClientDownstreamClients(
@@ -38,7 +40,7 @@ public class WebClientDownstreamClients implements DownstreamClients {
       String storageUrl,
       WebClient.Builder builder,
       ReactiveOAuth2AuthorizedClientManager authorizedClientManager) {
-    this(moviesUrl, storageUrl, "http://localhost:8080", builder, authorizedClientManager, 10);
+    this(moviesUrl, storageUrl, "http://localhost:8080", builder, authorizedClientManager, 10, 2000);
   }
 
   private WebClient client(
@@ -46,10 +48,12 @@ public class WebClientDownstreamClients implements DownstreamClients {
       String baseUrl,
       ReactiveOAuth2AuthorizedClientManager manager,
       String registrationId,
-      long responseTimeoutSeconds) {
+      long responseTimeoutSeconds,
+      int connectTimeoutMillis) {
     var oauth2 = new ServerOAuth2AuthorizedClientExchangeFilterFunction(manager);
     oauth2.setDefaultClientRegistrationId(registrationId);
     var httpClient = HttpClient.create()
+        .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, connectTimeoutMillis)
         .responseTimeout(Duration.ofSeconds(responseTimeoutSeconds));
     return builder.clone()
         .baseUrl(baseUrl)

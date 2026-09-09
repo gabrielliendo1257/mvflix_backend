@@ -110,6 +110,11 @@ services:
       MVFLIX_MESSAGING_KAFKA_ENABLED: "true"
       MVFLIX_INTERNAL_TOKEN_URI: http://jwks-stub:8080/oauth2/token
       SECURITY_OAUTH2_JWK_SET_URI: http://jwks-stub:8080/oauth2/jwks
+      MVFLIX_RECOVERY_POLL_MS: "250"
+      MVFLIX_RECOVERY_BACKOFF_INITIAL: 1s
+      MVFLIX_RECOVERY_BACKOFF_MAXIMUM: 5s
+      MVFLIX_RECOVERY_BACKOFF_JITTER: "0"
+      MVFLIX_DOWNSTREAM_CONNECT_TIMEOUT_MS: "1000"
       MOVIES_URL: ${MOVIES_URL:-http://movies:4040}
       STORAGE_URL: ${STORAGE_URL:-http://storage:6060}
       USERS_URL: ${USERS_URL:-http://users-policy-stub:8080}
