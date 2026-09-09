@@ -21,8 +21,7 @@ public class ProjectPlaybackActivity {
 
   public Mono<Void> handle(PlaybackActivityCommand event) {
     String id = event.eventId().toString();
-    String type = "PlaybackCompleted".equals(event.eventType())
-        ? "PLAYBACK_COMPLETED" : "PLAYBACK_STARTED";
+    String type = "PLAYBACK";
     String status = "PlaybackCompleted".equals(event.eventType()) ? "COMPLETED" : "STARTED";
     return tx.transactional(inbox.recordReceived(id, event.eventType())
         .then(inbox.isCompleted(id).flatMap(done -> done ? Mono.empty()

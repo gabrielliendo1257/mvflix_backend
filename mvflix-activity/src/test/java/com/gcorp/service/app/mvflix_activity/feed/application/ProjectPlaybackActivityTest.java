@@ -32,7 +32,7 @@ class ProjectPlaybackActivityTest {
 
     var mutation = (com.gcorp.service.app.mvflix_activity.feed.domain.ActivityMutation)
         captureProjection(projection);
-    org.assertj.core.api.Assertions.assertThat(mutation.type()).isEqualTo("PLAYBACK_COMPLETED");
+    org.assertj.core.api.Assertions.assertThat(mutation.type()).isEqualTo("PLAYBACK");
     org.assertj.core.api.Assertions.assertThat(mutation.category()).isEqualTo("PLAYBACK");
     verify(inbox).markCompleted(eventId.toString());
   }
