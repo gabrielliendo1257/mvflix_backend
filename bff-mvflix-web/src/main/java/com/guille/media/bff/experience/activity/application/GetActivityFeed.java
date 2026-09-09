@@ -27,22 +27,21 @@ public class GetActivityFeed {
   }
 
   public record ActivityEntry(
-      UUID activityId,
-      UUID correlationId,
+      UUID id,
       String type,
-      String status,
-      Instant startedAt,
-      Instant lastOccurredAt,
-      String fileName,
-      Long catalogItemId,
-      String failureCode,
-      String cursor,
       String category,
       String severity,
-      String resourceType,
-      String resourceId,
-      String resourceTitle,
-       Map<String, Object> context) {}
+      String title,
+      String description,
+      Instant occurredAt,
+      Resource resource,
+      Map<String, Object> context,
+      List<Action> actions,
+      String cursor) {}
+
+  public record Resource(String type, String id, String title, String thumbnailUrl) {}
+
+  public record Action(String type, String label, String href) {}
 
   public record ActivityPage(List<ActivityEntry> items, String nextCursor, boolean hasMore) {}
 }

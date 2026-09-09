@@ -16,9 +16,8 @@ class GetActivityFeedTest {
 
   @Test
   void normalizesCursorAndCapsLimit() {
-    var entry = new GetActivityFeed.ActivityEntry(UUID.randomUUID(), UUID.randomUUID(),
-        "MEDIA_INGESTION", "COMPLETED", null, null, null, null, null, "next",
-        null, null, null, null, null, null);
+    var entry = new GetActivityFeed.ActivityEntry(UUID.randomUUID(), "MEDIA_INGESTION", "STORAGE",
+        "INFO", "Movie upload", "completed", null, null, java.util.Map.of(), java.util.List.of(), "next");
     when(projection.feed("abc", 100)).thenReturn(Mono.just(new GetActivityFeed.ActivityPage(
         java.util.List.of(entry), null, false)));
 

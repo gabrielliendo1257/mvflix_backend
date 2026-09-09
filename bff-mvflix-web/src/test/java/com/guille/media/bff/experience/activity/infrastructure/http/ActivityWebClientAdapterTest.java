@@ -97,14 +97,16 @@ class ActivityWebClientAdapterTest {
     var entry = new ActivityWebClientAdapter.DownstreamEntry(activityId, activityId,
         "MEDIA_INGESTION", "FAILED", Instant.parse("2026-01-01T12:00:00Z"),
         Instant.parse("2026-01-01T12:01:00Z"), "movie.mp4", 42L, "CATALOG_FAILED", "cursor",
-         null, null, null, null, null, null);
+         "STORAGE", "ERROR", "MEDIA", "42", "Interstellar", java.util.Map.of());
 
     var mapped = ActivityWebClientAdapter.toApplication(entry);
 
-    assertThat(mapped.activityId()).isEqualTo(activityId);
-    assertThat(mapped.status()).isEqualTo("FAILED");
-    assertThat(mapped.fileName()).isEqualTo("movie.mp4");
-    assertThat(mapped.catalogItemId()).isEqualTo(42L);
+    assertThat(mapped.id()).isEqualTo(activityId);
+    assertThat(mapped.type()).isEqualTo("MEDIA_INGESTION");
+    assertThat(mapped.title()).isEqualTo("Interstellar");
+    assertThat(mapped.description()).isEqualTo("catalog failed");
+    assertThat(mapped.resource().id()).isEqualTo("42");
+    assertThat(mapped.actions()).hasSize(1);
   }
 
   private ActivityWebClientAdapter adapter() {
