@@ -168,7 +168,6 @@ services:
     restart: unless-stopped
     command:
       - --config.file=/etc/prometheus/prometheus.yml
-      - --config.expand-env=true
       - --storage.tsdb.path=/prometheus
     environment:
       ACTUATOR_METRICS_USER: ${ACTUATOR_METRICS_USER:-metrics}
