@@ -280,7 +280,7 @@ public class MediaIngestionService {
   public Mono<Void> uploadCompleted(UUID id, long objectId, String objectKey, String causation) {
     return repository
         .find(id)
-        .switchIfEmpty(Mono.error(new IllegalArgumentException("unknown correlationId")))
+        .switchIfEmpty(Mono.error(new IngestionCorrelationNotFoundException(id)))
         .flatMap(i -> finalize(i, objectId, objectKey, parseUuid(causation)).then())
         .then();
   }
@@ -294,11 +294,12 @@ public class MediaIngestionService {
         .then();
   }
 
-  public Mono<Void> uploadCompletedByStorageId(long storageId, long objectId, String objectKey) {
+  public Mono<Void> uploadCompletedByStorageId(
+      long storageId, long objectId, String objectKey, String causation) {
     return repository
         .findByStorageId(storageId)
         .switchIfEmpty(Mono.error(new IllegalArgumentException("unknown storageId")))
-        .flatMap(i -> finalize(i, objectId, objectKey, null).then())
+        .flatMap(i -> finalize(i, objectId, objectKey, parseUuid(causation)).then())
         .then();
   }
 
@@ -359,8 +360,18 @@ public class MediaIngestionService {
 
   private Mono<MediaIngestion> finalize(
       MediaIngestion i, long objectId, String objectKey, UUID causation) {
+    if (i.phase() == Phase.COMPLETED) {
+      if (Long.valueOf(objectId).equals(i.storageId()) && Objects.equals(objectKey, i.storageKey()))
+        return Mono.just(i);
+      return Mono.error(new IllegalStateException("storage identity does not match ingestion"));
+    }
     if (causation != null) i = i.withCausationId(causation);
-    if (i.phase() == Phase.COMPLETED) return Mono.just(i);
+    if (i.phase() == Phase.RECONCILIATION_REQUIRED) {
+      var recorded = i.recordStorageIdentity(objectId, objectKey);
+      if (recorded == i) return Mono.just(i);
+      return repository.compareAndSet(i, recorded)
+          .flatMap(ok -> ok ? Mono.just(recorded) : Mono.error(new IllegalStateException("CAS failed")));
+    }
     if (i.phase() != Phase.AWAITING_UPLOAD && i.phase() != Phase.FINALIZING_CATALOG)
       return Mono.error(new IllegalStateException("ingestion not awaiting upload"));
     var n =

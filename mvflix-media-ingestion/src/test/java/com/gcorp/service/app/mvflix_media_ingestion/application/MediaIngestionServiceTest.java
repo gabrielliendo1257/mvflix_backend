@@ -1,6 +1,7 @@
 package com.gcorp.service.app.mvflix_media_ingestion.application;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
@@ -87,6 +88,71 @@ class MediaIngestionServiceTest {
     assertThat(fixture.service.complete(fixture.ingestion.ingestionId(), "a", null).block())
         .isEqualTo(fixture.ingestion);
     verifyNoInteractions(fixture.clients);
+  }
+
+  @Test
+  void uploadCompletedIsIdempotentWhenReconciliationAlreadyHasStorageIdentity() {
+    var fixture = fixture(MediaIngestion.Phase.RECONCILIATION_REQUIRED);
+    var enriched = fixture.ingestion.withStorageIdentity(9L, "object");
+    when(fixture.repo.find(fixture.ingestion.ingestionId())).thenReturn(Mono.just(enriched));
+
+    assertDoesNotThrow(
+        () -> fixture.service
+            .uploadCompleted(fixture.ingestion.ingestionId(), 9L, "object", null)
+            .block());
+    verifyNoInteractions(fixture.clients);
+    verifyNoInteractions(fixture.outbox);
+  }
+
+  @Test
+  void uploadCompletedSignalsMissingCorrelationForStorageFallback() {
+    var fixture = fixture(MediaIngestion.Phase.RECONCILIATION_REQUIRED);
+    when(fixture.repo.find(fixture.ingestion.ingestionId())).thenReturn(Mono.empty());
+
+    assertThatThrownBy(() -> fixture.service
+        .uploadCompleted(fixture.ingestion.ingestionId(), 9L, "object", null)
+        .block())
+        .isInstanceOf(IngestionCorrelationNotFoundException.class);
+    verifyNoInteractions(fixture.clients, fixture.outbox);
+  }
+
+  @Test
+  void uploadCompletedPersistsMissingStorageIdentityForReconciliation() {
+    var fixture = fixture(MediaIngestion.Phase.RECONCILIATION_REQUIRED);
+    when(fixture.repo.find(fixture.ingestion.ingestionId())).thenReturn(Mono.just(fixture.ingestion));
+    when(fixture.repo.compareAndSet(eq(fixture.ingestion), any())).thenReturn(Mono.just(true));
+
+    assertDoesNotThrow(
+        () -> fixture.service
+            .uploadCompleted(fixture.ingestion.ingestionId(), 9L, "object", null)
+            .block());
+    verify(fixture.repo).compareAndSet(eq(fixture.ingestion), argThat(
+        value -> value.storageId().equals(9L) && value.storageKey().equals("object")
+            && value.phase() == MediaIngestion.Phase.RECONCILIATION_REQUIRED));
+    verifyNoInteractions(fixture.clients, fixture.outbox);
+  }
+
+  @Test
+  void completedUploadWithSameIdentityIsIdempotent() {
+    var fixture = fixture(MediaIngestion.Phase.COMPLETED);
+    var completed = fixture.ingestion.recordStorageIdentity(9L, "object");
+    when(fixture.repo.find(fixture.ingestion.ingestionId())).thenReturn(Mono.just(completed));
+
+    assertThat(fixture.service.uploadCompleted(
+        fixture.ingestion.ingestionId(), 9L, "object", null).block()).isNull();
+    verifyNoInteractions(fixture.clients, fixture.outbox);
+  }
+
+  @Test
+  void completedUploadWithDifferentIdentityIsRejected() {
+    var fixture = fixture(MediaIngestion.Phase.COMPLETED);
+    var completed = fixture.ingestion.recordStorageIdentity(9L, "object");
+    when(fixture.repo.find(fixture.ingestion.ingestionId())).thenReturn(Mono.just(completed));
+
+    assertThatThrownBy(() -> fixture.service.uploadCompleted(
+        fixture.ingestion.ingestionId(), 10L, "other", null).block())
+        .isInstanceOf(IllegalStateException.class);
+    verifyNoInteractions(fixture.clients, fixture.outbox);
   }
 
   @Test

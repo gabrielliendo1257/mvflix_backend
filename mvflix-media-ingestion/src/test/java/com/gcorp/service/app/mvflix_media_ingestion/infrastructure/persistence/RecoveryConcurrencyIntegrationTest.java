@@ -3,6 +3,8 @@ package com.gcorp.service.app.mvflix_media_ingestion.infrastructure.persistence;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import org.springframework.dao.DataIntegrityViolationException;
 
 import com.gcorp.service.app.mvflix_media_ingestion.application.CompensationRepository;
 import com.gcorp.service.app.mvflix_media_ingestion.application.DownstreamClients;
@@ -33,7 +35,8 @@ import reactor.core.scheduler.Schedulers;
 @SpringBootTest(properties = {
     "spring.main.web-application-type=reactive",
     "mvflix.messaging.kafka.enabled=false",
-    "mvflix.compensation.enabled=false"
+    "mvflix.compensation.enabled=false",
+    "mvflix.recovery.enabled=false"
 })
 @ActiveProfiles("test")
 @Testcontainers(disabledWithoutDocker = true)
@@ -102,6 +105,7 @@ class RecoveryConcurrencyIntegrationTest {
         .collectList()
         .block();
     org.assertj.core.api.Assertions.assertThat(claimed).hasSize(1);
+    org.assertj.core.api.Assertions.assertThat(claimed.get(0).retryCount()).isZero();
 
     Flux.fromIterable(claimed).flatMap(recovery::recover).collectList().block();
 
@@ -111,5 +115,46 @@ class RecoveryConcurrencyIntegrationTest {
     var persisted = repository.find(ingestionId).block();
     org.assertj.core.api.Assertions.assertThat(persisted.phase())
         .isEqualTo(MediaIngestion.Phase.COMPLETED);
+  }
+
+  @Test
+  void earlyPhaseIsNotClaimedBeforeNextAttemptAt() {
+    UUID ingestionId = UUID.randomUUID();
+    Instant now = Instant.now();
+    var ingestion = new MediaIngestion(
+        ingestionId, "actor", null, null, MediaIngestion.Phase.STARTING,
+        null, 1, 2, now.minusSeconds(120), now.minusSeconds(120), now.plusSeconds(30),
+        "key", "file.mp4", 10L, "video/mp4", null);
+    repository.insert(ingestion).block();
+    database.sql("UPDATE media_ingestions SET retry_count=2")
+        .fetch().rowsUpdated().block();
+
+    org.assertj.core.api.Assertions.assertThat(
+        repository.claimDueRecoverable(1, Duration.ofSeconds(30)).collectList().block())
+        .isEmpty();
+
+    database.sql("UPDATE media_ingestions SET next_attempt_at=now() - interval '1 second'")
+        .fetch().rowsUpdated().block();
+    var claimed = repository.claimDueRecoverable(1, Duration.ofSeconds(30)).collectList().block();
+
+    org.assertj.core.api.Assertions.assertThat(claimed).hasSize(1);
+    org.assertj.core.api.Assertions.assertThat(claimed.get(0).retryCount()).isEqualTo(2);
+  }
+
+  @Test
+  void storageIdentityIsUniqueAcrossIngestions() {
+    Instant now = Instant.now();
+    var first = new MediaIngestion(
+        UUID.randomUUID(), "actor", 3L, "upload-1", MediaIngestion.Phase.RECONCILIATION_REQUIRED,
+        null, 1, 0, now, now, now, "key-1", "one.mp4", 1L, "video/mp4", null, 9L,
+        "object-one", "fingerprint-1", null);
+    var second = new MediaIngestion(
+        UUID.randomUUID(), "actor", 4L, "upload-2", MediaIngestion.Phase.RECONCILIATION_REQUIRED,
+        null, 1, 0, now, now, now, "key-2", "two.mp4", 1L, "video/mp4", null, 9L,
+        "object-two", "fingerprint-2", null);
+    repository.insert(first).block();
+
+    assertThatThrownBy(() -> repository.insert(second).block())
+        .isInstanceOf(DataIntegrityViolationException.class);
   }
 }

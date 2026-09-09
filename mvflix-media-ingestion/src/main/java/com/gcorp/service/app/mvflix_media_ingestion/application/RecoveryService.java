@@ -3,6 +3,9 @@ package com.gcorp.service.app.mvflix_media_ingestion.application;
 import com.gcorp.service.app.mvflix_media_ingestion.domain.MediaIngestion;
 import com.gcorp.service.app.mvflix_media_ingestion.domain.MediaIngestion.Phase;
 import java.time.Instant;
+import java.time.Duration;
+import java.util.concurrent.ThreadLocalRandom;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.reactive.TransactionalOperator;
 import reactor.core.publisher.Mono;
@@ -14,18 +17,33 @@ public class RecoveryService {
   private final Outbox outbox;
   private final CompensationRepository compensations;
   private final TransactionalOperator transactions;
+  private final Duration backoffInitial;
+  private final Duration backoffMaximum;
+  private final double backoffJitter;
 
   public RecoveryService(
       MediaIngestionRepository repository,
       DownstreamClients clients,
       Outbox outbox,
       CompensationRepository compensations,
-      TransactionalOperator transactions) {
+      TransactionalOperator transactions,
+      @Value("${mvflix.recovery.backoff.initial:30s}") Duration backoffInitial,
+      @Value("${mvflix.recovery.backoff.maximum:1h}") Duration backoffMaximum,
+      @Value("${mvflix.recovery.backoff.jitter:0.20}") double backoffJitter) {
+    if (backoffInitial.isZero() || backoffInitial.isNegative()
+        || backoffMaximum.isZero() || backoffMaximum.isNegative()
+        || backoffMaximum.compareTo(backoffInitial) < 0
+        || backoffJitter < 0 || backoffJitter > 1) {
+      throw new IllegalArgumentException("invalid recovery backoff configuration");
+    }
     this.repository = repository;
     this.clients = clients;
     this.outbox = outbox;
     this.compensations = compensations;
     this.transactions = transactions;
+    this.backoffInitial = backoffInitial;
+    this.backoffMaximum = backoffMaximum;
+    this.backoffJitter = backoffJitter;
   }
 
   public Mono<MediaIngestion> recover(MediaIngestion ingestion) {
@@ -51,10 +69,10 @@ public class RecoveryService {
             states -> {
               var catalog = states.getT1();
               var storage = states.getT2();
-              boolean catalogReady = "READY".equalsIgnoreCase(catalog.status());
-              boolean storageComplete = "COMPLETED".equalsIgnoreCase(storage.status());
-              if (catalogReady && storageComplete) {
-                return complete(i);
+               boolean catalogReady = "READY".equalsIgnoreCase(catalog.status());
+               boolean storageComplete = "COMPLETED".equalsIgnoreCase(storage.status());
+               if (catalogReady && storageComplete) {
+                 return completeWithStorageIdentity(i, storage);
               }
               if (storageComplete && "DRAFT".equalsIgnoreCase(catalog.status())) {
                 Long objectId =
@@ -65,7 +83,7 @@ public class RecoveryService {
                 if (objectId != null && objectKey != null) {
                   return clients
                       .completeCatalog(i.catalogItemId(), objectKey, objectId, i.actorId())
-                      .then(complete(i));
+                       .then(completeWithStorageIdentity(i, storage));
                 }
                 return reschedule(i, "storage completed but object identity is unavailable");
               }
@@ -150,6 +168,18 @@ public class RecoveryService {
                         : reload(i)));
     }
 
+   private Mono<MediaIngestion> completeWithStorageIdentity(
+       MediaIngestion i, DownstreamClients.StorageStatus storage) {
+     Long objectId = i.storageId() != null ? i.storageId() : storage.objectId();
+     String objectKey = i.storageKey() != null ? i.storageKey() : storage.objectKey();
+     if (objectId == null || objectKey == null || objectKey.isBlank())
+       return reschedule(i, "storage completed but object identity is unavailable");
+     var enriched = i.recordStorageIdentity(objectId, objectKey);
+     if (enriched == i) return complete(i);
+     return transactions.transactional(repository.compareAndSet(i, enriched))
+         .flatMap(ok -> ok ? complete(enriched) : reload(i));
+   }
+
    private Mono<MediaIngestion> reload(MediaIngestion expected) {
      return repository.find(expected.ingestionId())
          .switchIfEmpty(Mono.error(new IllegalStateException(
@@ -171,9 +201,9 @@ public class RecoveryService {
     }
   }
 
-  private Mono<MediaIngestion> mark(MediaIngestion i, Phase phase, String reason) {
-    long delay = Math.min(3600, 30L * (1L << Math.min(i.retryCount(), 6)));
-     var next = i.rescheduled(phase, "RECOVERY_REQUIRED", reason, delay);
+   private Mono<MediaIngestion> mark(MediaIngestion i, Phase phase, String reason) {
+     long delay = backoffSeconds(i.retryCount());
+      var next = i.rescheduled(phase, "RECOVERY_REQUIRED", reason, delay);
     return transactions.transactional(
         repository
             .compareAndSet(i, next)
@@ -187,6 +217,17 @@ public class RecoveryService {
                            .then(saved.flatMap(value -> outbox.failed(value).thenReturn(value)))
                        : saved;
                  }));
+    }
+
+   long backoffSeconds(int retryCount) {
+     long initial = Math.max(1, backoffInitial.toSeconds());
+     long maximum = Math.max(initial, backoffMaximum.toSeconds());
+     long multiplier = 1L << Math.min(Math.max(0, retryCount), 30);
+     long base = initial > maximum / multiplier ? maximum : initial * multiplier;
+     base = Math.min(base, maximum);
+     if (backoffJitter <= 0) return base;
+     double factor = 1 + ThreadLocalRandom.current().nextDouble(-backoffJitter, backoffJitter);
+     return Math.max(1, Math.min(maximum, Math.round(base * factor)));
    }
 
    private Mono<Void> scheduleDraftCompensation(MediaIngestion i) {

@@ -239,8 +239,8 @@ public record MediaIngestion(
         next,
          boundedCode(code),
          detail,
-        version + 1,
-        retryCount,
+         version + 1,
+         retryCount + 1,
         createdAt,
         Instant.now(),
         Instant.now().plusSeconds(delaySeconds),
@@ -260,6 +260,23 @@ public record MediaIngestion(
         failureDetail, version, retryCount, createdAt, updatedAt, nextAttemptAt, idempotencyKey, fileName,
          fileSize, mimeType, uploadUrl, storageId, storageKey, requestFingerprint, causation,
          audienceId);
+  }
+
+  public MediaIngestion recordStorageIdentity(long objectId, String objectKey) {
+    if (objectId <= 0 || objectKey == null || objectKey.isBlank())
+      throw new IllegalArgumentException("invalid storage identity");
+    if (storageId != null && !Long.valueOf(objectId).equals(storageId)
+        || storageKey != null && !objectKey.equals(storageKey))
+      throw new IllegalStateException("storage identity does not match ingestion");
+    if (Long.valueOf(objectId).equals(storageId) && objectKey.equals(storageKey)) return this;
+    return new MediaIngestion(ingestionId, actorId, catalogItemId, uploadId, phase, failureCode,
+        failureDetail, version + 1, retryCount, createdAt, Instant.now(), Instant.now(),
+        idempotencyKey, fileName, fileSize, mimeType, uploadUrl, objectId, objectKey,
+        requestFingerprint, causationId, audienceId);
+  }
+
+  public MediaIngestion withStorageIdentity(long objectId, String objectKey) {
+    return recordStorageIdentity(objectId, objectKey);
   }
 
   private static String boundedCode(String code) {
