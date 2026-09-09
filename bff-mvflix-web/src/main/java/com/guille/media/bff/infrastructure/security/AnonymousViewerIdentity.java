@@ -1,6 +1,7 @@
 package com.guille.media.bff.infrastructure.security;
 
 import com.guille.media.bff.app.service.WebSessionService;
+import com.guille.media.bff.experience.playback.application.port.PlaybackService;
 import java.time.Duration;
 import java.util.UUID;
 import org.springframework.http.ResponseCookie;
@@ -15,14 +16,25 @@ public class AnonymousViewerIdentity {
   private static final Duration COOKIE_TTL = Duration.ofDays(180);
 
   private final WebSessionService session;
+  private final PlaybackService playback;
 
-  public AnonymousViewerIdentity(WebSessionService session) {
+  public AnonymousViewerIdentity(WebSessionService session, PlaybackService playback) {
     this.session = session;
+    this.playback = playback;
   }
 
   public Mono<String> resolve(ServerWebExchange exchange) {
     return this.session.currentSubject()
+        .flatMap(subject -> mergeCookie(exchange, subject).thenReturn(subject))
         .switchIfEmpty(Mono.defer(() -> this.anonymous(exchange)));
+  }
+
+  private Mono<Void> mergeCookie(ServerWebExchange exchange, String subject) {
+    var cookie = exchange.getRequest().getCookies().getFirst(COOKIE_NAME);
+    if (cookie == null || !isUuid(cookie.getValue())) {
+      return Mono.empty();
+    }
+    return playback.mergeAnonymousProgress("anonymous:" + cookie.getValue(), subject);
   }
 
   private Mono<String> anonymous(ServerWebExchange exchange) {

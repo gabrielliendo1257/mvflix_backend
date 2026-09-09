@@ -11,14 +11,14 @@ import java.util.UUID;
 class PlaybackControllerTest {
   @Test
   void mapsOptimisticLockConflictsToConflict() {
-    var response = new PlaybackController(null, null).optimisticLockConflict();
+    var response = new PlaybackController(null, null, null).optimisticLockConflict();
 
     assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
   }
 
   @Test
   void usesTheSameProblemResponseForClientErrors() {
-    var controller = new PlaybackController(null, null);
+    var controller = new PlaybackController(null, null, null);
 
     assertThat(controller.badRequest(new IllegalArgumentException("bad")).getStatusCode())
         .isEqualTo(HttpStatus.BAD_REQUEST);

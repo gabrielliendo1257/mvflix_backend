@@ -16,6 +16,10 @@ public interface PlaybackService {
     return progress(sessionId, command);
   }
 
+  default Mono<Void> mergeAnonymousProgress(String anonymousViewerId, String authenticatedViewerId) {
+    return Mono.empty();
+  }
+
   record StartedSession(String sessionId, DirectSource source, Long resumePositionSeconds) {}
 
   record ProgressCommand(long sequence, long positionSeconds, Long durationSeconds,

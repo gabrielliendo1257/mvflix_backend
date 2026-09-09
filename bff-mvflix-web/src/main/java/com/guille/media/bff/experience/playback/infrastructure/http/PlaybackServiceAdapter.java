@@ -66,9 +66,23 @@ public class PlaybackServiceAdapter implements PlaybackService {
             error -> new PlaybackSourceUnavailableException("Playback no alcanzable", error));
   }
 
+  @Override
+  public Mono<Void> mergeAnonymousProgress(String anonymousViewerId, String authenticatedViewerId) {
+    return playbackServiceWebClient.post()
+        .uri("/api/v1/playback/progress/merge")
+        .header("X-Viewer-Id", authenticatedViewerId)
+        .bodyValue(new MergeProgressRequest(anonymousViewerId))
+        .retrieve().bodyToMono(Void.class)
+        .onErrorMap(WebClientResponseException.class,
+            error -> new PlaybackSourceUnavailableException("Playback no pudo fusionar el progreso", error))
+        .then();
+  }
+
   record PlaybackResponse(String sessionId, Long resumePositionSeconds, Source source) {}
 
   record ProgressResponse(long sequence, Long positionSeconds, String status) {}
+
+  record MergeProgressRequest(String anonymousViewerId) {}
 
   record Source(
       @JsonProperty("url") String url,

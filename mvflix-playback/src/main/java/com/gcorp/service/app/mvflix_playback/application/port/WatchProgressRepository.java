@@ -8,4 +8,5 @@ import reactor.core.publisher.Mono;
 public interface WatchProgressRepository {
   Mono<WatchProgress> find(ViewerId viewerId, CatalogItemId catalogItemId);
   Mono<WatchProgress> save(WatchProgress progress);
+  Mono<Void> merge(ViewerId anonymousViewer, ViewerId authenticatedViewer);
 }

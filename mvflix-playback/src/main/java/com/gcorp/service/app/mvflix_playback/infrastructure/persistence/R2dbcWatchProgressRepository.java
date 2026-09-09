@@ -83,4 +83,31 @@ public class R2dbcWatchProgressRepository implements WatchProgressRepository {
                     + progress.viewerId().value() + " and catalog item "
                     + progress.catalogItemId().value())));
   }
+
+  @Override
+  public Mono<Void> merge(ViewerId anonymousViewer, ViewerId authenticatedViewer) {
+    return database.sql("""
+        INSERT INTO watch_progress
+          (viewer_id, catalog_item_id, position_seconds, duration_seconds, completed,
+           last_session_id, last_session_started_at, updated_at, version)
+        SELECT :authenticated, catalog_item_id, position_seconds, duration_seconds, completed,
+               last_session_id, last_session_started_at, updated_at, version
+        FROM watch_progress
+        WHERE viewer_id = :anonymous
+        ON CONFLICT (viewer_id, catalog_item_id) DO UPDATE SET
+          position_seconds = EXCLUDED.position_seconds,
+          duration_seconds = EXCLUDED.duration_seconds,
+          completed = EXCLUDED.completed,
+          last_session_id = EXCLUDED.last_session_id,
+          last_session_started_at = EXCLUDED.last_session_started_at,
+          updated_at = EXCLUDED.updated_at,
+          version = EXCLUDED.version
+        WHERE watch_progress.updated_at < EXCLUDED.updated_at
+        """)
+        .bind("anonymous", anonymousViewer.value())
+        .bind("authenticated", authenticatedViewer.value())
+        .fetch().rowsUpdated()
+        .then(database.sql("DELETE FROM watch_progress WHERE viewer_id = :anonymous")
+            .bind("anonymous", anonymousViewer.value()).fetch().rowsUpdated().then());
+  }
 }

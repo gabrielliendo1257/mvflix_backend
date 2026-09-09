@@ -2,6 +2,7 @@ package com.gcorp.service.app.mvflix_playback.infrastructure.web;
 
 import com.gcorp.service.app.mvflix_playback.application.StartPlayback;
 import com.gcorp.service.app.mvflix_playback.application.RecordPlaybackProgress;
+import com.gcorp.service.app.mvflix_playback.application.MergeAnonymousProgress;
 import com.gcorp.service.app.mvflix_playback.domain.CatalogItemId;
 import com.gcorp.service.app.mvflix_playback.domain.PlaybackSessionId;
 import com.gcorp.service.app.mvflix_playback.domain.ViewerId;
@@ -27,10 +28,23 @@ import reactor.core.publisher.Mono;
 public class PlaybackController {
   private final StartPlayback startPlayback;
   private final RecordPlaybackProgress recordProgress;
+  private final MergeAnonymousProgress mergeProgress;
 
-  public PlaybackController(StartPlayback startPlayback, RecordPlaybackProgress recordProgress) {
+  public PlaybackController(StartPlayback startPlayback, RecordPlaybackProgress recordProgress,
+      MergeAnonymousProgress mergeProgress) {
     this.startPlayback = startPlayback;
     this.recordProgress = recordProgress;
+    this.mergeProgress = mergeProgress;
+  }
+
+  @PostMapping("/progress/merge")
+  public Mono<ResponseEntity<Void>> mergeProgress(
+      @AuthenticationPrincipal Jwt jwt,
+      @RequestHeader(value = "X-Viewer-Id", required = false) String viewerId,
+      @RequestBody MergeProgressRequest request) {
+    var authenticated = viewerId == null || viewerId.isBlank() ? jwt.getSubject() : viewerId;
+    return mergeProgress.execute(new ViewerId(request.anonymousViewerId()), new ViewerId(authenticated))
+        .thenReturn(ResponseEntity.noContent().build());
   }
 
   @PostMapping("/sessions/{catalogItemId}")
@@ -92,4 +106,5 @@ public class PlaybackController {
       boolean completed) {}
 
   public record ProgressResponse(long sequence, Long positionSeconds, String status) {}
+  public record MergeProgressRequest(String anonymousViewerId) {}
 }
