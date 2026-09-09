@@ -74,7 +74,10 @@ public class WebSecurityConfig {
             exchanges ->
                 exchanges
                     .pathMatchers("/web/session", "/web/shell", "/login/**",
-                        "/oauth2/**", "/error",
+                     "/oauth2/**", "/error",
+                        "/web/movies", "/web/movies/*",
+                        "/web/playback/*/session",
+                        "/web/playback/sessions/*/progress",
                         "/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html")
                     .permitAll()
                     .pathMatchers(HttpMethod.OPTIONS, "/web/uploads")
@@ -105,7 +108,10 @@ public class WebSecurityConfig {
             exchanges ->
                 exchanges
                     .pathMatchers("/web/session", "/web/shell", "/login/**",
-                        "/oauth2/**", "/error",
+                     "/oauth2/**", "/error",
+                        "/web/movies", "/web/movies/*",
+                        "/web/playback/*/session",
+                        "/web/playback/sessions/*/progress",
                         "/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html")
                     .permitAll()
                     .pathMatchers(HttpMethod.GET, "/web/movies/*/stream")
