@@ -57,10 +57,9 @@ contenedor existente. La reparación es idempotente.
 
 Levanta postgres (crea `mvflix_users_db`, `mvflix_uploads_db`, `mvflix_authorized_db`, ...)
 y MinIO con el bucket raiz y el webhook hacia el storage en `:6060`.
-Requiere `infra/docker/.env` (gitignored; hay una copia con valores dev). Para
-clientes Java ejecutándose fuera de Docker, como Termux, configura
-`KAFKA_ADVERTISED_HOST` en `infra/docker/.env` y `KAFKA_BOOTSTRAP_SERVERS` en
-`envs/.env`, ambos con la IP LAN del host.
+Requiere `envs/.env` (gitignored; copia `envs/.env.example`). Ese archivo
+centraliza credenciales, rutas de datos, CORS, webhook y configuración de Kafka
+para Docker y para las aplicaciones Java.
 
 ### 2. Aplicaciones (una terminal por servicio, en este orden)
 
@@ -145,11 +144,11 @@ Todo el stack corre en una maquina; el navegador (en otra maquina) solo ve **fro
    ```
 
    `KAFKA_BOOTSTRAP_SERVERS` debe apuntar al listener externo definido en
-   `infra/docker/.env`; `MOVIES_KAFKA_GROUP` y `STORAGE_KAFKA_GROUP` deben ser
+   `envs/.env`; `MOVIES_KAFKA_GROUP` y `STORAGE_KAFKA_GROUP` deben ser
    distintos para que cada servicio mantenga sus offsets de forma independiente.
    Las variables del broker (`KAFKA_ADVERTISED_HOST`, `KAFKA_EXTERNAL_PORT`,
-   `KAFKA_KRAFT_CLUSTER_ID`, retencion y volumen) pertenecen a
-   `infra/docker/.env` y no a `envs/.env`. Si se arranca una app a mano con
+   `KAFKA_KRAFT_CLUSTER_ID`, retencion y volumen) tambien pertenecen a
+   `envs/.env`. Si se arranca una app a mano con
    `mvn spring-boot:run`, hay que exportar las variables de `envs/.env` antes en
    esa misma terminal:
 

@@ -13,7 +13,7 @@ make up-observability-d
 
 Para ejecutar los contenedores en primer plano, usar `make up-observability`.
 El stack usa las versiones comunes de `infra/docker/container-versions.env` y
-los secretos de `infra/docker/.env`.
+los secretos de `envs/.env`.
 
 Grafana queda en `http://<IP-LAN-DE-LA-LAPTOP>:3000`. Las credenciales se
 configuran con `GRAFANA_ADMIN_USER` y `GRAFANA_ADMIN_PASSWORD` en `.env`.

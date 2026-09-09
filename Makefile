@@ -1,5 +1,5 @@
 COMPOSE_VERSIONS = --env-file ./infra/docker/container-versions.env
-COMPOSE_DEV = docker compose $(COMPOSE_VERSIONS) --env-file ./infra/docker/.env -f ./infra/docker/docker-compose-dev.yml -p mvflix-app
+COMPOSE_DEV = docker compose $(COMPOSE_VERSIONS) --env-file ./envs/.env -f ./infra/docker/docker-compose-dev.yml -p mvflix-app
 COMPOSE_E2E = docker compose $(COMPOSE_VERSIONS) -f ./e2e/docker-compose-e2e.yml -p mvflix-e2e
 
 .PHONY: up-dev up-dev-d down-dev down-dev-v repair-postgres-permissions validate-contracts up-observability up-observability-d up-e2e up-e2e-d down-e2e down-e2e-v ps sandbox-run sandbox-test
