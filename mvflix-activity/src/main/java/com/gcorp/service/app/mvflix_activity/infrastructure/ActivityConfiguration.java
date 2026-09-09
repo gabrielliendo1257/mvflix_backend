@@ -14,11 +14,15 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.transaction.reactive.TransactionalOperator;
 import org.springframework.r2dbc.connection.R2dbcTransactionManager;
 import io.r2dbc.spi.ConnectionFactory;
+import com.gcorp.service.app.mvflix_activity.infrastructure.persistence.DatabaseActivityInbox;
+import org.springframework.r2dbc.core.DatabaseClient;
 
 @Configuration
 public class ActivityConfiguration {
   @Bean R2dbcTransactionManager connectionFactoryTransactionManager(ConnectionFactory cf) { return new R2dbcTransactionManager(cf); }
   @Bean TransactionalOperator transactionalOperator(R2dbcTransactionManager tm) { return TransactionalOperator.create(tm); }
+  @Bean ActivityInbox activityInbox(DatabaseClient db) { return new DatabaseActivityInbox(db, "watch_activity"); }
+  @Bean ActivityFeedInbox activityFeedInbox(DatabaseClient db) { return new DatabaseActivityInbox(db, "activity_feed"); }
   @Bean ActivityProcessor activityProcessor(ActivityInbox inbox, WatchActivityRepository projection, TransactionalOperator tx) { return new ActivityProcessor(inbox, projection, tx); }
   @Bean ActivityQueryService activityQueryService(WatchActivityRepository repository) { return new ActivityQueryService(repository); }
   @Bean ProjectActivityEvent projectActivityEvent(ActivityFeedInbox inbox, ActivityFeedRepository projection,

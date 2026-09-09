@@ -20,8 +20,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 @Repository
-public class ActivityPersistence implements ActivityInbox, WatchActivityRepository,
-    ActivityFeedInbox, ActivityFeedRepository {
+public class ActivityPersistence implements WatchActivityRepository, ActivityFeedRepository {
   private final DatabaseClient db;
   private final ObjectMapper mapper;
 
