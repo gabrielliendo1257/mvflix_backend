@@ -91,7 +91,9 @@ class StartPlaybackTest {
             new LocalPlaybackAccess.LocalMintCommand(
                 42L, 5L, 3L, "Movies/edward.mkv", "pepe")))
         .thenReturn(Mono.just(new LocalPlaybackAccess.MintedAccess("jwt-token", expiresAt)));
-    verifyNoInteractions(this.playbackService);
+    org.mockito.Mockito.when(this.playbackService.start(42L, "pepe"))
+        .thenReturn(Mono.just(new PlaybackService.StartedSession(
+            "123e4567-e89b-12d3-a456-426614174000", null, null)));
 
     StepVerifier.create(this.useCase.handle("pepe", 42L))
         .assertNext(session -> {

@@ -73,7 +73,7 @@ public class StartPlayback {
     return Mono.just(new Resolved(media.movie(), media.asset()));
   }
 
-  /** MANAGED: presigned directo al object store. LOCAL: capability del proxy del BFF. */
+  /** Both sources get a durable Playback session; LOCAL delivery remains a BFF capability. */
   private Mono<OpenedSource> openSource(String subject, long mediaId, Resolved playable) {
     var movie = playable.movie();
     if (movie.objectId() != null) {
@@ -86,17 +86,18 @@ public class StartPlayback {
                   ? null : Duration.ofSeconds(session.resumePositionSeconds())));
     }
     var asset = playable.asset();
-    return this.localAccess
-        .mint(new LocalPlaybackAccess.LocalMintCommand(
-            asset.mediaId(), asset.assetId(), asset.libraryId(),
-            asset.relativePath(), subject))
-        .map(minted -> new OpenedSource(
-            UUID.randomUUID(),
-            new DirectSource(
-                "/web/playback/assets/" + asset.assetId() + "/stream?token=" + minted.rawToken(),
-                minted.expiresAt(),
-                asset.mimeType()),
-            null));
+    return this.playbackService.start(mediaId, subject)
+        .flatMap(started -> this.localAccess
+            .mint(new LocalPlaybackAccess.LocalMintCommand(
+                asset.mediaId(), asset.assetId(), asset.libraryId(),
+                asset.relativePath(), subject))
+            .map(minted -> new OpenedSource(
+                UUID.fromString(started.sessionId()),
+                new DirectSource(
+                    "/web/playback/assets/" + asset.assetId() + "/stream?token=" + minted.rawToken(),
+                    minted.expiresAt(), asset.mimeType()),
+                started.resumePositionSeconds() == null ? null
+                    : Duration.ofSeconds(started.resumePositionSeconds()))));
   }
 
   private PlaybackSession compose(Resolved resolved, OpenedSource opened) {

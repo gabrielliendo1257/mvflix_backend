@@ -97,6 +97,8 @@ class PlaybackControllerTest {
   @Test
   void startLocalReturnsProxyCapabilityUrl() {
     this.catalogReturns("READY", null, true);
+    when(this.playbackService.start(42L, "pepe")).thenReturn(Mono.just(
+        new PlaybackService.StartedSession("123e4567-e89b-12d3-a456-426614174000", null, null)));
 
     this.client.post()
         .uri("/web/playback/42/session")
