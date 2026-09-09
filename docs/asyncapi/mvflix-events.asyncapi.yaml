@@ -116,7 +116,18 @@ channels:
       x-delivery: at-least-once
       x-partition-key: aggregate.id
       message:
-        $ref: '#/components/messages/PlaybackProgressed'
+         $ref: '#/components/messages/PlaybackProgressed'
+
+  mvflix.qualified-view.v1:
+    description: Playback publica una vista calificada una sola vez por sesión.
+    publish:
+      operationId: publishQualifiedView
+      x-owner: mvflix-playback
+      x-consumer: mvflix-analytics
+      x-delivery: at-least-once
+      x-partition-key: aggregate.id
+      message:
+        $ref: '#/components/messages/QualifiedView'
 
   mvflix.media-ingestion-started.v1:
     publish:
@@ -338,7 +349,48 @@ components:
             causationId: null
             producer: mvflix-playback
             aggregate: { type: PlaybackSession, id: 11111111-1111-4111-8111-111111111111 }
-            payload: { ownerUsername: Javier, movieId: 101, mediaId: 3, contentReferenceType: LIBRARY_ASSET, contentReferenceId: 3, sessionId: 11111111-1111-4111-8111-111111111111, positionSeconds: 120, durationSeconds: 7200, completed: false, sequence: 4 }
+            payload:
+              ownerUsername: Javier
+              movieId: 101
+              mediaId: 3
+              contentReferenceType: LIBRARY_ASSET
+              contentReferenceId: 3
+              sessionId: 11111111-1111-4111-8111-111111111111
+              positionSeconds: 120
+              durationSeconds: 7200
+              completed: false
+              sequence: 4
+
+    QualifiedView:
+      name: QualifiedView
+      title: Qualified playback view
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/QualifiedViewEnvelope'
+      examples:
+        - name: qualified-view-v1
+          payload:
+            eventId: 88888888-8888-4888-8888-888888888888
+            eventType: QualifiedView
+            eventVersion: 1
+            occurredAt: '2026-08-28T12:00:30Z'
+            actorId: anonymous:11111111-1111-4111-8111-111111111111
+            audienceId: anonymous:11111111-1111-4111-8111-111111111111
+            correlationId: 99999999-9999-4999-8999-999999999999
+            causationId: null
+            producer: mvflix-playback
+            aggregate: { type: PlaybackSession, id: 11111111-1111-4111-8111-111111111111 }
+            payload:
+              ownerUsername: anonymous:11111111-1111-4111-8111-111111111111
+              movieId: 101
+              mediaId: 3
+              contentReferenceType: LIBRARY_ASSET
+              contentReferenceId: 3
+              sessionId: 11111111-1111-4111-8111-111111111111
+              positionSeconds: 30
+              durationSeconds: 7200
+              completed: false
+              sequence: 1
 
   schemas:
     MediaIngestionEnvelope:
@@ -537,6 +589,22 @@ components:
         - type: object
           properties:
             eventType: { type: string, enum: [PlaybackProgressed] }
+            eventVersion: { type: integer, enum: [1] }
+            producer: { type: string, enum: [mvflix-playback] }
+            aggregate:
+              allOf:
+                - $ref: '#/components/schemas/AggregateReference'
+                - type: object
+                  properties: { type: { type: string, enum: [PlaybackSession] } }
+            payload:
+              $ref: '#/components/schemas/PlaybackProgressedPayload'
+
+    QualifiedViewEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/EventEnvelope'
+        - type: object
+          properties:
+            eventType: { type: string, enum: [QualifiedView] }
             eventVersion: { type: integer, enum: [1] }
             producer: { type: string, enum: [mvflix-playback] }
             aggregate:
