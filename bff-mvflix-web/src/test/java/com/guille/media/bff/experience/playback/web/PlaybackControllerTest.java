@@ -54,7 +54,7 @@ class PlaybackControllerTest {
         this.localAccess,
         this.storage,
         this.playbackService,
-        new AnonymousViewerIdentity(this.session));
+         new AnonymousViewerIdentity(this.session, this.playbackService));
     this.client = WebTestClient.bindToController(controller)
         .controllerAdvice(new ApiExceptionHandler())
         .build();
