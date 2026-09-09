@@ -124,6 +124,16 @@ public class OAuth2AuthorizationConfig {
       repository.save(playbackServiceRegisteredClient);
     }
 
+    if (repository.findByClientId("bff-playback") == null) {
+      repository.save(
+          RegisteredClient.withId("bff-playback-app")
+              .clientId("bff-playback")
+              .clientSecret(passwordEncoder.encode(this.oauth2PropertiesConfig.getFrontClientSecret()))
+              .authorizationGrantType(AuthorizationGrantType.CLIENT_CREDENTIALS)
+              .scope("playback.sessions.write")
+              .build());
+    }
+
     // Machine-client de limpieza MANAGED: Movies lo usa para borrar el
     // objeto (y su cuota) en Storage al eliminar una media. Scope dedicado
     // storage.objects.delete: NO reutiliza storage.stream (eliminar ≠

@@ -10,6 +10,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClientRequestException;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
+import org.springframework.http.HttpHeaders;
 import reactor.core.publisher.Mono;
 
 @Component
@@ -22,8 +23,14 @@ public class PlaybackServiceAdapter implements PlaybackService {
 
   @Override
   public Mono<StartedSession> start(long mediaId) {
+    return start(mediaId, null);
+  }
+
+  @Override
+  public Mono<StartedSession> start(long mediaId, String viewerId) {
     return playbackServiceWebClient.post()
         .uri("/api/v1/playback/sessions/{mediaId}", mediaId)
+        .headers(headers -> { if (viewerId != null) headers.set("X-Viewer-Id", viewerId); })
         .retrieve()
         .bodyToMono(PlaybackResponse.class)
         .map(response -> new StartedSession(
@@ -40,8 +47,14 @@ public class PlaybackServiceAdapter implements PlaybackService {
 
   @Override
   public Mono<ProgressResult> progress(String sessionId, ProgressCommand command) {
+    return progress(sessionId, null, command);
+  }
+
+  @Override
+  public Mono<ProgressResult> progress(String sessionId, String viewerId, ProgressCommand command) {
     return playbackServiceWebClient.post()
         .uri("/api/v1/playback/sessions/{sessionId}/progress", sessionId)
+        .headers(headers -> { if (viewerId != null) headers.set("X-Viewer-Id", viewerId); })
         .bodyValue(command)
         .retrieve()
         .bodyToMono(ProgressResponse.class)

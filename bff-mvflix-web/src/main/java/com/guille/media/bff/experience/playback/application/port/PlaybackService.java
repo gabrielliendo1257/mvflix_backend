@@ -6,7 +6,15 @@ import reactor.core.publisher.Mono;
 public interface PlaybackService {
   Mono<StartedSession> start(long mediaId);
 
+  default Mono<StartedSession> start(long mediaId, String viewerId) {
+    return start(mediaId);
+  }
+
   Mono<ProgressResult> progress(String sessionId, ProgressCommand command);
+
+  default Mono<ProgressResult> progress(String sessionId, String viewerId, ProgressCommand command) {
+    return progress(sessionId, command);
+  }
 
   record StartedSession(String sessionId, DirectSource source, Long resumePositionSeconds) {}
 

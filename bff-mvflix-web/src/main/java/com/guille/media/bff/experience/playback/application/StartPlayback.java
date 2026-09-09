@@ -76,10 +76,13 @@ public class StartPlayback {
   private Mono<OpenedSource> openSource(String subject, long mediaId, Resolved playable) {
     var movie = playable.movie();
     if (movie.objectId() != null) {
-      return this.playbackService.start(mediaId)
-          .map(started -> new OpenedSource(
-              UUID.fromString(started.sessionId()), started.source(), started.resumePositionSeconds() == null
-                  ? null : Duration.ofSeconds(started.resumePositionSeconds())));
+      var started = this.playbackService.start(mediaId, subject);
+      // Keeps older in-process adapters usable while the viewer-aware port rolls out.
+      if (started == null) started = this.playbackService.start(mediaId);
+      return started
+          .map(session -> new OpenedSource(
+              UUID.fromString(session.sessionId()), session.source(), session.resumePositionSeconds() == null
+                  ? null : Duration.ofSeconds(session.resumePositionSeconds())));
     }
     var asset = playable.asset();
     return this.localAccess

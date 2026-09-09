@@ -12,6 +12,7 @@ import org.springframework.http.ProblemDetail;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestHeader;
@@ -35,8 +36,10 @@ public class PlaybackController {
   @PostMapping("/sessions/{catalogItemId}")
   public Mono<ResponseEntity<PlaybackResponse>> start(@PathVariable long catalogItemId,
       @AuthenticationPrincipal Jwt jwt,
-      @RequestHeader(HttpHeaders.AUTHORIZATION) String authorization) {
-    return startPlayback.execute(new CatalogItemId(catalogItemId), new ViewerId(jwt.getSubject()),
+      @RequestHeader(HttpHeaders.AUTHORIZATION) String authorization,
+      @RequestHeader(value = "X-Viewer-Id", required = false) String viewerId) {
+    return startPlayback.execute(new CatalogItemId(catalogItemId), new ViewerId(
+        viewerId == null || viewerId.isBlank() ? jwt.getSubject() : viewerId),
         authorization)
         .map(PlaybackResponse::from)
         .map(ResponseEntity::ok);
@@ -44,8 +47,10 @@ public class PlaybackController {
 
   @PostMapping("/sessions/{sessionId}/progress")
   public Mono<ResponseEntity<ProgressResponse>> progress(@PathVariable java.util.UUID sessionId,
-      @AuthenticationPrincipal Jwt jwt, @RequestBody ProgressRequest request) {
-    return recordProgress.execute(new PlaybackSessionId(sessionId), new ViewerId(jwt.getSubject()),
+      @AuthenticationPrincipal Jwt jwt, @RequestBody ProgressRequest request,
+      @RequestHeader(value = "X-Viewer-Id", required = false) String viewerId) {
+    return recordProgress.execute(new PlaybackSessionId(sessionId), new ViewerId(
+        viewerId == null || viewerId.isBlank() ? jwt.getSubject() : viewerId),
         request.sequence(), request.positionSeconds(), request.durationSeconds(), request.completed())
         .map(session -> ResponseEntity.ok(new ProgressResponse(session.lastSequence(),
             session.lastPosition() == null ? null : session.lastPosition().seconds(),

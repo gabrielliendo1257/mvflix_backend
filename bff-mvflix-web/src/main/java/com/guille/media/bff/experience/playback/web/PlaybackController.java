@@ -65,10 +65,11 @@ public class PlaybackController {
 
   @PostMapping(value = "/sessions/{sessionId}/progress", produces = MediaType.APPLICATION_JSON_VALUE)
   public Mono<ProgressResponse> progress(
-      @PathVariable String sessionId, @RequestBody ProgressRequest request) {
-    return playbackService.progress(sessionId,
+      @PathVariable String sessionId, @RequestBody ProgressRequest request,
+      org.springframework.web.server.ServerWebExchange exchange) {
+    return this.viewerIdentity.resolve(exchange).flatMap(viewerId -> playbackService.progress(sessionId, viewerId,
             new PlaybackService.ProgressCommand(request.sequence(), request.positionSeconds(),
-                request.durationSeconds(), request.completed()))
+                request.durationSeconds(), request.completed())))
         .map(result -> new ProgressResponse(result.sequence(), result.positionSeconds(), result.status()));
   }
 
