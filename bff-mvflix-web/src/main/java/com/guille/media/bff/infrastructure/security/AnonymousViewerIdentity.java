@@ -34,7 +34,9 @@ public class AnonymousViewerIdentity {
     if (cookie == null || !isUuid(cookie.getValue())) {
       return Mono.empty();
     }
-    return playback.mergeAnonymousProgress("anonymous:" + cookie.getValue(), subject);
+    return playback.mergeAnonymousProgress("anonymous:" + cookie.getValue(), subject)
+        // La migracion es reintentable; no debe bloquear una sesion autenticada.
+        .onErrorResume(error -> Mono.empty());
   }
 
   private Mono<String> anonymous(ServerWebExchange exchange) {
