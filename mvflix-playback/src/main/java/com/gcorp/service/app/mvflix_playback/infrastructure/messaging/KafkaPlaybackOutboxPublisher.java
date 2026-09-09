@@ -18,6 +18,7 @@ public class KafkaPlaybackOutboxPublisher {
       case "PlaybackStarted" -> "mvflix.playback-started.v1";
       case "PlaybackProgressed" -> "mvflix.playback-progressed.v1";
       case "PlaybackCompleted" -> "mvflix.playback-completed.v1";
+      case "QualifiedView" -> "mvflix.qualified-view.v1";
       default -> throw new IllegalArgumentException("Unknown playback event: " + message.eventType());
     };
     return Mono.fromFuture(() -> kafka.send(topic, message.aggregateId().toString(), message.payload())).then();
