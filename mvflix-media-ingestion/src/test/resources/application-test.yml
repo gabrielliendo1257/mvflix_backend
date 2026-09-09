@@ -1,0 +1,27 @@
+spring:
+  r2dbc:
+    url: r2dbc:postgresql://localhost:5432/test
+    username: test
+    password: test
+  security:
+    oauth2:
+      client:
+        provider:
+          internal:
+            token-uri: http://localhost:0/oauth2/token
+        registration:
+          movies:
+            provider: internal
+            authorization-grant-type: client_credentials
+            client-id: test
+            client-secret: test
+          storage:
+            provider: internal
+            authorization-grant-type: client_credentials
+            client-id: test
+            client-secret: test
+          users:
+            provider: internal
+            authorization-grant-type: client_credentials
+            client-id: test
+            client-secret: test
