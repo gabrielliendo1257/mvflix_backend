@@ -26,6 +26,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.web.reactive.server.WebTestClient;
+import org.springframework.web.reactive.function.client.WebClient;
 
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -36,6 +37,7 @@ import java.time.Instant;
 class PlaybackControllerTest {
 
   private final StorageWebClient storage = mock(StorageWebClient.class);
+  private final WebClient playbackStorageClient = mock(WebClient.class);
   private final WebSessionService session = mock(WebSessionService.class);
   private final HmacLocalPlaybackAccess localAccess =
       new HmacLocalPlaybackAccess("test-secret", Duration.ofHours(2));
@@ -52,9 +54,10 @@ class PlaybackControllerTest {
     var controller = new PlaybackController(
         new StartPlayback(this.catalog, this.playbackService, this.localAccess),
         this.localAccess,
-        this.storage,
-        this.playbackService,
-         new AnonymousViewerIdentity(this.session, this.playbackService));
+         this.storage,
+         this.playbackService,
+         new AnonymousViewerIdentity(this.session, this.playbackService),
+         this.playbackStorageClient);
     this.client = WebTestClient.bindToController(controller)
         .controllerAdvice(new ApiExceptionHandler())
         .build();
