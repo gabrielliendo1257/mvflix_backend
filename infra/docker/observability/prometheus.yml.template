@@ -8,63 +8,63 @@ scrape_configs:
   - job_name: mvflix-bff
     metrics_path: /actuator/prometheus
     basic_auth:
-      username: ${ACTUATOR_METRICS_USER:-metrics}
-      password: ${ACTUATOR_METRICS_PASSWORD:-change-me}
+      username: ${ACTUATOR_METRICS_USER}
+      password: ${ACTUATOR_METRICS_PASSWORD}
     static_configs:
       - targets: [host.docker.internal:10091]
 
   - job_name: mvflix-movies
     metrics_path: /actuator/prometheus
     basic_auth:
-      username: ${ACTUATOR_METRICS_USER:-metrics}
-      password: ${ACTUATOR_METRICS_PASSWORD:-change-me}
+      username: ${ACTUATOR_METRICS_USER}
+      password: ${ACTUATOR_METRICS_PASSWORD}
     static_configs:
       - targets: [host.docker.internal:10040]
 
   - job_name: mvflix-storage
     metrics_path: /actuator/prometheus
     basic_auth:
-      username: ${ACTUATOR_METRICS_USER:-metrics}
-      password: ${ACTUATOR_METRICS_PASSWORD:-change-me}
+      username: ${ACTUATOR_METRICS_USER}
+      password: ${ACTUATOR_METRICS_PASSWORD}
     static_configs:
       - targets: [host.docker.internal:10060]
 
   - job_name: mvflix-users
     metrics_path: /actuator/prometheus
     basic_auth:
-      username: ${ACTUATOR_METRICS_USER:-metrics}
-      password: ${ACTUATOR_METRICS_PASSWORD:-change-me}
+      username: ${ACTUATOR_METRICS_USER}
+      password: ${ACTUATOR_METRICS_PASSWORD}
     static_configs:
       - targets: [host.docker.internal:10080]
 
   - job_name: mvflix-authorization
     metrics_path: /actuator/prometheus
     basic_auth:
-      username: ${ACTUATOR_METRICS_USER:-metrics}
-      password: ${ACTUATOR_METRICS_PASSWORD:-change-me}
+      username: ${ACTUATOR_METRICS_USER}
+      password: ${ACTUATOR_METRICS_PASSWORD}
     static_configs:
       - targets: [host.docker.internal:10090]
 
   - job_name: mvflix-activity
     metrics_path: /actuator/prometheus
     basic_auth:
-      username: ${ACTUATOR_METRICS_USER:-metrics}
-      password: ${ACTUATOR_METRICS_PASSWORD:-change-me}
+      username: ${ACTUATOR_METRICS_USER}
+      password: ${ACTUATOR_METRICS_PASSWORD}
     static_configs:
       - targets: [host.docker.internal:10070]
 
   - job_name: mvflix-playback
     metrics_path: /actuator/prometheus
     basic_auth:
-      username: ${ACTUATOR_METRICS_USER:-metrics}
-      password: ${ACTUATOR_METRICS_PASSWORD:-change-me}
+      username: ${ACTUATOR_METRICS_USER}
+      password: ${ACTUATOR_METRICS_PASSWORD}
     static_configs:
       - targets: [host.docker.internal:10071]
 
   - job_name: mvflix-media-ingestion
     metrics_path: /actuator/prometheus
     basic_auth:
-      username: ${ACTUATOR_METRICS_USER:-metrics}
-      password: ${ACTUATOR_METRICS_PASSWORD:-change-me}
+      username: ${ACTUATOR_METRICS_USER}
+      password: ${ACTUATOR_METRICS_PASSWORD}
     static_configs:
       - targets: [host.docker.internal:10081]

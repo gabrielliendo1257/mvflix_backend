@@ -34,6 +34,7 @@ build/
 
 ### Secrets ###
 **/.env
+infra/docker/observability/generated/
 
 ### Local scripts (contienen secretos locales) ###
 scripts/*.local.sh
