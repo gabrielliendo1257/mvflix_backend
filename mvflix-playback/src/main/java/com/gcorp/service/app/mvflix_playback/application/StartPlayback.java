@@ -38,7 +38,7 @@ public class StartPlayback {
       String bearerToken) {
     Instant startedAt = Instant.now();
     Instant expiresAt = startedAt.plus(SESSION_TTL);
-    return catalog.getPlayableItem(catalogItemId, bearerToken)
+    return catalog.getPlayableItem(catalogItemId, viewerId, bearerToken)
         .flatMap(item -> contentAccess.open(item)
             .flatMap(source -> progress.find(viewerId, catalogItemId)
                 .defaultIfEmpty(new com.gcorp.service.app.mvflix_playback.domain.WatchProgress(

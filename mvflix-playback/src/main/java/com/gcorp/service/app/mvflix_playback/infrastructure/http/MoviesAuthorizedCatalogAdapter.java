@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.gcorp.service.app.mvflix_playback.application.port.AuthorizedCatalog;
 import com.gcorp.service.app.mvflix_playback.domain.CatalogItemId;
 import com.gcorp.service.app.mvflix_playback.domain.PlayableCatalogItem;
+import com.gcorp.service.app.mvflix_playback.domain.ViewerId;
 import java.util.Optional;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
@@ -21,10 +22,12 @@ public class MoviesAuthorizedCatalogAdapter implements AuthorizedCatalog {
   }
 
   @Override
-  public Mono<PlayableCatalogItem> getPlayableItem(CatalogItemId id, String bearerToken) {
+  public Mono<PlayableCatalogItem> getPlayableItem(CatalogItemId id, ViewerId viewerId,
+      String bearerToken) {
     return client.get()
-        .uri("/api/v1/movies/{id}/playback-context", id.value())
-        .header(HttpHeaders.AUTHORIZATION, bearerToken)
+         .uri("/api/v1/movies/{id}/playback-context", id.value())
+         .header(HttpHeaders.AUTHORIZATION, bearerToken)
+         .header("X-Viewer-Id", viewerId.value())
         .retrieve()
         .bodyToMono(DownstreamItem.class)
         .map(item -> new PlayableCatalogItem(id, item.title(), item.posterPath(), item.duration(),
