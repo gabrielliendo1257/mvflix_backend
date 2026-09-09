@@ -239,6 +239,18 @@ public class BffWebClientConfiguration {
   }
 
   @Bean
+  WebClient publicCatalogWebClient(
+      CatalogPublicTokenProvider tokenProvider,
+      @Value("${services.movies.url}") String moviesUrl,
+      @Value("${bff.webclient.connect-timeout-ms:2000}") int connectTimeoutMs,
+      @Value("${bff.webclient.response-timeout-ms:10000}") long responseTimeoutMs) {
+    var bearerFilter = ExchangeFilterFunction.ofRequestProcessor(request ->
+        tokenProvider.token().map(token -> ClientRequest.from(request)
+            .headers(headers -> headers.setBearerAuth(token)).build()));
+    return this.build(moviesUrl, bearerFilter, connectTimeoutMs, responseTimeoutMs);
+  }
+
+  @Bean
   WebClient playbackCatalogWebClient(
       PlaybackServiceTokenProvider tokenProvider,
       @Value("${services.movies.url}") String moviesUrl,

@@ -32,4 +32,7 @@ public class OAuth2PropertiesConfig {
 
   @Value("${authorization.env.oauth2.media-ingestion-password:super-secret}")
   private String mediaIngestionSecret;
+
+  @Value("${authorization.env.oauth2.catalog-public-password:super-secret}")
+  private String catalogPublicSecret;
 }
