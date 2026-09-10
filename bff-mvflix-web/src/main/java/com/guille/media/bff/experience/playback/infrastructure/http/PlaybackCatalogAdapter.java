@@ -33,8 +33,6 @@ public class PlaybackCatalogAdapter implements PlaybackCatalog {
 
   private static final String API = "/api/v1/movies";
 
-  private static final MediaAssetDto NO_ASSET = new MediaAssetDto(null, null, null, 0, null, null, null);
-
   private final WebClient moviesWebClient;
 
   public PlaybackCatalogAdapter(@Qualifier("playbackCatalogWebClient") WebClient moviesWebClient) {
@@ -71,11 +69,12 @@ public class PlaybackCatalogAdapter implements PlaybackCatalog {
     var movie = new PlaybackMovie(
         movieDto.id(), movieDto.title(), movieDto.status(),
         movieDto.posterPath(), movieDto.duration(), movieDto.objectId());
-    if (movieDto.objectId() != null && assetDto.id() != null) {
+    boolean hasAsset = assetDto != null && assetDto.id() != null;
+    if (movieDto.objectId() != null && hasAsset) {
       throw new PlaybackContractViolationException(
           "La media " + mediaId + " declara objeto MANAGED y asset de biblioteca a la vez");
     }
-    var asset = assetDto.id() == null ? null : new PlayableAsset(
+    var asset = !hasAsset ? null : new PlayableAsset(
         assetDto.id(), mediaId, assetDto.mimeType(), assetDto.size(),
         null, assetDto.libraryId(), assetDto.relativePath());
     return new PlaybackMedia(movie, asset);

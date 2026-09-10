@@ -44,6 +44,14 @@ class PlaybackCatalogAdapterComposeTest {
   }
 
   @Test
+  void managedMovieAcceptsNullAssetFromHttpContract() {
+    var result = PlaybackCatalogAdapter.compose(MEDIA, movie(77L), null);
+
+    assertThat(result.movie().objectId()).isEqualTo(77L);
+    assertThat(result.asset()).isNull();
+  }
+
+  @Test
   void libraryAssetWithoutObjectIsLocal() {
     var result = PlaybackCatalogAdapter.compose(MEDIA, movie(null), libraryAsset());
 
