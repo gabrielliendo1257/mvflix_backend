@@ -5,6 +5,7 @@ import com.guille.media.bff.app.dto.UploadCreateRequest;
 import com.guille.media.bff.app.dto.UploadListItem;
 import com.guille.media.bff.app.dto.UploadSessionDto;
 import com.guille.media.bff.app.dto.UploadStatusDto;
+import com.guille.media.bff.app.dto.MultipartUploadDtos;
 import com.guille.media.bff.app.ports.StorageWebClient;
 
 import lombok.RequiredArgsConstructor;
@@ -43,5 +44,21 @@ public class WebUploadsService {
 
   public Mono<StreamingSessionDto> stream(String objectId) {
     return this.storageWebClient.stream(objectId);
+  }
+
+  public Mono<MultipartUploadDtos.Session> createMultipart(MultipartUploadDtos.Create request) {
+    return storageWebClient.createMultipart(request);
+  }
+
+  public Mono<MultipartUploadDtos.Parts> multipartParts(String uploadId, int from, int limit) {
+    return storageWebClient.multipartParts(uploadId, from, limit);
+  }
+
+  public Mono<Void> completeMultipart(String uploadId, MultipartUploadDtos.Complete request) {
+    return storageWebClient.completeMultipart(uploadId, request);
+  }
+
+  public Mono<Void> abortMultipart(String uploadId) {
+    return storageWebClient.abortMultipart(uploadId);
   }
 }

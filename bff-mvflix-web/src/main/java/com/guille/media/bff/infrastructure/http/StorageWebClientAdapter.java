@@ -9,6 +9,7 @@ import com.guille.media.bff.app.dto.UploadCreateRequest;
 import com.guille.media.bff.app.dto.UploadListItem;
 import com.guille.media.bff.app.dto.UploadSessionDto;
 import com.guille.media.bff.app.dto.UploadStatusDto;
+import com.guille.media.bff.app.dto.MultipartUploadDtos;
 import com.guille.media.bff.app.ports.StorageWebClient;
 
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -198,6 +199,31 @@ public class StorageWebClientAdapter implements StorageWebClient {
               }
               return Mono.just(ResponseEntity.status(ex.getStatusCode()).headers(headers).build());
             });
+  }
+
+  @Override
+  public Mono<MultipartUploadDtos.Session> createMultipart(MultipartUploadDtos.Create request) {
+    return storageWebClient.post().uri("/api/v1/uploads").contentType(MediaType.APPLICATION_JSON)
+        .bodyValue(request).retrieve().bodyToMono(MultipartUploadDtos.Session.class);
+  }
+
+  @Override
+  public Mono<MultipartUploadDtos.Parts> multipartParts(String uploadId, int from, int limit) {
+    return storageWebClient.get().uri(uri -> uri.path("/api/v1/uploads/{id}/parts")
+        .queryParam("from", from).queryParam("limit", limit).build(uploadId))
+        .retrieve().bodyToMono(MultipartUploadDtos.Parts.class);
+  }
+
+  @Override
+  public Mono<Void> completeMultipart(String uploadId, MultipartUploadDtos.Complete request) {
+    return storageWebClient.post().uri("/api/v1/uploads/{id}/complete", uploadId)
+        .contentType(MediaType.APPLICATION_JSON).bodyValue(request).retrieve().toBodilessEntity().then();
+  }
+
+  @Override
+  public Mono<Void> abortMultipart(String uploadId) {
+    return storageWebClient.delete().uri("/api/v1/uploads/{id}", uploadId)
+        .retrieve().toBodilessEntity().then();
   }
 
   private <T> Mono<T> get(String uri, Class<T> type) {

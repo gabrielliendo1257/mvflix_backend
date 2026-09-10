@@ -8,6 +8,7 @@ import com.guille.media.bff.app.dto.UploadCreateRequest;
 import com.guille.media.bff.app.dto.UploadListItem;
 import com.guille.media.bff.app.dto.UploadSessionDto;
 import com.guille.media.bff.app.dto.UploadStatusDto;
+import com.guille.media.bff.app.dto.MultipartUploadDtos;
 
 import org.springframework.core.io.buffer.DataBuffer;
 import org.springframework.http.HttpStatus;
@@ -63,4 +64,9 @@ public interface StorageWebClient {
   /** Stream LOCAL con soporte Range: el BFF proxya status/headers/cuerpo tal cual. */
   Mono<ResponseEntity<Flux<DataBuffer>>> streamLibraryFile(
       Long libraryId, String relativePath, String rangeHeader);
+
+  Mono<MultipartUploadDtos.Session> createMultipart(MultipartUploadDtos.Create request);
+  Mono<MultipartUploadDtos.Parts> multipartParts(String uploadId, int from, int limit);
+  Mono<Void> completeMultipart(String uploadId, MultipartUploadDtos.Complete request);
+  Mono<Void> abortMultipart(String uploadId);
 }
