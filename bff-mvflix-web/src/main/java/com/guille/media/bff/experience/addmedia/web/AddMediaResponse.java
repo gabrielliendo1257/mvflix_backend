@@ -9,7 +9,7 @@ public record AddMediaResponse(
     String ownerSubject,
     AddMediaPhase phase,
     Long movieId,
-    Long uploadId,
+    String uploadId,
     UploadInstructions upload,
     String failureCode) {
 

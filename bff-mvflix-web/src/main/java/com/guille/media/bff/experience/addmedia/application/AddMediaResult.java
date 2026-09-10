@@ -13,7 +13,7 @@ public record AddMediaResult(
     String ownerSubject,
     AddMediaPhase phase,
     Long movieId,
-    Long uploadId,
+    String uploadId,
     UploadInstructions upload,
     String failureCode) {
 
@@ -39,7 +39,7 @@ public record AddMediaResult(
         process.ownerSubject(),
         process.phase(),
         process.movieId(),
-        process.uploadId(),
+        process.uploadId() == null ? null : process.uploadId().toString(),
         null,
         process.failureCode());
   }
@@ -50,7 +50,7 @@ public record AddMediaResult(
         process.ownerSubject(),
         process.phase(),
         process.movieId(),
-        process.uploadId(),
+        process.uploadId() == null ? null : process.uploadId().toString(),
         new UploadInstructions(
             session.uploadUrl(),
             session.method(),

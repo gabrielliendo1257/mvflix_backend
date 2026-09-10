@@ -88,11 +88,11 @@ public class MediaIngestionWebClientAdapter implements MediaIngestionClient {
 
   private record CreateFile(String filename, @JsonProperty("file_size") long fileSize,
       @JsonProperty("mime_type") String mimeType) {}
-  private static class MediaIngestionWire {
+  static class MediaIngestionWire {
     public String ingestionId, actorId, uploadId, phase, failureCode, uploadUrl, storageKey, mimeType;
     public Long catalogItemId;
     public long fileSize;
-    public String strategy;
+    @com.fasterxml.jackson.annotation.JsonProperty("uploadStrategy") public String strategy;
     public Long partSizeBytes;
     public Integer totalParts;
   }
