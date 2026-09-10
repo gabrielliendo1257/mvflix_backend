@@ -120,8 +120,11 @@ public class MultipartUploadServiceImpl implements MultipartUploadService {
             session.ownerUsername(), session.uploadId(), new StorageKey(session.objectKey()),
             new StorageMetadata(session.contentType(), session.totalBytes(), null, Instant.now()),
             Instant.now(), null, StorageSessionStatus.PENDING))))
-        .flatMap(object -> object.isAvailable() ? Mono.just(object)
-            : uploadCompletionTransaction.complete(object));
+        .flatMap(object -> {
+          if (object.isAvailable()) return Mono.just(object);
+          object.complete();
+          return uploadCompletionTransaction.complete(object);
+        });
   }
 
   @Override
