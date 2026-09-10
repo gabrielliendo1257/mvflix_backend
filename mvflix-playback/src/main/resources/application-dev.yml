@@ -30,3 +30,17 @@ services:
   movies.url: ${SERVICES_MOVIES_URL:http://localhost:4040}
   storage.url: ${SERVICES_STORAGE_URL:http://localhost:6060}
   authorization.url: ${SERVICES_AUTHORIZATION_URL:http://localhost:8081}
+
+logging:
+  level:
+    root: info
+    com.guille.media.bff: debug
+    org.springframework.security: TRACE
+    org.springframework.security.oauth2: debug
+    org.springframework.security.oauth2.client: TRACE
+    org.springframework.security.oauth2.client.web: TRACE
+    org.springframework.security.web.server: TRACE
+    org.springframework.web: debug
+    org.springframework.web.reactive.function.client: debug
+    org.springframework.http.client.reactive: debug
+    reactor.netty.http.client: debug
