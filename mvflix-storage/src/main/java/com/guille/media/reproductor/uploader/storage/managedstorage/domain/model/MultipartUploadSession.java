@@ -16,5 +16,5 @@ public record MultipartUploadSession(
     }
   }
 
-  public enum MultipartStatus { PENDING, COMPLETED, ABORTING, ABORTED, EXPIRED }
+  public enum MultipartStatus { PENDING, COMPLETING, COMPLETED, ABORTING, ABORTED, EXPIRED }
 }

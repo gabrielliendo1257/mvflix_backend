@@ -92,12 +92,12 @@ public class MultipartUploadServiceImpl implements MultipartUploadService {
       if (s.status() == MultipartStatus.COMPLETED) return Mono.empty();
       validateParts(s, parts);
       return repository.transition(new MultipartUploadSession(s.uploadId(), s.minioUploadId(), s.ownerUsername(), s.bucket(),
-              s.objectKey(), s.totalBytes(), s.contentType(), s.partSizeBytes(), s.totalParts(), s.expiresAt(), MultipartStatus.ABORTING), MultipartStatus.PENDING)
+              s.objectKey(), s.totalBytes(), s.contentType(), s.partSizeBytes(), s.totalParts(), s.expiresAt(), MultipartStatus.COMPLETING), MultipartStatus.PENDING)
           .flatMap(locked -> objectStorage.complete(locked.bucket(), locked.objectKey(), locked.minioUploadId(),
               parts.stream().map(p -> new MultipartPart(p.partNumber(), p.etag())).toList())
               .then(repository.transition(new MultipartUploadSession(locked.uploadId(), locked.minioUploadId(), locked.ownerUsername(),
                   locked.bucket(), locked.objectKey(), locked.totalBytes(), locked.contentType(), locked.partSizeBytes(), locked.totalParts(),
-                  locked.expiresAt(), MultipartStatus.COMPLETED), MultipartStatus.ABORTING)).then())
+                   locked.expiresAt(), MultipartStatus.COMPLETED), MultipartStatus.COMPLETING)).then())
           .onErrorResume(error -> Mono.error(error));
     });
   }
@@ -105,7 +105,10 @@ public class MultipartUploadServiceImpl implements MultipartUploadService {
   @Override
   public Mono<Void> abort(String uploadId) {
     return owned(uploadId).flatMap(s -> {
-      if (s.status() == MultipartStatus.ABORTED || s.status() == MultipartStatus.EXPIRED) return Mono.empty();
+       if (s.status() == MultipartStatus.ABORTED || s.status() == MultipartStatus.EXPIRED) return Mono.empty();
+       if (s.status() == MultipartStatus.COMPLETING) {
+         return Mono.error(new IllegalStateException("multipart upload is completing"));
+       }
       return repository.transition(copy(s, MultipartStatus.ABORTING), s.status()).flatMap(locked ->
           objectStorage.abort(locked.bucket(), locked.objectKey(), locked.minioUploadId())
               .then(repository.transition(copy(locked, MultipartStatus.ABORTED), MultipartStatus.ABORTING)).then());
