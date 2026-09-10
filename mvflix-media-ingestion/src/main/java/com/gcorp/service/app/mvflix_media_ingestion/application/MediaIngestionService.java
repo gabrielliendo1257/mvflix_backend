@@ -184,7 +184,8 @@ public class MediaIngestionService {
         .prepareUpload(name, size, mime, i.actorId(), i.ingestionId() + ":prepare-upload")
         .flatMap(
             u -> {
-              var n = i.awaitUpload(u.uploadId(), u.uploadUrl(), u.storageKey());
+               var n = i.awaitUpload(u.uploadId(), u.uploadUrl(), u.storageKey(), u.strategy(),
+                   u.partSizeBytes(), u.totalParts());
               return inTransaction(
                   repository
                       .compareAndSet(i, n)

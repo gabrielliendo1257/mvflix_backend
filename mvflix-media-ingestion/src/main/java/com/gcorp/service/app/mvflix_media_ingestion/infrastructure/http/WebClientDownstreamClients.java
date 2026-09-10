@@ -111,7 +111,9 @@ public class WebClientDownstreamClients implements DownstreamClients {
                 new Upload(
                     String.valueOf(response.get("uploadId")),
                     String.valueOf(response.get("storageKey")),
-                    String.valueOf(response.get("uploadUrl"))));
+                    response.get("uploadUrl") == null ? null : String.valueOf(response.get("uploadUrl")),
+                    response.get("strategy") == null ? "SIMPLE" : String.valueOf(response.get("strategy")),
+                    number(response.get("partSizeBytes")), integer(response.get("totalParts"))));
   }
 
   @Override
@@ -192,5 +194,9 @@ public class WebClientDownstreamClients implements DownstreamClients {
 
   private static Long number(Object value) {
     return value instanceof Number n ? n.longValue() : null;
+  }
+
+  private static Integer integer(Object value) {
+    return value instanceof Number n ? n.intValue() : null;
   }
 }

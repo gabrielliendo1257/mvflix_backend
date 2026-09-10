@@ -23,7 +23,12 @@ public interface DownstreamClients {
 
   Mono<CatalogStatus> catalogStatus(long catalogItemId, String actor);
 
-  record Upload(String uploadId, String storageKey, String uploadUrl) {}
+  record Upload(String uploadId, String storageKey, String uploadUrl, String strategy,
+      Long partSizeBytes, Integer totalParts) {
+    public Upload(String uploadId, String storageKey, String uploadUrl) {
+      this(uploadId, storageKey, uploadUrl, "SIMPLE", null, null);
+    }
+  }
 
   record StorageStatus(String status, Long objectId, String objectKey) {}
 

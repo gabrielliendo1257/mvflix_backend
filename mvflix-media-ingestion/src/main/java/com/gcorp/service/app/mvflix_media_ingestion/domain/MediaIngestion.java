@@ -25,7 +25,10 @@ public record MediaIngestion(
     String storageKey,
     String requestFingerprint,
     UUID causationId,
-    String audienceId) {
+    String audienceId,
+    String uploadStrategy,
+    Long partSizeBytes,
+    Integer totalParts) {
   public MediaIngestion(
       UUID id, String actor, Long catalog, String upload, Phase phase, String failure, long version,
       int retries, Instant created, Instant updated, Instant next, String key, String name,
@@ -42,7 +45,16 @@ public record MediaIngestion(
       String requestFingerprint, UUID causationId, String audienceId) {
     this(id, actor, catalog, upload, phase, failure, null, version, retries, created, updated, next,
         key, name, size, mime, url, storageId, storageKey, requestFingerprint, causationId,
-        audienceId);
+        audienceId, "SIMPLE", null, null);
+  }
+
+  public MediaIngestion(UUID id, String actor, Long catalog, String upload, Phase phase, String failure,
+      String detail, long version, int retries, Instant created, Instant updated, Instant next,
+      String key, String name, long size, String mime, String url, Long storageId, String storageKey,
+      String requestFingerprint, UUID causationId, String audienceId) {
+    this(id, actor, catalog, upload, phase, failure, detail, version, retries, created, updated, next,
+        key, name, size, mime, url, storageId, storageKey, requestFingerprint, causationId, audienceId,
+        "SIMPLE", null, null);
   }
 
   public MediaIngestion(
@@ -149,6 +161,11 @@ public record MediaIngestion(
   }
 
   public MediaIngestion awaitUpload(String upload, String url, String objectKey) {
+    return awaitUpload(upload, url, objectKey, "SIMPLE", null, null);
+  }
+
+  public MediaIngestion awaitUpload(String upload, String url, String objectKey, String strategy,
+      Long partSize, Integer parts) {
     if (phase != Phase.PREPARING_UPLOAD)
       throw new IllegalStateException("upload can only be prepared from PREPARING_UPLOAD");
     return new MediaIngestion(
@@ -156,9 +173,10 @@ public record MediaIngestion(
         actorId,
         catalogItemId,
         upload,
-        Phase.AWAITING_UPLOAD,
-        null,
-        version + 1,
+         Phase.AWAITING_UPLOAD,
+         null,
+         null,
+         version + 1,
         retryCount,
         createdAt,
         Instant.now(),
@@ -171,7 +189,7 @@ public record MediaIngestion(
         storageId,
         objectKey,
         requestFingerprint,
-         causationId, audienceId);
+         causationId, audienceId, strategy, partSize, parts);
   }
 
   private static boolean allowed(Phase current, Phase next) {

@@ -46,7 +46,8 @@ public class R2dbcMediaIngestionRepository implements MediaIngestionRepository {
         r.get("storage_key", String.class),
         r.get("request_fingerprint", String.class),
          r.get("causation_id", UUID.class),
-         r.get("audience_id", String.class));
+          r.get("audience_id", String.class), r.get("upload_strategy", String.class),
+          r.get("part_size_bytes", Long.class), r.get("total_parts", Integer.class));
   }
 
   private org.springframework.r2dbc.core.DatabaseClient.GenericExecuteSpec bind(
@@ -91,8 +92,8 @@ public class R2dbcMediaIngestionRepository implements MediaIngestionRepository {
     var s =
         db.sql(
             "INSERT INTO"
-                + " media_ingestions(ingestion_id,actor_id,audience_id,catalog_item_id,upload_id,upload_url,phase,version,retry_count,created_at,updated_at,next_attempt_at,idempotency_key,file_name,file_size,mime_type,correlation_id,storage_id,storage_key,request_fingerprint,causation_id)"
-                + " VALUES(:id,:a,:audience,:c,:u,:url,:p,:v,0,:created,:updated,:n,:k,:f,:s,:m,:correlation,:sid,:skey,:fp,:cause) RETURNING *");
+                + " media_ingestions(ingestion_id,actor_id,audience_id,catalog_item_id,upload_id,upload_url,phase,version,retry_count,created_at,updated_at,next_attempt_at,idempotency_key,file_name,file_size,mime_type,correlation_id,storage_id,storage_key,request_fingerprint,causation_id,upload_strategy,part_size_bytes,total_parts)"
+                + " VALUES(:id,:a,:audience,:c,:u,:url,:p,:v,0,:created,:updated,:n,:k,:f,:s,:m,:correlation,:sid,:skey,:fp,:cause,:strategy,:partSize,:parts) RETURNING *");
     s = bind(s, "id", i.ingestionId(), UUID.class);
     s = bind(s, "a", i.actorId(), String.class);
     s = bind(s, "audience", i.audienceId(), String.class);
@@ -113,6 +114,9 @@ public class R2dbcMediaIngestionRepository implements MediaIngestionRepository {
     s = bind(s, "skey", i.storageKey(), String.class);
     s = bind(s, "fp", i.requestFingerprint(), String.class);
     s = bind(s, "cause", i.causationId(), UUID.class);
+    s = bind(s, "strategy", i.uploadStrategy(), String.class);
+    s = bind(s, "partSize", i.partSizeBytes(), Long.class);
+    s = bind(s, "parts", i.totalParts(), Integer.class);
     return s.map((r, m) -> map(r)).one();
   }
 
@@ -120,7 +124,7 @@ public class R2dbcMediaIngestionRepository implements MediaIngestionRepository {
     var s =
         db.sql(
             "UPDATE media_ingestions SET"
-                + " catalog_item_id=:c,upload_id=:u,storage_id=:sid,storage_key=:skey,upload_url=:url,request_fingerprint=:fp,causation_id=:cause,phase=:p,failure_code=:f,failure_detail=:fd,version=:nv,updated_at=:now,retry_count=:r,next_attempt_at=:next,recovery_claimed_until=NULL"
+                + " catalog_item_id=:c,upload_id=:u,storage_id=:sid,storage_key=:skey,upload_url=:url,upload_strategy=:strategy,part_size_bytes=:partSize,total_parts=:parts,request_fingerprint=:fp,causation_id=:cause,phase=:p,failure_code=:f,failure_detail=:fd,version=:nv,updated_at=:now,retry_count=:r,next_attempt_at=:next,recovery_claimed_until=NULL"
                 + " WHERE ingestion_id=:id AND version=:ov");
     s = bind(s, "c", n.catalogItemId(), Long.class);
     s = bind(s, "u", n.uploadId(), String.class);
@@ -129,6 +133,9 @@ public class R2dbcMediaIngestionRepository implements MediaIngestionRepository {
     s = bind(s, "url", n.uploadUrl(), String.class);
     s = bind(s, "fp", n.requestFingerprint(), String.class);
     s = bind(s, "cause", n.causationId(), UUID.class);
+    s = bind(s, "strategy", n.uploadStrategy(), String.class);
+    s = bind(s, "partSize", n.partSizeBytes(), Long.class);
+    s = bind(s, "parts", n.totalParts(), Integer.class);
     s = bind(s, "p", n.phase().name(), String.class);
     s = bind(s, "f", n.failureCode(), String.class);
     s = bind(s, "fd", n.failureDetail(), String.class);

@@ -1,0 +1,3 @@
+ALTER TABLE media_ingestions ADD COLUMN IF NOT EXISTS upload_strategy VARCHAR(40) NOT NULL DEFAULT 'SIMPLE';
+ALTER TABLE media_ingestions ADD COLUMN IF NOT EXISTS part_size_bytes BIGINT;
+ALTER TABLE media_ingestions ADD COLUMN IF NOT EXISTS total_parts INTEGER;
