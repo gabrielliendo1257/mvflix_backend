@@ -34,6 +34,7 @@ import com.guille.media.reproductor.uploader.storage.managedstorage.domain.model
 import com.guille.media.reproductor.uploader.storage.managedstorage.domain.model.StorageKey;
 import com.guille.media.reproductor.uploader.storage.managedstorage.domain.model.StorageLocation;
 import com.guille.media.reproductor.uploader.storage.managedstorage.domain.model.StorageMetadata;
+import com.guille.media.reproductor.uploader.storage.managedstorage.application.multipart.MultipartUploadService;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -62,6 +63,7 @@ public class UploadServiceImpl implements UploadService {
   private final TerminalUploadTransition terminalTransition;
   private final UploadCompletionTransaction uploadCompletionTransaction;
   private final StorageOutbox storageOutbox;
+  private final MultipartUploadService multipartUploadService;
 
   public UploadServiceImpl(
       ObjectStorageService objectStorageService,
@@ -75,6 +77,25 @@ public class UploadServiceImpl implements UploadService {
       TerminalUploadTransition terminalTransition,
       UploadCompletionTransaction uploadCompletionTransaction,
       StorageOutbox storageOutbox) {
+    this(objectStorageService, storageKeyGenerator, uploadPolicy, storageRepository, userProvider,
+        userStorageRepository, eventPublisher, transactionalOperator, terminalTransition,
+        uploadCompletionTransaction, storageOutbox, null);
+  }
+
+  @org.springframework.beans.factory.annotation.Autowired
+  public UploadServiceImpl(
+      ObjectStorageService objectStorageService,
+      StorageKeyGenerator storageKeyGenerator,
+      UploadPolicy uploadPolicy,
+      StorageRepository storageRepository,
+      UserProvider userProvider,
+      UserStorageRepository userStorageRepository,
+      StorageEventPublisher eventPublisher,
+      TransactionalOperator transactionalOperator,
+      TerminalUploadTransition terminalTransition,
+      UploadCompletionTransaction uploadCompletionTransaction,
+      StorageOutbox storageOutbox,
+      MultipartUploadService multipartUploadService) {
     this.objectStoragePort = objectStorageService;
     this.storageKeyGenerator = storageKeyGenerator;
     this.uploadPolicy = uploadPolicy;
@@ -86,6 +107,7 @@ public class UploadServiceImpl implements UploadService {
     this.terminalTransition = terminalTransition;
     this.uploadCompletionTransaction = uploadCompletionTransaction;
     this.storageOutbox = storageOutbox;
+    this.multipartUploadService = multipartUploadService;
   }
 
   @Override
@@ -191,6 +213,26 @@ public class UploadServiceImpl implements UploadService {
         this.storageKeyGenerator.generate(
             userStorage.getOwnerUsername(), StorageFolder.from(command.mimeType()));
     StorageLocation location = new StorageLocation(userStorage.getBucketName(), key);
+
+    if (configuration.strategy() == UploadConfiguration.Strategy.MULTIPART) {
+      if (this.multipartUploadService == null) {
+        return Mono.error(new IllegalStateException("multipart upload service unavailable"));
+      }
+      return this.userStorageRepository.consumeStorage(userStorage.getOwnerUsername(), command.size())
+          .filter(rowsUpdated -> rowsUpdated == 1)
+          .switchIfEmpty(Mono.error(new ExceededQuotaException(
+              "Storage quota exceeded for user: " + userStorage.getOwnerUsername())))
+          .flatMap(ignored -> this.multipartUploadService.create(
+              new MultipartUploadService.CreateMultipartUploadCommand(
+                  command.filename(), command.size(), command.mimeType().value(), command.idempotencyKey())))
+          .map(result -> new UploadSession(result.uploadId(), null,
+              result.storageKey() == null ? null : new StorageKey(result.storageKey()), null,
+              result.expiresAt(), StorageSessionStatus.PENDING,
+              new ExpectedObjectData(command.size(), command.mimeType().value()),
+              result.strategy(), result.partSizeBytes(), result.totalParts()))
+          .onErrorResume(error -> this.userStorageRepository.releaseStorage(
+              userStorage.getOwnerUsername(), command.size()).then(Mono.error(error)));
+    }
 
     PresignedUploadRequest presignedRequest =
         new PresignedUploadRequest(configuration.expiration());

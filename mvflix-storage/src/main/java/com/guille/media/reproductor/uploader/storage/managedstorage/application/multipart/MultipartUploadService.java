@@ -13,7 +13,12 @@ public interface MultipartUploadService {
       String idempotencyKey) {}
   record CompletedPart(int partNumber, String etag) {}
   record MultipartUploadResult(String uploadId, String strategy, long partSizeBytes,
-      int totalParts, java.time.Instant expiresAt) {}
+      int totalParts, java.time.Instant expiresAt, String storageKey) {
+    public MultipartUploadResult(String uploadId, String strategy, long partSizeBytes,
+        int totalParts, java.time.Instant expiresAt) {
+      this(uploadId, strategy, partSizeBytes, totalParts, expiresAt, null);
+    }
+  }
   record MultipartPartsResult(String uploadId, List<PartInstruction> parts) {}
   record PartInstruction(int partNumber, String url, java.util.Map<String, String> headers) {}
 }

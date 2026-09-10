@@ -10,6 +10,9 @@ public record UploadResponse(
 		@JsonProperty(value = "storageKey") String storageKey,
 		@JsonProperty String method,
 		@JsonProperty(value = "status") StorageSessionStatus status,
-		@JsonProperty(value = "object") ExpectedObjectData objectData) {
+		@JsonProperty(value = "object") ExpectedObjectData objectData,
+		@JsonProperty String strategy,
+		@JsonProperty Long partSizeBytes,
+		@JsonProperty Integer totalParts) {
 
 }

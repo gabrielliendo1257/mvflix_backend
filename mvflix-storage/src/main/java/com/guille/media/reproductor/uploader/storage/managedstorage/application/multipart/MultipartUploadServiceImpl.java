@@ -126,7 +126,8 @@ public class MultipartUploadServiceImpl implements MultipartUploadService {
     return s.totalBytes() == c.totalBytes() && s.contentType().equals(c.contentType());
   }
   private MultipartUploadResult result(MultipartUploadSession s) {
-    return new MultipartUploadResult(s.uploadId(), "PRESIGNED_MULTIPART", s.partSizeBytes(), s.totalParts(), s.expiresAt());
+    return new MultipartUploadResult(s.uploadId(), "PRESIGNED_MULTIPART", s.partSizeBytes(),
+        s.totalParts(), s.expiresAt(), s.objectKey());
   }
   private static String safeFilename(String value) { return value.replaceAll("[^A-Za-z0-9._-]", "_"); }
   private static MultipartUploadSession copy(MultipartUploadSession s, MultipartStatus status) {
