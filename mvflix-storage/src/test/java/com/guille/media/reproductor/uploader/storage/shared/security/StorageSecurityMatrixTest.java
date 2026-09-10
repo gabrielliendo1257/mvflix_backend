@@ -190,6 +190,15 @@ class StorageSecurityMatrixTest {
   }
 
   @Test
+  void localPlaybackRequiresStorageStreamScope() {
+    String path = "/api/v1/movie/storage/playback/libraries/1/files/video.mp4";
+    this.client.get().uri(path).exchange().expectStatus().isUnauthorized();
+    this.client.mutateWith(mockJwt()).get().uri(path).exchange().expectStatus().isForbidden();
+    this.client.mutateWith(mockJwt().authorities(new SimpleGrantedAuthority("SCOPE_storage.stream")))
+        .get().uri(path).exchange().expectStatus().isNotFound();
+  }
+
+  @Test
   void managedObjectDeletionRequiresStorageObjectsDeleteScope() {
     this.client
         .post()

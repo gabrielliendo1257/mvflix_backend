@@ -1,6 +1,5 @@
 package com.guille.media.bff.experience.playback.web;
 
-import com.guille.media.bff.app.ports.StorageWebClient;
 import com.guille.media.bff.experience.playback.application.LocalStreamTokenException;
 import com.guille.media.bff.experience.playback.application.StartPlayback;
 import com.guille.media.bff.infrastructure.security.AnonymousViewerIdentity;
@@ -14,8 +13,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.server.reactive.ServerHttpRequest;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.context.ReactiveSecurityContextHolder;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -27,7 +24,6 @@ import org.springframework.web.bind.annotation.RestController;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-import java.util.List;
 
 import org.springframework.core.io.buffer.DataBuffer;
 import org.springframework.http.HttpHeaders;
@@ -37,9 +33,8 @@ import org.springframework.web.reactive.function.client.WebClient;
 /**
  * Experiencia Playback: el front dice "reproduce esta media" y recibe la
  * sesión lista para el player. Para MANAGED la URL apunta al object store
- * (Range nativo); para LOCAL el propio BFF sirve los bytes mientras el
- * navegador no alcance a storage, autorizado por capability HMAC sin
- * credenciales dentro.
+ * (Range nativo); para LOCAL el BFF sirve los bytes mediante un cliente M2M
+ * con scope {@code storage.stream}, autorizado por capability HMAC.
  */
 @Tag(name = "Web · Playback", description = "Sesión de reproducción y entrega LOCAL con Range")
 @RestController
@@ -55,8 +50,7 @@ public class PlaybackController {
   public PlaybackController(
       StartPlayback startPlayback,
       LocalPlaybackAccess localAccess,
-      StorageWebClient storage,
-      PlaybackService playbackService,
+       PlaybackService playbackService,
        AnonymousViewerIdentity viewerIdentity,
        @Qualifier("playbackWebClient") WebClient playbackStorageClient) {
     this.startPlayback = startPlayback;
@@ -114,13 +108,11 @@ public class PlaybackController {
   }
 
   /**
-   * La sesión OAuth2 del sujeto vive en el server-side session repository; se
-   * reconstruye un Authentication nominal para que los filtros outbound carguen
-   * (y refresquen) su access token real. Nunca viajan credenciales en el token.
+   * El cliente outbound usa client credentials; la capability solo identifica
+   * el asset autorizado y nunca transporta credenciales OAuth2.
    */
   private Mono<ResponseEntity<Flux<DataBuffer>>> deliver(
       LocalPlaybackAccess.LocalGrant grant, String rangeHeader) {
-    var subjectAuth = new UsernamePasswordAuthenticationToken(grant.subject(), "N/A", List.of());
     var request = this.playbackStorageClient.get()
         .uri(uriBuilder -> uriBuilder.path("/api/v1/movie/storage/playback/libraries/{libraryId}/files/{path}")
             .build(grant.libraryId(), grant.relativePath()));

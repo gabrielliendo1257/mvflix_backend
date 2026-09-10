@@ -36,14 +36,18 @@ import java.time.Instant;
 
 class PlaybackControllerTest {
 
-  private final StorageWebClient storage = mock(StorageWebClient.class);
   private final WebClient playbackStorageClient = WebClient.builder()
-      .exchangeFunction(request -> Mono.just(org.springframework.web.reactive.function.client.ClientResponse
+      .exchangeFunction(request -> {
+        assertThat(request.url().getPath()).isEqualTo(
+            "/api/v1/movie/storage/playback/libraries/3/files/Movies/edward.mkv");
+        assertThat(request.headers().getFirst(HttpHeaders.RANGE)).isEqualTo("bytes=0-1023");
+        return Mono.just(org.springframework.web.reactive.function.client.ClientResponse
           .create(HttpStatus.PARTIAL_CONTENT)
           .header(HttpHeaders.CONTENT_RANGE, "bytes 0-1023/2048")
           .header(HttpHeaders.CONTENT_TYPE, "video/x-matroska")
           .body(Flux.just(DefaultDataBufferFactory.sharedInstance.wrap("chunk".getBytes())))
-          .build()))
+          .build());
+      })
       .build();
   private final WebSessionService session = mock(WebSessionService.class);
   private final HmacLocalPlaybackAccess localAccess =
@@ -60,8 +64,7 @@ class PlaybackControllerTest {
     when(this.session.currentSubject()).thenReturn(Mono.just("pepe"));
     var controller = new PlaybackController(
         new StartPlayback(this.catalog, this.playbackService, this.localAccess),
-        this.localAccess,
-         this.storage,
+          this.localAccess,
          this.playbackService,
          new AnonymousViewerIdentity(this.session, this.playbackService),
          this.playbackStorageClient);
@@ -200,9 +203,6 @@ class PlaybackControllerTest {
     LocalPlaybackAccess.MintedAccess minted = this.localAccess.mint(
         new LocalPlaybackAccess.LocalMintCommand(42L, 5L, 3L, "Movies/edward.mkv", "pepe"))
         .block(Duration.ofSeconds(1));
-    HttpHeaders downstream = new HttpHeaders();
-    downstream.set(HttpHeaders.CONTENT_RANGE, "bytes 0-1023/2048");
-    downstream.setContentType(org.springframework.http.MediaType.parseMediaType("video/x-matroska"));
     this.client.get()
         .uri("/web/playback/assets/5/stream?token=" + minted.rawToken())
         .header(HttpHeaders.RANGE, "bytes=0-1023")

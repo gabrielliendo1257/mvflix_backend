@@ -38,7 +38,7 @@ import java.util.List;
 @Slf4j
 @Tag(name = "Bibliotecas · Archivos", description = "Servir bytes locales con soporte HTTP Range")
 @RestController
-@RequestMapping(value = "/api/v1/movie/storage/libraries")
+@RequestMapping(value = "/api/v1/movie/storage")
 public class LibraryFileController {
 
     private static final int BUFFER_SIZE = 64 * 1024;
@@ -51,7 +51,7 @@ public class LibraryFileController {
         this.fileResolver = fileResolver;
     }
 
-    @GetMapping(value = "/{libraryId}/files/**")
+    @GetMapping(value = "/libraries/{libraryId}/files/**")
     public Mono<ResponseEntity<Flux<DataBuffer>>> stream(
             @PathVariable Long libraryId, ServerHttpRequest request) {
         String relativePath = this.relativePath(request);
