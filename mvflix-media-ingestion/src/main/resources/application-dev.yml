@@ -58,7 +58,7 @@ management:
 spring.security.oauth2.resourceserver.jwt.jwk-set-uri: ${SECURITY_OAUTH2_JWK_SET_URI:http://localhost:8081/oauth2/jwks}
 
 mvflix:
-  messaging.kafka.enabled: ${MVFLIX_MESSAGING_KAFKA_ENABLED:false}
+   messaging.kafka.enabled: ${MVFLIX_MESSAGING_KAFKA_ENABLED:true}
   messaging.kafka.upload-completed-topic: ${MVFLIX_UPLOAD_COMPLETED_TOPIC:mvflix.upload-completed.v1}
   messaging.kafka.consumer-group: ${MVFLIX_MEDIA_INGESTION_KAFKA_GROUP:mvflix-media-ingestion}
   downstream.movies-url: ${MOVIES_URL:http://localhost:4040}
