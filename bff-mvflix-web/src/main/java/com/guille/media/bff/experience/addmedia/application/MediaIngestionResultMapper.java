@@ -10,7 +10,8 @@ public final class MediaIngestionResultMapper {
     AddMediaPhase phase = switch (view.phase()) {
       case "AWAITING_UPLOAD" -> AddMediaPhase.WAITING_FOR_UPLOAD;
       case "COMPLETED" -> AddMediaPhase.READY;
-      case "PREPARING_CATALOG", "PREPARING_UPLOAD", "FINALIZING_CATALOG" -> AddMediaPhase.PREPARING;
+      case "PREPARING_CATALOG", "PREPARING_UPLOAD" -> AddMediaPhase.PREPARING;
+      case "FINALIZING_CATALOG" -> AddMediaPhase.FINALIZING;
       case "RECONCILIATION_REQUIRED" -> AddMediaPhase.FAILED;
       default -> AddMediaPhase.valueOf(view.phase());
     };
