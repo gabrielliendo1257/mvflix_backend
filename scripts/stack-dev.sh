@@ -48,7 +48,7 @@ DB_TARGET_PORT="${DB_PORT:-5432}"
 MINIO_TARGET_URL="${MINIO_URL:-http://127.0.0.1:9000}"
 KAFKA_TARGET_HOST="${KAFKA_HOST:-127.0.0.1}"
 KAFKA_TARGET_PORT="${KAFKA_EXTERNAL_PORT:-9094}"
-KAFKA_REQUIRED="${MVFLIX_MESSAGING_KAFKA_ENABLED:-false}"
+KAFKA_REQUIRED="${MVFLIX_MESSAGING_KAFKA_ENABLED:-true}"
 STATE_DIR="${XDG_STATE_HOME:-$HOME/.local/state}/mvflix-dev"
 LOG_DIR="${STATE_DIR}/logs"
 PID_DIR="${STATE_DIR}/pids"
@@ -140,6 +140,7 @@ wait_kafka() {
     sleep 1
   done
   echo "  [WARN] kafka no respondio en ${KAFKA_TARGET_HOST}:${KAFKA_TARGET_PORT}"
+  return 1
 }
 
 port_free() {
@@ -241,9 +242,10 @@ start() {
     echo "kafka responde en ${KAFKA_TARGET_HOST}:${KAFKA_TARGET_PORT}"
   elif [ "${KAFKA_REQUIRED}" = "true" ]; then
     echo "kafka es obligatorio; esperando disponibilidad en ${KAFKA_TARGET_HOST}:${KAFKA_TARGET_PORT}"
-    wait_kafka
+    wait_kafka || return 1
   else
-    echo "kafka no responde en ${KAFKA_TARGET_HOST}:${KAFKA_TARGET_PORT} (mensajeria deshabilitada)"
+    echo "[ERROR] Kafka es obligatorio para Media Ingestion; MVFLIX_MESSAGING_KAFKA_ENABLED no puede ser false"
+    return 1
   fi
 
   echo "== Compilando e instalando modulos compartidos =="
