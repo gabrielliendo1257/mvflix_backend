@@ -12,5 +12,12 @@ public interface MediaIngestionClient {
 
   record MediaIngestionView(String ingestionId, String actorId, Long catalogItemId, String uploadId,
       String phase, String failureCode, String uploadUrl, String storageKey, long fileSize,
-      String mimeType) {}
+      String mimeType, String strategy, Long partSizeBytes, Integer totalParts) {
+    public MediaIngestionView(String ingestionId, String actorId, Long catalogItemId, String uploadId,
+        String phase, String failureCode, String uploadUrl, String storageKey, long fileSize,
+        String mimeType) {
+      this(ingestionId, actorId, catalogItemId, uploadId, phase, failureCode, uploadUrl, storageKey,
+          fileSize, mimeType, "SIMPLE", null, null);
+    }
+  }
 }

@@ -18,7 +18,15 @@ public record AddMediaResponse(
       String method,
       String storageKey,
       long expectedSizeBytes,
-      String expectedMimeType) {}
+      String expectedMimeType,
+      String strategy,
+      Long partSizeBytes,
+      Integer totalParts) {
+    public UploadInstructions(String url, String method, String storageKey, long expectedSizeBytes,
+        String expectedMimeType) {
+      this(url, method, storageKey, expectedSizeBytes, expectedMimeType, "SIMPLE", null, null);
+    }
+  }
 
   public static AddMediaResponse from(AddMediaResult result) {
     return new AddMediaResponse(
@@ -32,7 +40,8 @@ public record AddMediaResponse(
             result.upload().method(),
             result.upload().storageKey(),
             result.upload().expectedSizeBytes(),
-            result.upload().expectedMimeType()),
+             result.upload().expectedMimeType(), result.upload().strategy(),
+             result.upload().partSizeBytes(), result.upload().totalParts()),
         result.failureCode());
   }
 }

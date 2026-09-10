@@ -19,9 +19,10 @@ public final class MediaIngestionResultMapper {
     try { uploadId = view.uploadId() == null ? null : Long.valueOf(view.uploadId()); }
     catch (NumberFormatException ignored) { /* preserve the public nullable field */ }
     AddMediaResult.UploadInstructions upload = phase == AddMediaPhase.WAITING_FOR_UPLOAD
-        && view.uploadUrl() != null
-        ? new AddMediaResult.UploadInstructions(view.uploadUrl(), "PUT", view.storageKey(),
-            view.fileSize(), view.mimeType()) : null;
+        && (view.uploadUrl() != null || "PRESIGNED_MULTIPART".equals(view.strategy()))
+        ? new AddMediaResult.UploadInstructions(view.uploadUrl(),
+            "PRESIGNED_MULTIPART".equals(view.strategy()) ? null : "PUT", view.storageKey(),
+            view.fileSize(), view.mimeType(), view.strategy(), view.partSizeBytes(), view.totalParts()) : null;
     return new AddMediaResult(view.ingestionId(), view.actorId(), phase, view.catalogItemId(), uploadId,
         upload, view.failureCode());
   }

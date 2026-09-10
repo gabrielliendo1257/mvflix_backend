@@ -64,7 +64,8 @@ public class MediaIngestionWebClientAdapter implements MediaIngestionClient {
 
   private static MediaIngestionView view(MediaIngestionWire x) {
     return new MediaIngestionView(x.ingestionId, x.actorId, x.catalogItemId, x.uploadId, x.phase,
-        x.failureCode, x.uploadUrl, x.storageKey, x.fileSize, x.mimeType);
+        x.failureCode, x.uploadUrl, x.storageKey, x.fileSize, x.mimeType, x.strategy,
+        x.partSizeBytes, x.totalParts);
   }
 
   private <T> Mono<T> translate(Mono<T> call) {
@@ -91,5 +92,8 @@ public class MediaIngestionWebClientAdapter implements MediaIngestionClient {
     public String ingestionId, actorId, uploadId, phase, failureCode, uploadUrl, storageKey, mimeType;
     public Long catalogItemId;
     public long fileSize;
+    public String strategy;
+    public Long partSizeBytes;
+    public Integer totalParts;
   }
 }

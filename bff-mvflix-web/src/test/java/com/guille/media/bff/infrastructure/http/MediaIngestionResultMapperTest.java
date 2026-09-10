@@ -24,4 +24,19 @@ class MediaIngestionResultMapperTest {
 
     assertThat(result.phase().name()).isEqualTo("FINALIZING");
   }
+
+  @Test
+  void mapsMultipartInstructionsWithoutTurningThemIntoSimplePut() {
+    var view = new MediaIngestionView("id", "actor", 7L, "public-upload", "AWAITING_UPLOAD", null,
+        null, "actor/videos/public-upload-file.mp4", 256L * 1024 * 1024 + 1, "video/mp4",
+        "PRESIGNED_MULTIPART", 10L * 1024 * 1024, 26);
+
+    var upload = com.guille.media.bff.experience.addmedia.application.MediaIngestionResultMapper
+        .map(view).upload();
+
+    assertThat(upload.strategy()).isEqualTo("PRESIGNED_MULTIPART");
+    assertThat(upload.method()).isNull();
+    assertThat(upload.partSizeBytes()).isEqualTo(10L * 1024 * 1024);
+    assertThat(upload.totalParts()).isEqualTo(26);
+  }
 }

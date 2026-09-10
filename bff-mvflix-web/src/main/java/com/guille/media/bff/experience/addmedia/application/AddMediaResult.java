@@ -23,7 +23,15 @@ public record AddMediaResult(
       String method,
       String storageKey,
       long expectedSizeBytes,
-      String expectedMimeType) {}
+      String expectedMimeType,
+      String strategy,
+      Long partSizeBytes,
+      Integer totalParts) {
+    public UploadInstructions(String url, String method, String storageKey, long expectedSizeBytes,
+        String expectedMimeType) {
+      this(url, method, storageKey, expectedSizeBytes, expectedMimeType, "SIMPLE", null, null);
+    }
+  }
 
   public static AddMediaResult from(AddMediaProcess process) {
     return new AddMediaResult(
@@ -48,7 +56,8 @@ public record AddMediaResult(
             session.method(),
             session.storageKey(),
             session.object() == null ? 0L : session.object().expectedSize(),
-            session.object() == null ? null : session.object().expectedMime()),
+             session.object() == null ? null : session.object().expectedMime(), session.strategy(),
+             session.partSizeBytes(), session.totalParts()),
         null);
   }
 }

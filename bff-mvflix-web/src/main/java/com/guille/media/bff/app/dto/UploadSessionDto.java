@@ -9,7 +9,11 @@ public record UploadSessionDto(
     String storageKey,
     String method,
     String status,
-    ExpectedObjectData object) {
+    ExpectedObjectData object, String strategy, Long partSizeBytes, Integer totalParts) {
+  public UploadSessionDto(String uploadId, String uploadUrl, String storageKey, String method,
+      String status, ExpectedObjectData object) {
+    this(uploadId, uploadUrl, storageKey, method, status, object, "SIMPLE", null, null);
+  }
 
   @JsonIgnoreProperties(ignoreUnknown = true)
   public record ExpectedObjectData(long expectedSize, String expectedMime) {}
