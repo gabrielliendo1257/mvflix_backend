@@ -128,6 +128,15 @@ public class WebClientDownstreamClients implements DownstreamClients {
   }
 
   @Override
+  public Mono<Void> requestUploadCompletion(String uploadId, String actor, String idempotencyKey,
+      String strategy) {
+    if (!"PRESIGNED_MULTIPART".equals(strategy)) {
+      return requestUploadCompletion(uploadId, actor, idempotencyKey);
+    }
+    return Mono.empty();
+  }
+
+  @Override
   public Mono<Void> completeCatalog(long id, String objectKey, long objectId, String actor) {
     return movies
         .post()
@@ -159,6 +168,16 @@ public class WebClientDownstreamClients implements DownstreamClients {
         .header("Idempotency-Key", key)
         .retrieve()
         .bodyToMono(Void.class);
+  }
+
+  @Override
+  public Mono<Void> cancelUpload(String id, String actor, String key, String strategy) {
+    if (!"PRESIGNED_MULTIPART".equals(strategy)) {
+      return cancelUpload(id, actor, key);
+    }
+    return storage.delete().uri("/api/v1/uploads/{id}", id)
+        .header("X-Actor-Id", actor).header("Idempotency-Key", key)
+        .retrieve().bodyToMono(Void.class);
   }
 
   @Override

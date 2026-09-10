@@ -13,11 +13,20 @@ public interface DownstreamClients {
 
   Mono<Void> requestUploadCompletion(String uploadId, String actor, String idempotencyKey);
 
+  default Mono<Void> requestUploadCompletion(String uploadId, String actor, String idempotencyKey,
+      String strategy) {
+    return requestUploadCompletion(uploadId, actor, idempotencyKey);
+  }
+
   Mono<Void> completeCatalog(long catalogItemId, String objectKey, long objectId, String actor);
 
   Mono<Void> discardDraft(long catalogItemId, String actor, String idempotencyKey);
 
   Mono<Void> cancelUpload(String uploadId, String actor, String key);
+
+  default Mono<Void> cancelUpload(String uploadId, String actor, String key, String strategy) {
+    return cancelUpload(uploadId, actor, key);
+  }
 
   Mono<StorageStatus> storageStatus(String uploadId, String actor);
 

@@ -216,8 +216,7 @@ public class MediaIngestionService {
                                ? scheduleCompensations(i)
                                    .then(i.uploadId() == null
                                        ? Mono.empty()
-                                       : clients.cancelUpload(
-                                           i.uploadId(), actor, id + ":cancel-upload"))
+                                        : cancelUpload(i, actor, id + ":cancel-upload"))
                                   .then(
                                       inTransaction(
                                           repository
@@ -270,10 +269,8 @@ public class MediaIngestionService {
                   .flatMap(
                       ok ->
                           ok
-                              ? clients
-                                  .requestUploadCompletion(
-                                      i.uploadId(), actor, id + ":complete-upload")
-                                  .then(repository.find(id))
+                               ? completeUpload(i, actor, id + ":complete-upload")
+                                   .then(repository.find(id))
                               : Mono.error(new IllegalStateException("CAS failed")));
             });
   }
@@ -312,6 +309,18 @@ public class MediaIngestionService {
                 ok
                     ? repository.find(i.ingestionId())
                     : Mono.error(new IllegalStateException("CAS failed")));
+  }
+
+  private Mono<Void> completeUpload(MediaIngestion i, String actor, String key) {
+    return "PRESIGNED_MULTIPART".equals(i.uploadStrategy())
+        ? Mono.empty()
+        : clients.requestUploadCompletion(i.uploadId(), actor, key);
+  }
+
+  private Mono<Void> cancelUpload(MediaIngestion i, String actor, String key) {
+    return "PRESIGNED_MULTIPART".equals(i.uploadStrategy())
+        ? clients.cancelUpload(i.uploadId(), actor, key, i.uploadStrategy())
+        : clients.cancelUpload(i.uploadId(), actor, key);
   }
 
   private Mono<MediaIngestion> fail(MediaIngestion i, Throwable e) {

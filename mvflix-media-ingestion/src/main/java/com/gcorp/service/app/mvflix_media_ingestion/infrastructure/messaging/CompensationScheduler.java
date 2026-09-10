@@ -39,10 +39,11 @@ public class CompensationScheduler {
                                     status -> {
                                       if (!"PENDING".equalsIgnoreCase(status.status()))
                                         return reactor.core.publisher.Mono.empty();
-                                      return clients.cancelUpload(
-                                          i.uploadId(),
-                                          i.actorId(),
-                                          i.ingestionId() + ":compensation");
+                                       return "PRESIGNED_MULTIPART".equals(i.uploadStrategy())
+                                           ? clients.cancelUpload(i.uploadId(), i.actorId(),
+                                               i.ingestionId() + ":compensation", i.uploadStrategy())
+                                           : clients.cancelUpload(i.uploadId(), i.actorId(),
+                                               i.ingestionId() + ":compensation");
                                     });
                           }
                           if ("DISCARD_DRAFT".equals(c.action())) {
