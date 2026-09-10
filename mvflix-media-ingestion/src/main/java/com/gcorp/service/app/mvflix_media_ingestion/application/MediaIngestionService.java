@@ -263,7 +263,10 @@ public class MediaIngestionService {
                 return Mono.error(new IllegalArgumentException("object_key does not match upload"));
 
               // CAS gives one completion request ownership without claiming the saga's final state.
-              var claimed = i.transition(Phase.AWAITING_UPLOAD, null, null, null);
+               var claimed = i.transition(
+                   "PRESIGNED_MULTIPART".equals(i.uploadStrategy())
+                       ? Phase.VERIFYING_UPLOAD : Phase.AWAITING_UPLOAD,
+                   null, null, null);
               return repository
                   .compareAndSet(i, claimed)
                   .flatMap(
@@ -382,7 +385,8 @@ public class MediaIngestionService {
       return repository.compareAndSet(i, recorded)
           .flatMap(ok -> ok ? Mono.just(recorded) : Mono.error(new IllegalStateException("CAS failed")));
     }
-    if (i.phase() != Phase.AWAITING_UPLOAD && i.phase() != Phase.FINALIZING_CATALOG)
+    if (i.phase() != Phase.AWAITING_UPLOAD && i.phase() != Phase.VERIFYING_UPLOAD
+        && i.phase() != Phase.FINALIZING_CATALOG)
       return Mono.error(new IllegalStateException("ingestion not awaiting upload"));
     var n =
         i.phase() == Phase.FINALIZING_CATALOG
