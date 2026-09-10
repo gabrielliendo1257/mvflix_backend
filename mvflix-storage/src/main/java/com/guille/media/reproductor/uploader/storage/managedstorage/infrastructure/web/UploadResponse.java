@@ -15,4 +15,9 @@ public record UploadResponse(
 		@JsonProperty Long partSizeBytes,
 		@JsonProperty Integer totalParts) {
 
+  public UploadResponse(String uploadId, String uploadUrl, String storageKey, String method,
+      StorageSessionStatus status, ExpectedObjectData objectData) {
+    this(uploadId, uploadUrl, storageKey, method, status, objectData, "SIMPLE", null, null);
+  }
+
 }
