@@ -140,6 +140,15 @@ public class MultipartUploadServiceImpl implements MultipartUploadService {
     });
   }
 
+  @Override
+  public Mono<MultipartUploadStatus> status(String uploadId) {
+    return owned(uploadId).flatMap(session -> storageRepository.findByObjectKey(session.objectKey())
+        .map(object -> new MultipartUploadStatus(session.uploadId(), session.status().name(),
+            object.getStorageId(), session.objectKey()))
+        .defaultIfEmpty(new MultipartUploadStatus(session.uploadId(), session.status().name(),
+            null, session.objectKey())));
+  }
+
   private Mono<MultipartUploadSession> owned(String id) {
     return userProvider.getAuthenticatedUser().flatMap(user -> repository.findById(id)
         .filter(s -> s.ownerUsername().equals(user.subject()))

@@ -8,6 +8,7 @@ public interface MultipartUploadService {
   Mono<MultipartPartsResult> parts(String uploadId, int from, int limit);
   Mono<Void> complete(String uploadId, List<CompletedPart> parts);
   Mono<Void> abort(String uploadId);
+  Mono<MultipartUploadStatus> status(String uploadId);
 
   record CreateMultipartUploadCommand(String filename, long totalBytes, String contentType,
       String idempotencyKey) {}
@@ -21,4 +22,5 @@ public interface MultipartUploadService {
   }
   record MultipartPartsResult(String uploadId, List<PartInstruction> parts) {}
   record PartInstruction(int partNumber, String url, java.util.Map<String, String> headers) {}
+  record MultipartUploadStatus(String uploadId, String status, Long storageId, String storageKey) {}
 }

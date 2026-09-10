@@ -54,6 +54,11 @@ public class MultipartUploadController {
     return service.abort(id).thenReturn(ResponseEntity.noContent().build());
   }
 
+  @GetMapping("/{id}")
+  public Mono<MultipartUploadService.MultipartUploadStatus> status(@PathVariable String id) {
+    return service.status(id);
+  }
+
   public record CreateRequest(@NotBlank String filename, @Min(1) long totalBytes,
       @NotBlank String contentType) {}
   public record CompleteRequest(@NotEmpty List<PartRequest> parts) {

@@ -64,7 +64,7 @@ public class RecoveryService {
     }
     return clients
         .catalogStatus(i.catalogItemId(), i.actorId())
-        .zipWith(clients.storageStatus(i.uploadId(), i.actorId()))
+        .zipWith(storageStatus(i))
         .flatMap(
             states -> {
               var catalog = states.getT1();
@@ -97,9 +97,15 @@ public class RecoveryService {
         .onErrorResume(error -> reschedule(i, "authoritative status unavailable: " + error));
   }
 
+  private Mono<DownstreamClients.StorageStatus> storageStatus(MediaIngestion i) {
+    return "PRESIGNED_MULTIPART".equals(i.uploadStrategy())
+        ? clients.storageStatus(i.uploadId(), i.actorId(), i.uploadStrategy())
+        : clients.storageStatus(i.uploadId(), i.actorId());
+  }
+
   private Mono<MediaIngestion> earlyPhase(MediaIngestion i) {
     Mono<DownstreamClients.StorageStatus> storage =
-        i.uploadId() == null ? Mono.empty() : clients.storageStatus(i.uploadId(), i.actorId());
+        i.uploadId() == null ? Mono.empty() : storageStatus(i);
     return storage
         .defaultIfEmpty(new DownstreamClients.StorageStatus("UNKNOWN", null, null))
         .flatMap(

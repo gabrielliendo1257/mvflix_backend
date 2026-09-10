@@ -30,6 +30,10 @@ public interface DownstreamClients {
 
   Mono<StorageStatus> storageStatus(String uploadId, String actor);
 
+  default Mono<StorageStatus> storageStatus(String uploadId, String actor, String strategy) {
+    return storageStatus(uploadId, actor);
+  }
+
   Mono<CatalogStatus> catalogStatus(long catalogItemId, String actor);
 
   record Upload(String uploadId, String storageKey, String uploadUrl, String strategy,
