@@ -34,6 +34,10 @@ mvflix:
       observation-enabled: true
 
 storage:
+  multipart:
+    part-size-bytes: ${STORAGE_MULTIPART_PART_SIZE:10485760}
+    ttl: ${STORAGE_MULTIPART_TTL:PT1H}
+    url-ttl: ${STORAGE_MULTIPART_URL_TTL:PT15M}
   retention:
     outbox-published: ${STORAGE_OUTBOX_PUBLISHED_RETENTION:P14D}
     inbox-completed: ${STORAGE_INBOX_COMPLETED_RETENTION:P30D}
