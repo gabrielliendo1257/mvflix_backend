@@ -90,7 +90,7 @@ class StartAddMediaTest {
         .assertNext(view -> {
           assertThat(view.phase()).isEqualTo(AddMediaPhase.WAITING_FOR_UPLOAD);
           assertThat(view.movieId()).isEqualTo(7L);
-          assertThat(view.uploadId()).isEqualTo(42L);
+           assertThat(view.uploadId()).isEqualTo("42");
           assertThat(view.upload().url()).isEqualTo("http://minio/put");
           assertThat(view.upload().method()).isEqualTo("PUT");
           assertThat(view.upload().expectedSizeBytes()).isEqualTo(1024L);
@@ -141,7 +141,7 @@ class StartAddMediaTest {
     AddMediaResult replay = start().block();
 
     assertThat(replay.addMediaId()).isEqualTo(first.addMediaId());
-    assertThat(replay.uploadId()).isEqualTo(42L);
+     assertThat(replay.uploadId()).isEqualTo("42");
     assertThat(replay.phase()).isEqualTo(AddMediaPhase.WAITING_FOR_UPLOAD);
     assertThat(replay.upload().url()).isEqualTo("http://minio/fresh");
     // Un solo draft y una sola sesión de upload para el mismo intento.
