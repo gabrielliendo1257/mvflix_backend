@@ -2,6 +2,12 @@ package com.guille.media.reproductor.uploader.storage.managedstorage.application
 
 import com.guille.media.reproductor.uploader.storage.managedstorage.domain.model.MultipartUploadSession;
 import com.guille.media.reproductor.uploader.storage.managedstorage.domain.model.MultipartUploadSession.MultipartStatus;
+import com.guille.media.reproductor.uploader.storage.managedstorage.domain.model.StorageObject;
+import com.guille.media.reproductor.uploader.storage.managedstorage.domain.model.StorageObject.StorageSessionStatus;
+import com.guille.media.reproductor.uploader.storage.managedstorage.domain.model.StorageKey;
+import com.guille.media.reproductor.uploader.storage.managedstorage.domain.model.StorageMetadata;
+import com.guille.media.reproductor.uploader.storage.managedstorage.domain.port.StorageRepository;
+import com.guille.media.reproductor.uploader.storage.managedstorage.application.UploadCompletionTransaction;
 import com.guille.media.reproductor.uploader.storage.managedstorage.domain.port.MultipartObjectStorageService;
 import com.guille.media.reproductor.uploader.storage.managedstorage.domain.port.MultipartObjectStorageService.MultipartPart;
 import com.guille.media.reproductor.uploader.storage.managedstorage.domain.port.MultipartUploadRepository;
@@ -19,6 +25,8 @@ import reactor.core.publisher.Mono;
 @Service
 public class MultipartUploadServiceImpl implements MultipartUploadService {
   private final MultipartUploadRepository repository;
+  private final StorageRepository storageRepository;
+  private final UploadCompletionTransaction uploadCompletionTransaction;
   private final MultipartObjectStorageService objectStorage;
   private final UserProvider userProvider;
   private final String bucket;
@@ -27,12 +35,15 @@ public class MultipartUploadServiceImpl implements MultipartUploadService {
   private final Duration urlTtl;
 
   public MultipartUploadServiceImpl(MultipartUploadRepository repository,
+      StorageRepository storageRepository, UploadCompletionTransaction uploadCompletionTransaction,
       MultipartObjectStorageService objectStorage, UserProvider userProvider,
       @Value("${minio.bucket:uploads}") String bucket,
       @Value("${storage.multipart.part-size-bytes:10485760}") long partSize,
       @Value("${storage.multipart.ttl:PT1H}") Duration ttl,
       @Value("${storage.multipart.url-ttl:PT15M}") Duration urlTtl) {
     this.repository = repository;
+    this.storageRepository = storageRepository;
+    this.uploadCompletionTransaction = uploadCompletionTransaction;
     this.objectStorage = objectStorage;
     this.userProvider = userProvider;
     this.bucket = bucket;
@@ -93,13 +104,24 @@ public class MultipartUploadServiceImpl implements MultipartUploadService {
       validateParts(s, parts);
       return repository.transition(new MultipartUploadSession(s.uploadId(), s.minioUploadId(), s.ownerUsername(), s.bucket(),
               s.objectKey(), s.totalBytes(), s.contentType(), s.partSizeBytes(), s.totalParts(), s.expiresAt(), MultipartStatus.COMPLETING), MultipartStatus.PENDING)
-          .flatMap(locked -> objectStorage.complete(locked.bucket(), locked.objectKey(), locked.minioUploadId(),
-              parts.stream().map(p -> new MultipartPart(p.partNumber(), p.etag())).toList())
-              .then(repository.transition(new MultipartUploadSession(locked.uploadId(), locked.minioUploadId(), locked.ownerUsername(),
-                  locked.bucket(), locked.objectKey(), locked.totalBytes(), locked.contentType(), locked.partSizeBytes(), locked.totalParts(),
-                   locked.expiresAt(), MultipartStatus.COMPLETED), MultipartStatus.COMPLETING)).then())
+           .flatMap(locked -> objectStorage.complete(locked.bucket(), locked.objectKey(), locked.minioUploadId(),
+               parts.stream().map(p -> new MultipartPart(p.partNumber(), p.etag())).toList())
+               .then(materialize(locked))
+               .then(repository.transition(new MultipartUploadSession(locked.uploadId(), locked.minioUploadId(), locked.ownerUsername(),
+                   locked.bucket(), locked.objectKey(), locked.totalBytes(), locked.contentType(), locked.partSizeBytes(), locked.totalParts(),
+                    locked.expiresAt(), MultipartStatus.COMPLETED), MultipartStatus.COMPLETING)).then())
           .onErrorResume(error -> Mono.error(error));
     });
+  }
+
+  private Mono<StorageObject> materialize(MultipartUploadSession session) {
+    return storageRepository.findByObjectKey(session.objectKey())
+        .switchIfEmpty(Mono.defer(() -> storageRepository.save(new StorageObject(
+            session.ownerUsername(), session.uploadId(), new StorageKey(session.objectKey()),
+            new StorageMetadata(session.contentType(), session.totalBytes(), null, Instant.now()),
+            Instant.now(), null, StorageSessionStatus.PENDING))))
+        .flatMap(object -> object.isAvailable() ? Mono.just(object)
+            : uploadCompletionTransaction.complete(object));
   }
 
   @Override
