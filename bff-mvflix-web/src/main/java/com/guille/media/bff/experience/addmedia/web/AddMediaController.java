@@ -8,6 +8,7 @@ import com.guille.media.bff.experience.addmedia.application.PreviewMovieCandidat
 import com.guille.media.bff.experience.addmedia.application.SearchMovieCandidates;
 import com.guille.media.bff.experience.addmedia.application.StartAddMedia;
 import com.guille.media.bff.experience.addmedia.model.AddMediaId;
+import com.guille.media.bff.app.dto.MultipartUploadDtos;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -124,8 +125,11 @@ public class AddMediaController {
       @RequestHeader(value = "X-Correlation-ID", required = false) String correlationId) {
     Long sizeBytes = request == null ? null : request.sizeBytes();
     return this.ownerSubject()
-        .flatMap(owner -> this.completeProcess.handle(owner, addMediaId, sizeBytes,
-            correlationId == null ? "add-media:" + addMediaId : correlationId))
+        .flatMap(owner -> request != null && request.parts() != null
+            ? this.completeProcess.handleMultipart(owner, addMediaId, sizeBytes, request.parts(),
+                correlationId == null ? "add-media:" + addMediaId : correlationId)
+            : this.completeProcess.handle(owner, addMediaId, sizeBytes,
+                correlationId == null ? "add-media:" + addMediaId : correlationId))
         .map(result -> result.phase() == com.guille.media.bff.experience.addmedia.model.AddMediaPhase.READY
             ? ResponseEntity.ok(AddMediaResponse.from(result))
             : ResponseEntity.accepted().body(AddMediaResponse.from(result)));
@@ -142,7 +146,8 @@ public class AddMediaController {
         .map(AddMediaResponse::from);
   }
 
-  public record CompleteSizeRequest(Long sizeBytes) {}
+  public record CompleteSizeRequest(Long sizeBytes,
+      java.util.List<MultipartUploadDtos.CompletedPart> parts) {}
 
   /**
    * Sujeto propietario del proceso. Fallback "sandbox" SOLO para el perfil sin

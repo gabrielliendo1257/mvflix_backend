@@ -11,6 +11,8 @@ import static org.mockito.Mockito.when;
 import com.guille.media.bff.app.dto.CompleteMovieRequest;
 import com.guille.media.bff.app.dto.MovieDto;
 import com.guille.media.bff.app.ports.StorageWebClient;
+import com.guille.media.bff.app.dto.MultipartUploadDtos;
+import com.guille.media.bff.experience.addmedia.application.port.MediaIngestionClient;
 import com.guille.media.bff.app.service.WebMoviesService;
 import com.guille.media.bff.experience.addmedia.application.port.AddMediaProcessRepository;
 import com.guille.media.bff.experience.addmedia.application.DownstreamUnavailableException;
@@ -33,6 +35,7 @@ import java.util.List;
 class CompleteProcessAddMediaTest {
 
   private final StorageWebClient storage = mock(StorageWebClient.class);
+  private final MediaIngestionClient ingestion = mock(MediaIngestionClient.class);
   private final WebMoviesService movies = mock(WebMoviesService.class);
   private final InMemoryAddMediaProcessRepository processes =
       new InMemoryAddMediaProcessRepository();
@@ -176,6 +179,32 @@ class CompleteProcessAddMediaTest {
         .verifyComplete();
 
     verify(this.completion, never()).complete(anyLong(), any());
+  }
+
+  @Test
+  void multipartCompletesStorageBeforeIngestion() {
+    this.useCase = new CompleteProcessAddMedia(this.processes, this.completion(),
+        this.ingestion, true, this.storage);
+    String id = AddMediaId.newId().value();
+    var view = new MediaIngestionClient.MediaIngestionView(id, "pepe", 7L, "multipart-1",
+        "AWAITING_UPLOAD", null, null, "pepe/video.mp4", 1024L, "video/mp4",
+        "PRESIGNED_MULTIPART", 512L, 2);
+    var parts = List.of(new MultipartUploadDtos.CompletedPart(1, "etag-1"),
+        new MultipartUploadDtos.CompletedPart(2, "etag-2"));
+    when(this.ingestion.status("pepe", id, "corr")).thenReturn(Mono.just(view));
+    when(this.storage.completeMultipart("multipart-1", new MultipartUploadDtos.Complete(parts)))
+        .thenReturn(Mono.empty());
+    when(this.ingestion.complete("pepe", id, 1024L, "corr"))
+        .thenReturn(Mono.just(new MediaIngestionClient.MediaIngestionView(id, "pepe", 7L,
+            "multipart-1", "COMPLETED", null, null, "pepe/video.mp4", 1024L, "video/mp4",
+            "PRESIGNED_MULTIPART", 512L, 2)));
+
+    StepVerifier.create(this.useCase.handleMultipart("pepe", id, 1024L, parts, "corr"))
+        .assertNext(result -> assertThat(result.phase()).isEqualTo(AddMediaPhase.READY))
+        .verifyComplete();
+    org.mockito.InOrder order = org.mockito.Mockito.inOrder(this.storage, this.ingestion);
+    order.verify(this.storage).completeMultipart("multipart-1", new MultipartUploadDtos.Complete(parts));
+    order.verify(this.ingestion).complete("pepe", id, 1024L, "corr");
   }
 
   @Test
