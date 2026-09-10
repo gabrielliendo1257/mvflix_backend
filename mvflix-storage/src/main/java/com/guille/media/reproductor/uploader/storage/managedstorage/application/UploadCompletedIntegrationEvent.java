@@ -28,5 +28,11 @@ public record UploadCompletedIntegrationEvent(
       String ownerUsername,
       String objectKey,
       String contentType,
-      Long contentLength) {}
+      Long contentLength,
+      String uploadId) {
+    public UploadCompletedPayload(Long storageId, String ownerUsername, String objectKey,
+        String contentType, Long contentLength) {
+      this(storageId, ownerUsername, objectKey, contentType, contentLength, null);
+    }
+  }
 }

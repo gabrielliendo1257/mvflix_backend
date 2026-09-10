@@ -48,7 +48,8 @@ public class UploadCompletionTransaction {
             object.getOwnerUsername(),
             object.getStorageKey().key(),
             object.contentType(),
-            object.sizeInBytes()));
+            object.sizeInBytes(),
+            object.getIdempotencyKey()));
   }
 
   private UUID correlationId(StorageObject object, UUID fallback) {

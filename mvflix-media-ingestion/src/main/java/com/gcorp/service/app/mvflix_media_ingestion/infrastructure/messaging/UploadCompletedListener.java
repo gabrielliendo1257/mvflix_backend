@@ -37,9 +37,12 @@ public class UploadCompletedListener {
       JsonNode payload=envelope.path("payload");
       UUID correlation=envelope.path("correlationId").isNull()?null:UUID.fromString(envelope.path("correlationId").asText());
       long storageId=payload.path("storageId").asLong(); String key=payload.path("objectKey").asText();
+       String uploadId=text(payload,"uploadId");
        String causation = eventId.toString();
-      Mono<Void> work = correlation != null
-          ? service.uploadCompleted(correlation, storageId, key, causation)
+       Mono<Void> work = uploadId != null
+           ? service.uploadCompletedByUploadId(uploadId, storageId, key, causation)
+           : correlation != null
+           ? service.uploadCompleted(correlation, storageId, key, causation)
               .onErrorResume(error -> isUnknownCorrelation(error)
                    ? service.uploadCompletedByStorageId(storageId, storageId, key, causation)
                   : Mono.error(error))
