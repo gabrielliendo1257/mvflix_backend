@@ -14,6 +14,7 @@ import com.guille.media.bff.app.dto.MovieUpdateRequest;
 import com.guille.media.bff.app.dto.StreamTicketDto;
 import com.guille.media.bff.app.ports.MoviesWebClient;
 import com.guille.media.bff.app.ports.StorageWebClient;
+import com.guille.media.bff.app.ports.PublicCatalogWebClient;
 import com.guille.media.bff.app.ports.UsersWebPort;
 
 import lombok.RequiredArgsConstructor;
@@ -35,6 +36,7 @@ import org.springframework.web.server.ResponseStatusException;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.util.retry.Retry;
+import org.springframework.security.core.context.ReactiveSecurityContextHolder;
 
 import java.time.Duration;
 import java.util.ArrayList;
@@ -52,6 +54,19 @@ import java.util.concurrent.atomic.AtomicInteger;
 @Service
 public class WebMoviesService {
 
+  /** Compatibility constructor for focused unit tests and legacy callers. */
+  public WebMoviesService(
+      MoviesWebClient moviesWebClient, StorageWebClient storageWebClient,
+      UsersWebPort usersWebPort, StreamTicketService streamTicketService,
+      JobStore jobStore, WebSessionService webSessionService,
+      com.guille.media.bff.experience.addmedia.application.CompleteAddMedia addMediaCompletion,
+      StoragePlaybackTokenProvider playbackTokenProvider, WebClient playbackWebClient) {
+    this(moviesWebClient, storageWebClient, usersWebPort, streamTicketService, jobStore,
+        webSessionService, addMediaCompletion, playbackTokenProvider, playbackWebClient,
+        null);
+  }
+
+  @org.springframework.beans.factory.annotation.Autowired
   public WebMoviesService(
       MoviesWebClient moviesWebClient,
       StorageWebClient storageWebClient,
@@ -62,7 +77,8 @@ public class WebMoviesService {
       com.guille.media.bff.experience.addmedia.application.CompleteAddMedia addMediaCompletion,
       StoragePlaybackTokenProvider playbackTokenProvider,
       @org.springframework.beans.factory.annotation.Qualifier("playbackWebClient")
-      WebClient playbackWebClient) {
+      WebClient playbackWebClient,
+      PublicCatalogWebClient publicCatalogWebClient) {
     this.moviesWebClient = moviesWebClient;
     this.storageWebClient = storageWebClient;
     this.usersWebPort = usersWebPort;
@@ -72,6 +88,7 @@ public class WebMoviesService {
     this.addMediaCompletion = addMediaCompletion;
     this.playbackTokenProvider = playbackTokenProvider;
     this.playbackWebClient = playbackWebClient;
+    this.publicCatalogWebClient = publicCatalogWebClient;
   }
 
 
@@ -93,6 +110,33 @@ public class WebMoviesService {
   private final StoragePlaybackTokenProvider playbackTokenProvider;
   private final @org.springframework.beans.factory.annotation.Qualifier("playbackWebClient")
       WebClient playbackWebClient;
+  private final PublicCatalogWebClient publicCatalogWebClient;
+
+  public Flux<MovieListItemDto> publicList(int limit) {
+    return this.publicCatalogWebClient.list(limit)
+        .map(movie -> new MovieListItemDto(movie.id(), "READY", "PUBLIC", movie.kind(),
+            movie.title(), movie.year(), movie.posterPath()));
+  }
+
+  public Mono<MovieDetailDto> publicDetail(Long movieId) {
+    return this.publicCatalogWebClient.find(movieId)
+        .map(movie -> new MovieDetailDto(new MovieDto(
+            movie.id(), "READY", null, "PUBLIC", movie.kind(), movie.title(), null, movie.year(),
+            movie.genres(), null, movie.duration(), null, null, null, movie.posterPath(), null, null,
+            null, null, null), new MovieDetailDto.PlaybackDto(false, null)));
+  }
+
+  public Flux<MovieListItemDto> listForViewer(int limit) {
+    return ReactiveSecurityContextHolder.getContext().hasElement()
+        .flatMapMany(authenticated -> authenticated ? this.list(limit) : this.publicList(limit));
+  }
+
+  public Mono<MovieDetailDto> detailForViewer(Long movieId) {
+    return ReactiveSecurityContextHolder.getContext().hasElement()
+        .flatMap(authenticated -> authenticated
+            ? this.detail(movieId)
+            : this.publicDetail(movieId));
+  }
 
   public Flux<MovieListItemDto> list(int limit) {
     return this.moviesWebClient

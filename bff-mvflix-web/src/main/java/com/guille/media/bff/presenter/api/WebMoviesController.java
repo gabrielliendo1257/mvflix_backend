@@ -47,12 +47,14 @@ public class WebMoviesController {
 
   @GetMapping(produces = MediaType.APPLICATION_JSON_VALUE)
   public Flux<MovieListItemDto> list(@RequestParam(defaultValue = "50") int limit) {
-    return this.webMoviesService.list(limit);
+    return this.webMoviesService.publicList(limit);
   }
 
   @GetMapping(value = "/{movieId}", produces = MediaType.APPLICATION_JSON_VALUE)
   public Mono<ResponseEntity<MovieDetailDto>> findById(@PathVariable Long movieId) {
-    return this.webMoviesService.detail(movieId).map(ResponseEntity::ok);
+    return this.webMoviesService.detailForViewer(movieId)
+        .map(ResponseEntity::ok)
+        .defaultIfEmpty(ResponseEntity.notFound().build());
   }
 
   @GetMapping(value = "/enrichment/search", produces = MediaType.APPLICATION_JSON_VALUE)

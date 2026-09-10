@@ -31,6 +31,10 @@ public interface CatalogItemRepository {
      */
     Flux<CatalogItem> findVisibleCatalogItems(String username, int limit);
 
+    default Flux<CatalogItem> findPublicCatalogItems(int limit) {
+        return Flux.empty();
+    }
+
     Flux<CatalogItem> findByOwner(String ownerUsername, int limit);
 
     /**

@@ -46,6 +46,9 @@ public class SecurityConfig {
                     .permitAll()
                     .pathMatchers("/v3/api-docs/**", "/webjars/**", "/swagger-ui/**", "/swagger-ui.html")
                     .permitAll()
+                    .pathMatchers(org.springframework.http.HttpMethod.GET,
+                        "/api/v1/catalog/public", "/api/v1/catalog/public/*")
+                    .hasAuthority("SCOPE_catalog.public.read")
                     .pathMatchers("/admin/outbox/**")
                     .hasRole("ADMIN")
                     .pathMatchers("/api/v1/movies/*/discard-draft")

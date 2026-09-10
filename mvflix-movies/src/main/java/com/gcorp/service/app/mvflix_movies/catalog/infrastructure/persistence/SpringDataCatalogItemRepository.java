@@ -238,6 +238,22 @@ public class SpringDataCatalogItemRepository implements CatalogItemRepository, I
     }
 
     @Override
+    public Flux<CatalogItem> findPublicCatalogItems(int limit) {
+        return this.databaseClient
+                .sql(SELECT_MOVIE_COLUMNS + """
+                         FROM catalog_items m
+                         WHERE m.visibility = 'PUBLIC'
+                           AND m.status = 'READY'
+                         ORDER BY m.id DESC
+                         LIMIT :limit
+                         """)
+                .bind("limit", limit)
+                .map(this::toRow)
+                .all()
+                .map(this.rowMapper::toDomain);
+    }
+
+    @Override
     public Flux<CatalogItem> findByOwner(String ownerUsername, int limit) {
         return this.databaseClient
                 .sql(
