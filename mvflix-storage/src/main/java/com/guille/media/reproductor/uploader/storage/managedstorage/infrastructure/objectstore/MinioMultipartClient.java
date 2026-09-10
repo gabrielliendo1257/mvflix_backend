@@ -15,16 +15,16 @@ public class MinioMultipartClient extends MinioAsyncClient {
 
   public CompletableFuture<CreateMultipartUploadResponse> create(String bucket, String object,
       String contentType) throws Exception {
-    return createMultipartUploadAsync(bucket, object, contentType, null, null);
+    return createMultipartUploadAsync(bucket, null, object, null, null);
   }
 
   public CompletableFuture<ObjectWriteResponse> complete(String bucket, String object,
       String uploadId, Part[] parts) throws Exception {
-    return completeMultipartUploadAsync(bucket, object, uploadId, null, parts, null, null);
+    return completeMultipartUploadAsync(bucket, null, object, uploadId, parts, null, null);
   }
 
   public CompletableFuture<AbortMultipartUploadResponse> abort(String bucket, String object,
       String uploadId) throws Exception {
-    return abortMultipartUploadAsync(bucket, object, uploadId, null, null, null);
+    return abortMultipartUploadAsync(bucket, null, object, uploadId, null, null);
   }
 }
