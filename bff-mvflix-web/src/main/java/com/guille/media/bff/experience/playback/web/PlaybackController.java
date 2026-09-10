@@ -48,7 +48,6 @@ public class PlaybackController {
 
   private final StartPlayback startPlayback;
   private final LocalPlaybackAccess localAccess;
-  private final StorageWebClient storage;
   private final PlaybackService playbackService;
   private final AnonymousViewerIdentity viewerIdentity;
   private final WebClient playbackStorageClient;
@@ -62,7 +61,6 @@ public class PlaybackController {
        @Qualifier("playbackWebClient") WebClient playbackStorageClient) {
     this.startPlayback = startPlayback;
     this.localAccess = localAccess;
-    this.storage = storage;
     this.playbackService = playbackService;
     this.viewerIdentity = viewerIdentity;
     this.playbackStorageClient = playbackStorageClient;
@@ -123,17 +121,13 @@ public class PlaybackController {
   private Mono<ResponseEntity<Flux<DataBuffer>>> deliver(
       LocalPlaybackAccess.LocalGrant grant, String rangeHeader) {
     var subjectAuth = new UsernamePasswordAuthenticationToken(grant.subject(), "N/A", List.of());
-    if (grant.subject() != null && grant.subject().startsWith("anonymous:")) {
-      var request = this.playbackStorageClient.get()
-          .uri(uriBuilder -> uriBuilder.path("/api/v1/libraries/{libraryId}/files/{path}")
-              .build(grant.libraryId(), grant.relativePath()));
-      if (rangeHeader != null && !rangeHeader.isBlank()) {
-        request = request.header(HttpHeaders.RANGE, rangeHeader);
-      }
-      return request.retrieve().toEntityFlux(DataBuffer.class);
+    var request = this.playbackStorageClient.get()
+        .uri(uriBuilder -> uriBuilder.path("/api/v1/movie/storage/playback/libraries/{libraryId}/files/{path}")
+            .build(grant.libraryId(), grant.relativePath()));
+    if (rangeHeader != null && !rangeHeader.isBlank()) {
+      request = request.header(HttpHeaders.RANGE, rangeHeader);
     }
-    return this.storage.streamLibraryFile(grant.libraryId(), grant.relativePath(), rangeHeader)
-        .contextWrite(ReactiveSecurityContextHolder.withAuthentication(subjectAuth));
+    return request.retrieve().toEntityFlux(DataBuffer.class);
   }
 
 }

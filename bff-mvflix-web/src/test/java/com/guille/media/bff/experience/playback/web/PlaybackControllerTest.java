@@ -37,7 +37,14 @@ import java.time.Instant;
 class PlaybackControllerTest {
 
   private final StorageWebClient storage = mock(StorageWebClient.class);
-  private final WebClient playbackStorageClient = mock(WebClient.class);
+  private final WebClient playbackStorageClient = WebClient.builder()
+      .exchangeFunction(request -> Mono.just(org.springframework.web.reactive.function.client.ClientResponse
+          .create(HttpStatus.PARTIAL_CONTENT)
+          .header(HttpHeaders.CONTENT_RANGE, "bytes 0-1023/2048")
+          .header(HttpHeaders.CONTENT_TYPE, "video/x-matroska")
+          .body(Flux.just(DefaultDataBufferFactory.sharedInstance.wrap("chunk".getBytes())))
+          .build()))
+      .build();
   private final WebSessionService session = mock(WebSessionService.class);
   private final HmacLocalPlaybackAccess localAccess =
       new HmacLocalPlaybackAccess("test-secret", Duration.ofHours(2));
@@ -196,11 +203,6 @@ class PlaybackControllerTest {
     HttpHeaders downstream = new HttpHeaders();
     downstream.set(HttpHeaders.CONTENT_RANGE, "bytes 0-1023/2048");
     downstream.setContentType(org.springframework.http.MediaType.parseMediaType("video/x-matroska"));
-    when(this.storage.streamLibraryFile(3L, "Movies/edward.mkv", "bytes=0-1023"))
-        .thenReturn(Mono.just(ResponseEntity.status(HttpStatus.PARTIAL_CONTENT)
-            .headers(downstream)
-            .body(Flux.just(DefaultDataBufferFactory.sharedInstance.wrap("chunk".getBytes())))));
-
     this.client.get()
         .uri("/web/playback/assets/5/stream?token=" + minted.rawToken())
         .header(HttpHeaders.RANGE, "bytes=0-1023")

@@ -100,6 +100,8 @@ public class SecurityConfiguration {
                     // (owner + objectKey) y storage la verifica antes de borrar.
                     .pathMatchers(HttpMethod.POST, this.apiPathBase + "/storage/objects/*/deletion")
                     .hasAuthority("SCOPE_storage.objects.delete")
+                    .pathMatchers(HttpMethod.GET, this.apiPathBase + "/storage/playback/libraries/*/files/**")
+                    .hasAuthority("SCOPE_storage.stream")
                     .pathMatchers(
                         HttpMethod.GET,
                         this.apiPathBase + "/storage/uploads",

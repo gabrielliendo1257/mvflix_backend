@@ -50,6 +50,13 @@ public class LibraryService {
                                         Mono.error(new EntityNotFound("Library not found: " + libraryId))));
     }
 
+    /** Playback is authorized by the caller's storage.stream scope, not library ownership. */
+    public Mono<MediaLibrary> findPlaybackLibrary(Long libraryId) {
+        return this.libraryRepository.findById(libraryId)
+                .filter(MediaLibrary::isEnabled)
+                .switchIfEmpty(Mono.error(new EntityNotFound("Library not found: " + libraryId)));
+    }
+
     public Flux<DiscoveredFile> scanLibrary(Long libraryId) {
         return this.findAccessibleLibrary(libraryId)
                 .flatMapMany(

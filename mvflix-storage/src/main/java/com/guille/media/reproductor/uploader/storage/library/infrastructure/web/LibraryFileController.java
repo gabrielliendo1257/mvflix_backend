@@ -66,6 +66,19 @@ public class LibraryFileController {
                 .map(handle -> this.response(handle, request));
     }
 
+    @GetMapping(value = "/playback/libraries/{libraryId}/files/**")
+    public Mono<ResponseEntity<Flux<DataBuffer>>> playbackStream(
+            @PathVariable Long libraryId, ServerHttpRequest request) {
+        String relativePath = this.relativePath(request, "/api/v1/movie/storage/playback/libraries/");
+        if (relativePath == null || relativePath.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "relative path vacio");
+        }
+        return this.libraryService.findPlaybackLibrary(libraryId)
+                .flatMap(library -> this.fileResolver.resolve(library, relativePath))
+                .switchIfEmpty(Mono.error(new ResponseStatusException(HttpStatus.NOT_FOUND, "File not found")))
+                .map(handle -> this.response(handle, request));
+    }
+
     private ResponseEntity<Flux<DataBuffer>> response(
             LibraryFileHandle handle, ServerHttpRequest request) {
         HttpHeaders headers = new HttpHeaders();
@@ -125,7 +138,10 @@ public class LibraryFileController {
     }
 
     private String relativePath(ServerHttpRequest request) {
-        String prefix = "/api/v1/movie/storage/libraries/";
+        return relativePath(request, "/api/v1/movie/storage/libraries/");
+    }
+
+    private String relativePath(ServerHttpRequest request, String prefix) {
         String path = request.getPath().value();
         int marker = path.indexOf(prefix);
         if (marker < 0) {
