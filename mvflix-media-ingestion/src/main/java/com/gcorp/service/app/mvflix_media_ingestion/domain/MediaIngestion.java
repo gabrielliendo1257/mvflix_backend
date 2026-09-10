@@ -124,6 +124,7 @@ public record MediaIngestion(
     PREPARING_CATALOG,
     PREPARING_UPLOAD,
     AWAITING_UPLOAD,
+    VERIFYING_UPLOAD,
     FINALIZING_CATALOG,
     COMPLETED,
     CANCELLING,
@@ -144,6 +145,7 @@ public record MediaIngestion(
         upload == null ? uploadId : upload,
         next,
         failure,
+        null,
         version + 1,
         retryCount,
         createdAt,
@@ -157,7 +159,7 @@ public record MediaIngestion(
         storageId,
         storageKey,
         requestFingerprint,
-         causationId, audienceId);
+         causationId, audienceId, uploadStrategy, partSizeBytes, totalParts);
   }
 
   public MediaIngestion awaitUpload(String upload, String url, String objectKey) {
@@ -198,6 +200,8 @@ public record MediaIngestion(
       case PREPARING_CATALOG -> next == Phase.PREPARING_UPLOAD || next == Phase.CANCELLING;
       case PREPARING_UPLOAD -> next == Phase.AWAITING_UPLOAD || next == Phase.CANCELLING;
       case AWAITING_UPLOAD -> next == Phase.AWAITING_UPLOAD
+          || next == Phase.VERIFYING_UPLOAD || next == Phase.FINALIZING_CATALOG || next == Phase.CANCELLING;
+      case VERIFYING_UPLOAD -> next == Phase.VERIFYING_UPLOAD
           || next == Phase.FINALIZING_CATALOG || next == Phase.CANCELLING;
       case FINALIZING_CATALOG -> next == Phase.COMPLETED || next == Phase.CANCELLING;
       case CANCELLING -> next == Phase.CANCELLED;
@@ -241,7 +245,7 @@ public record MediaIngestion(
         storageId,
         storageKey,
         requestFingerprint,
-         causationId, audienceId);
+          causationId, audienceId, uploadStrategy, partSizeBytes, totalParts);
   }
 
   public MediaIngestion rescheduled(Phase next, String reason, long delaySeconds) {
@@ -270,14 +274,14 @@ public record MediaIngestion(
         storageId,
         storageKey,
         requestFingerprint,
-         causationId, audienceId);
+          causationId, audienceId, uploadStrategy, partSizeBytes, totalParts);
   }
 
   public MediaIngestion withCausationId(UUID causation) {
     return new MediaIngestion(ingestionId, actorId, catalogItemId, uploadId, phase, failureCode,
         failureDetail, version, retryCount, createdAt, updatedAt, nextAttemptAt, idempotencyKey, fileName,
          fileSize, mimeType, uploadUrl, storageId, storageKey, requestFingerprint, causation,
-         audienceId);
+         audienceId, uploadStrategy, partSizeBytes, totalParts);
   }
 
   public MediaIngestion recordStorageIdentity(long objectId, String objectKey) {
@@ -290,7 +294,7 @@ public record MediaIngestion(
     return new MediaIngestion(ingestionId, actorId, catalogItemId, uploadId, phase, failureCode,
         failureDetail, version + 1, retryCount, createdAt, Instant.now(), Instant.now(),
         idempotencyKey, fileName, fileSize, mimeType, uploadUrl, objectId, objectKey,
-        requestFingerprint, causationId, audienceId);
+         requestFingerprint, causationId, audienceId, uploadStrategy, partSizeBytes, totalParts);
   }
 
   public MediaIngestion withStorageIdentity(long objectId, String objectKey) {

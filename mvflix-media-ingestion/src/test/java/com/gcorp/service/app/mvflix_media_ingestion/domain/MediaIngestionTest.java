@@ -21,6 +21,24 @@ class MediaIngestionTest {
     assertEquals(causation, awaited.causationId());
     assertEquals("uploads/video.mp4", awaited.storageKey());
   }
+
+  @Test
+  void transitionPreservesMultipartMetadata() {
+    var now = Instant.now();
+    var ingestion = new MediaIngestion(UUID.randomUUID(), "actor", 3L, null,
+        MediaIngestion.Phase.PREPARING_UPLOAD, null, null, 2, 1, now, now, now, "key", "video.mp4", 10,
+        "video/mp4", null, null, null, "fingerprint", UUID.randomUUID(), "actor",
+        "SIMPLE", null, null);
+
+    var awaiting = ingestion.awaitUpload("multipart-id", null, "uploads/video.mp4",
+        "PRESIGNED_MULTIPART", 10L * 1024 * 1024, 1);
+    var verifying = awaiting.transition(MediaIngestion.Phase.VERIFYING_UPLOAD, null, null, null);
+
+    assertEquals("PRESIGNED_MULTIPART", verifying.uploadStrategy());
+    assertEquals(10L * 1024 * 1024, verifying.partSizeBytes());
+    assertEquals(1, verifying.totalParts());
+    assertEquals("multipart-id", verifying.uploadId());
+  }
   @Test void transitionUsesOptimisticVersionAndRejectsTerminalState() {
     var now=Instant.now(); var i=new MediaIngestion(UUID.randomUUID(),"actor",null,null,MediaIngestion.Phase.STARTING,null,4,0,now,now,now,"key","x.mp4",10,"video/mp4",null);
     var next=i.transition(MediaIngestion.Phase.PREPARING_CATALOG,12L,null,null);
