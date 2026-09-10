@@ -349,6 +349,17 @@ public class UploadServiceImpl implements UploadService {
                 "Storage object not available: " + uploadId)))
             .doOnNext(object -> object.ensureOwnedBy(user.subject()))
             .flatMap(object -> {
+              if (object.getStorageObjectStatus() == StorageSessionStatus.COMPLETED) {
+                object.markDeleted();
+                return this.userStorageRepository.findByOwnerUsername(object.getOwnerUsername())
+                    .switchIfEmpty(Mono.error(new UserStorageNotFoundException(
+                        "No storage registered for user: " + object.getOwnerUsername())))
+                    .flatMap(userStorage -> this.terminalTransition
+                        .transitionAndRelease(object, StorageSessionStatus.COMPLETED)
+                        .flatMap(deleted -> this.deleteObjectBestEffort(
+                            deleted, userStorage.getBucketName())))
+                    .onErrorResume(IllegalStateTransitionException.class, race -> Mono.empty());
+              }
               if (object.getStorageObjectStatus() != StorageSessionStatus.PENDING) {
                 log.info(
                     "Upload is no longer cancellable (not PENDING), skipping: uploadId={}, status={}",

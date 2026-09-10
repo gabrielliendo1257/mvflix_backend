@@ -401,16 +401,24 @@ class UploadServiceImplTest {
   }
 
   @Test
-  void cancelUploadIsNoOpWhenSessionIsNoLongerPending() {
+  void cancelUploadDeletesCompletedSessionAndReleasesQuota() {
     StorageObject completed = this.completedObject(7L);
 
     when(this.userProvider.getAuthenticatedUser()).thenReturn(Mono.just(PEPE));
     when(this.storageRepository.findById(7L)).thenReturn(Mono.just(completed));
+    when(this.userStorageRepository.findByOwnerUsername("pepe"))
+        .thenReturn(Mono.just(PEPE_STORAGE));
+    when(this.userStorageRepository.releaseStorage("pepe", 1024L)).thenReturn(Mono.just(1L));
+    when(this.storageRepository.updateStatus(completed, StorageSessionStatus.COMPLETED))
+        .thenReturn(Mono.just(completed));
 
     StepVerifier.create(this.service.cancelUpload(7L)).verifyComplete();
 
-    assertThat(completed.getStorageObjectStatus()).isEqualTo(StorageSessionStatus.COMPLETED);
-    verify(this.userStorageRepository, never()).releaseStorage(anyString(), anyLong());
+    assertThat(completed.getStorageObjectStatus()).isEqualTo(StorageSessionStatus.DELETED);
+    verify(this.objectStoragePort)
+        .delete(new StorageLocation(BucketName.of("movies"), completed.getStorageKey()));
+    verify(this.userStorageRepository).releaseStorage("pepe", 1024L);
+    verify(this.storageRepository).updateStatus(completed, StorageSessionStatus.COMPLETED);
     verify(this.eventPublisher, never()).publish(any());
   }
 
