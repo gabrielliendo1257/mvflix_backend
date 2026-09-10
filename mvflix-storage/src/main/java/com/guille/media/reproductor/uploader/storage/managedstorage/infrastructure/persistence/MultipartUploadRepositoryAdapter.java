@@ -28,7 +28,7 @@ public class MultipartUploadRepositoryAdapter implements MultipartUploadReposito
         .bind("bucket", s.bucket()).bind("object", s.objectKey()).bind("bytes", s.totalBytes())
         .bind("type", s.contentType()).bind("partSize", s.partSizeBytes()).bind("parts", s.totalParts())
         .bind("expires", s.expiresAt()).bind("status", s.status().name()).bind("key", key)
-        .map((row, metadata) -> map(row.get("upload_id", String.class), row.get("minio_upload_id", java.util.UUID.class),
+         .map((row, metadata) -> map(row.get("upload_id", String.class), row.get("minio_upload_id", String.class),
             row.get("owner_username", String.class), row.get("bucket_name", String.class), row.get("object_key", String.class),
             row.get("total_bytes", Long.class), row.get("content_type", String.class), row.get("part_size_bytes", Long.class),
             row.get("total_parts", Integer.class), row.get("expires_at", Instant.class), row.get("status", String.class))).one();
@@ -54,12 +54,12 @@ public class MultipartUploadRepositoryAdapter implements MultipartUploadReposito
     return db.sql(sql).bind(name, value).map(this::mapRow).one();
   }
   private MultipartUploadSession mapRow(io.r2dbc.spi.Row row, io.r2dbc.spi.RowMetadata ignored) {
-    return map(row.get("upload_id", String.class), row.get("minio_upload_id", java.util.UUID.class),
+     return map(row.get("upload_id", String.class), row.get("minio_upload_id", String.class),
         row.get("owner_username", String.class), row.get("bucket_name", String.class), row.get("object_key", String.class),
         row.get("total_bytes", Long.class), row.get("content_type", String.class), row.get("part_size_bytes", Long.class),
         row.get("total_parts", Integer.class), row.get("expires_at", Instant.class), row.get("status", String.class));
   }
-  private MultipartUploadSession map(String id, java.util.UUID minio, String owner, String bucket, String object,
+  private MultipartUploadSession map(String id, String minio, String owner, String bucket, String object,
       Long bytes, String type, Long partSize, Integer parts, Instant expires, String status) {
     return new MultipartUploadSession(id, minio, owner, bucket, object, bytes, type, partSize, parts, expires,
         MultipartStatus.valueOf(status));

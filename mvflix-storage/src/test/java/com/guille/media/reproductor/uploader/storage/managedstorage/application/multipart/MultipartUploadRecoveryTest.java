@@ -9,7 +9,6 @@ import com.guille.media.reproductor.uploader.storage.managedstorage.domain.model
 import com.guille.media.reproductor.uploader.storage.managedstorage.domain.port.MultipartObjectStorageService;
 import com.guille.media.reproductor.uploader.storage.managedstorage.domain.port.MultipartUploadRepository;
 import java.time.Instant;
-import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -21,7 +20,7 @@ class MultipartUploadRecoveryTest {
 
   @Test
   void abortsObjectBeforeMarkingSessionExpired() {
-    MultipartUploadSession session = new MultipartUploadSession("public", UUID.randomUUID(), "owner", "uploads",
+    MultipartUploadSession session = new MultipartUploadSession("public", "minio-upload-id", "owner", "uploads",
         "owner/object", 10, "video/mp4", 10, 1, Instant.now().minusSeconds(1),
         MultipartUploadSession.MultipartStatus.PENDING);
     when(repository.findExpired(any())).thenReturn(Flux.just(session));

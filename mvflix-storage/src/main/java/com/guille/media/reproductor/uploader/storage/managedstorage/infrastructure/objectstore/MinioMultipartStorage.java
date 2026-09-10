@@ -8,7 +8,6 @@ import io.minio.messages.Part;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -30,26 +29,26 @@ public class MinioMultipartStorage implements MultipartObjectStorageService {
   }
 
   @Override
-  public Mono<String> presignedPart(String bucket, String objectKey, UUID minioUploadId,
+  public Mono<String> presignedPart(String bucket, String objectKey, String minioUploadId,
       int partNumber, Duration expiry) {
     return Mono.fromCallable(() -> client.getPresignedObjectUrl(GetPresignedObjectUrlArgs.builder()
         .method(Method.PUT).bucket(bucket).object(objectKey)
         .expiry((int) expiry.toSeconds(), TimeUnit.SECONDS)
-        .extraQueryParams(Map.of("uploadId", minioUploadId.toString(),
+         .extraQueryParams(Map.of("uploadId", minioUploadId,
             "partNumber", Integer.toString(partNumber))).build()));
   }
 
   @Override
-  public Mono<Void> complete(String bucket, String objectKey, UUID minioUploadId,
+  public Mono<Void> complete(String bucket, String objectKey, String minioUploadId,
       List<MultipartPart> parts) {
     Part[] minioParts = parts.stream().map(p -> new Part(p.partNumber(), p.etag())).toArray(Part[]::new);
     return Mono.fromCallable(() -> client.complete(bucket, objectKey, minioUploadId.toString(), minioParts))
-        .flatMap(Mono::fromFuture).then();
+         .flatMap(Mono::fromFuture).then();
   }
 
   @Override
-  public Mono<Void> abort(String bucket, String objectKey, UUID minioUploadId) {
-    return Mono.fromCallable(() -> client.abort(bucket, objectKey, minioUploadId.toString()))
+  public Mono<Void> abort(String bucket, String objectKey, String minioUploadId) {
+    return Mono.fromCallable(() -> client.abort(bucket, objectKey, minioUploadId))
         .flatMap(Mono::fromFuture).then();
   }
 

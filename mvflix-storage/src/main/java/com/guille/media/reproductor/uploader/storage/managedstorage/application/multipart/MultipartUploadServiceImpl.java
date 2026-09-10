@@ -63,10 +63,7 @@ public class MultipartUploadServiceImpl implements MultipartUploadService {
     String objectKey = owner + "/videos/" + publicId + "-" + safeFilename(command.filename());
     int totalParts = Math.toIntExact((command.totalBytes() + partSize - 1) / partSize);
     return objectStorage.create(bucket, objectKey, command.contentType()).flatMap(rawId -> {
-      UUID minioId;
-      try { minioId = UUID.fromString(rawId); }
-      catch (IllegalArgumentException e) { return objectStorage.abort(bucket, objectKey, UUID.nameUUIDFromBytes(rawId.getBytes()))
-          .then(Mono.error(new IllegalStateException("MinIO returned a non-UUID upload id", e))); }
+      String minioId = rawId;
       MultipartUploadSession session = new MultipartUploadSession(publicId, minioId, owner, bucket,
           objectKey, command.totalBytes(), command.contentType(), partSize, totalParts,
           Instant.now().plus(ttl), MultipartStatus.PENDING);
