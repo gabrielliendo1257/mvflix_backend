@@ -32,6 +32,7 @@ class StorageSecurityMatrixTest {
   abstract static class NoControllers {}
 
   private static final String BASE = "/api/v1/movie/storage";
+  private static final String MULTIPART = "/api/v1/uploads";
 
   @Autowired private WebTestClient client;
 
@@ -39,6 +40,19 @@ class StorageSecurityMatrixTest {
   void uploadEndpointsRequireAuthentication() {
     this.client.post().uri(BASE + "/upload").exchange().expectStatus().isUnauthorized();
     this.client.get().uri(BASE + "/quota").exchange().expectStatus().isUnauthorized();
+  }
+
+  @Test
+  void multipartEndpointsRequireAuthentication() {
+    this.client.post().uri(MULTIPART).exchange().expectStatus().isUnauthorized();
+    this.client.get().uri(MULTIPART + "/upload-id/parts").exchange().expectStatus().isUnauthorized();
+    this.client.post().uri(MULTIPART + "/upload-id/complete").exchange().expectStatus().isUnauthorized();
+    this.client.delete().uri(MULTIPART + "/upload-id").exchange().expectStatus().isUnauthorized();
+
+    this.client.mutateWith(mockJwt()).post().uri(MULTIPART).exchange().expectStatus().isNotFound();
+    this.client.mutateWith(mockJwt()).get().uri(MULTIPART + "/upload-id/parts").exchange().expectStatus().isNotFound();
+    this.client.mutateWith(mockJwt()).post().uri(MULTIPART + "/upload-id/complete").exchange().expectStatus().isNotFound();
+    this.client.mutateWith(mockJwt()).delete().uri(MULTIPART + "/upload-id").exchange().expectStatus().isNotFound();
   }
 
   @Test
