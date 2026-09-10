@@ -48,7 +48,7 @@ public class RecoveryService {
 
   public Mono<MediaIngestion> recover(MediaIngestion ingestion) {
     return switch (ingestion.phase()) {
-      case FINALIZING_CATALOG, RECONCILIATION_REQUIRED -> reconcile(ingestion);
+      case VERIFYING_UPLOAD, FINALIZING_CATALOG, RECONCILIATION_REQUIRED -> reconcile(ingestion);
       case STARTING, PREPARING_CATALOG, PREPARING_UPLOAD -> earlyPhase(ingestion);
       default -> Mono.just(ingestion);
     };
@@ -140,10 +140,11 @@ public class RecoveryService {
      }
      var finalizing = new MediaIngestion(
          i.ingestionId(), i.actorId(), i.catalogItemId(), i.uploadId(),
-         Phase.FINALIZING_CATALOG, null, i.version() + 1, i.retryCount(),
+          Phase.FINALIZING_CATALOG, null, null, i.version() + 1, i.retryCount(),
          i.createdAt(), Instant.now(), i.nextAttemptAt(), i.idempotencyKey(),
          i.fileName(), i.fileSize(), i.mimeType(), i.uploadUrl(), objectId,
-         objectKey, i.requestFingerprint(), i.causationId());
+          objectKey, i.requestFingerprint(), i.causationId(), i.audienceId(), i.uploadStrategy(),
+          i.partSizeBytes(), i.totalParts());
       return transactions
           .transactional(repository.compareAndSet(i, finalizing))
           .flatMap(ok -> {
