@@ -39,14 +39,12 @@ public class UploadCompletedListener {
       long storageId=payload.path("storageId").asLong(); String key=payload.path("objectKey").asText();
        String uploadId=text(payload,"uploadId");
        String causation = eventId.toString();
-       Mono<Void> work = uploadId != null
-           ? service.uploadCompletedByUploadId(uploadId, storageId, key, causation)
-           : correlation != null
+       Mono<Void> work = correlation != null
            ? service.uploadCompleted(correlation, storageId, key, causation)
-              .onErrorResume(error -> isUnknownCorrelation(error)
-                   ? service.uploadCompletedByStorageId(storageId, storageId, key, causation)
-                  : Mono.error(error))
-           : service.uploadCompletedByStorageId(storageId, storageId, key, causation);
+               .onErrorResume(error -> isUnknownCorrelation(error)
+                   ? byUploadIdOrStorageId(uploadId, storageId, key, causation)
+                   : Mono.error(error))
+           : byUploadIdOrStorageId(uploadId, storageId, key, causation);
       UUID completedEventId=eventId;
       work.then(Mono.defer(() -> inbox.markCompleted(completedEventId))).block();
     } catch (Exception error) {
@@ -70,5 +68,17 @@ public class UploadCompletedListener {
   private UUID requiredUuid(JsonNode n,String field){if(n==null||!n.hasNonNull(field))throw new IllegalArgumentException("missing "+field);return UUID.fromString(n.path(field).asText());}
   private boolean isUnknownCorrelation(Throwable error) {
     return error instanceof IngestionCorrelationNotFoundException;
+  }
+
+  private Mono<Void> byUploadIdOrStorageId(String uploadId, long storageId, String key, String causation) {
+    return uploadId == null
+        ? service.uploadCompletedByStorageId(storageId, storageId, key, causation)
+        : service.uploadCompletedByUploadId(uploadId, storageId, key, causation)
+            .onErrorResume(this::isUnknownUpload,
+                ignored -> service.uploadCompletedByStorageId(storageId, storageId, key, causation));
+  }
+
+  private boolean isUnknownUpload(Throwable error) {
+    return error instanceof IllegalArgumentException;
   }
 }
