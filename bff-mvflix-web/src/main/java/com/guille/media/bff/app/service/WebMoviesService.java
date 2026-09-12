@@ -57,8 +57,7 @@ public class WebMoviesService {
   public WebMoviesService(
       MoviesWebClient moviesWebClient, StorageWebClient storageWebClient,
       UsersWebPort usersWebPort, StreamTicketService streamTicketService,
-      JobStore jobStore, WebSessionService webSessionService,
-      com.guille.media.bff.experience.addmedia.application.CompleteAddMedia addMediaCompletion,
+       JobStore jobStore, WebSessionService webSessionService,
       StoragePlaybackTokenProvider playbackTokenProvider, WebClient playbackWebClient) {
     this(moviesWebClient, storageWebClient, usersWebPort, streamTicketService, jobStore,
         webSessionService, playbackTokenProvider, playbackWebClient,

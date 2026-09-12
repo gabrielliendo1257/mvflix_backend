@@ -13,7 +13,6 @@ import com.guille.media.bff.app.service.JobStore;
 import com.guille.media.bff.app.service.StreamTicketService;
 import com.guille.media.bff.app.service.WebMoviesService;
 import com.guille.media.bff.app.service.WebSessionService;
-import com.guille.media.bff.experience.addmedia.application.CompleteAddMedia;
 import com.guille.media.bff.infrastructure.http.StoragePlaybackTokenProvider;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -61,8 +60,7 @@ class MediaDeletionWorkflowCharacterizationTest {
         mock(StreamTicketService.class),
         mock(JobStore.class),
         mock(WebSessionService.class),
-        mock(CompleteAddMedia.class),
-        mock(StoragePlaybackTokenProvider.class),
+         mock(StoragePlaybackTokenProvider.class),
         mock(WebClient.class));
   }
 

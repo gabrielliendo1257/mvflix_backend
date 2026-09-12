@@ -14,7 +14,6 @@ import com.guille.media.bff.infrastructure.http.MoviesAddMediaAdapter;
 import com.guille.media.bff.infrastructure.http.StorageAddMediaAdapter;
 import com.guille.media.bff.app.service.WebSessionService;
 import com.guille.media.bff.experience.addmedia.application.CancelAddMedia;
-import com.guille.media.bff.experience.addmedia.application.CompleteAddMedia;
 import com.guille.media.bff.experience.addmedia.application.CompleteProcessAddMedia;
 import com.guille.media.bff.experience.addmedia.application.GetAddMediaStatus;
 import com.guille.media.bff.experience.addmedia.application.PreviewMovieCandidate;

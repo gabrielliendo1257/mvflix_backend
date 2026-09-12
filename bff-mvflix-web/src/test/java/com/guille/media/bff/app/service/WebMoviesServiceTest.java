@@ -62,12 +62,6 @@ class WebMoviesServiceTest {
     this.service = new WebMoviesService(this.moviesWebClient, this.storageWebClient,
         this.usersWebPort, this.streamTicketService, this.jobStore,
         this.webSessionService,
-        new com.guille.media.bff.experience.addmedia.application.CompleteAddMedia(
-            new com.guille.media.bff.infrastructure.http.MoviesAddMediaAdapter(
-                this.moviesWebClient),
-            new com.guille.media.bff.infrastructure.http.StorageAddMediaAdapter(
-                this.storageWebClient),
-            this.usersWebPort),
         null,
         null);
   }
