@@ -65,7 +65,7 @@ class AddMediaControllerTest {
             new PreviewMovieCandidate(moviesAdapter),
              new StartAddMedia(users, this.ingestion),
             completeProcess,
-            new CancelAddMedia(this.processes, storageAdapter, moviesAdapter),
+             new CancelAddMedia(this.ingestion),
             getStatus,
             this.session);
     this.client = WebTestClient.bindToController(controller)
