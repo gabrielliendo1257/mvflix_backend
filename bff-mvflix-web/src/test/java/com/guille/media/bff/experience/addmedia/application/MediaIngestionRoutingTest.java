@@ -16,14 +16,12 @@ import org.junit.jupiter.api.Test;
 class MediaIngestionRoutingTest {
   @Test
   void enabledStatusUsesIngestionWhenThereIsNoLegacyRow() {
-    var processes = mock(AddMediaProcessRepository.class);
     var ingestion = mock(MediaIngestionClient.class);
-    when(processes.findById(new AddMediaId("11111111-1111-1111-1111-111111111111"))).thenReturn(Mono.empty());
     when(ingestion.status("pepe", "11111111-1111-1111-1111-111111111111", "corr"))
         .thenReturn(Mono.just(new MediaIngestionView("11111111-1111-1111-1111-111111111111", "pepe", 7L,
             "42", "AWAITING_UPLOAD", null, "http://put", "videos/a.mp4", 10, "video/mp4")));
 
-    var result = new GetAddMediaStatus(processes, mock(), ingestion, true)
+    var result = new GetAddMediaStatus(ingestion)
         .handle("pepe", "11111111-1111-1111-1111-111111111111", "corr").block();
 
     assertThat(result.phase()).isEqualTo(com.guille.media.bff.experience.addmedia.model.AddMediaPhase.WAITING_FOR_UPLOAD);

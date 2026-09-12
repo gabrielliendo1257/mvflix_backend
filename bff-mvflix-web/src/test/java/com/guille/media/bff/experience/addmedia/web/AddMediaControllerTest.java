@@ -39,25 +39,31 @@ class AddMediaControllerTest {
   private final InMemoryAddMediaProcessRepository processes =
       new InMemoryAddMediaProcessRepository();
   private final WebSessionService session = mock(WebSessionService.class);
+  private final com.guille.media.bff.experience.addmedia.application.port.MediaIngestionClient ingestion =
+      mock(com.guille.media.bff.experience.addmedia.application.port.MediaIngestionClient.class);
 
   private WebTestClient client;
 
   @BeforeEach
   void setUp() {
     when(this.session.currentSubject()).thenReturn(Mono.just("pepe"));
-    MoviesAddMediaAdapter moviesAdapter = new MoviesAddMediaAdapter(this.moviesWebClient);
-    StorageAddMediaAdapter storageAdapter = new StorageAddMediaAdapter(this.storageWebClient);
-    UsersWebPort users = mock(UsersWebPort.class);
-    when(users.me()).thenReturn(Mono.just(new com.guille.media.bff.app.dto.UserProfile(
-        "u1", "pepe", null, null, "pepe@mvflix.dev", "FREE", true, 0, false)));
+     MoviesAddMediaAdapter moviesAdapter = new MoviesAddMediaAdapter(this.moviesWebClient);
+     StorageAddMediaAdapter storageAdapter = new StorageAddMediaAdapter(this.storageWebClient);
+     UsersWebPort users = mock(UsersWebPort.class);
+     when(users.me()).thenReturn(Mono.just(new com.guille.media.bff.app.dto.UserProfile(
+         "u1", "pepe", null, null, "pepe@mvflix.dev", "FREE", true, 0, false)));
+     when(this.ingestion.create(ArgumentMatchers.anyString(), ArgumentMatchers.any(), ArgumentMatchers.anyString()))
+         .thenReturn(Mono.just(new com.guille.media.bff.experience.addmedia.application.port.MediaIngestionClient.MediaIngestionView(
+             "00000000-0000-0000-0000-000000000004", "pepe", 7L, "42", "AWAITING_UPLOAD",
+             null, "http://minio/put", "pepe/videos/a.mp4", 1024L, "video/mp4")));
      CompleteProcessAddMedia completeProcess =
-         new CompleteProcessAddMedia(mock(com.guille.media.bff.experience.addmedia.application.port.MediaIngestionClient.class));
-    GetAddMediaStatus getStatus = new GetAddMediaStatus(this.processes, storageAdapter);
+         new CompleteProcessAddMedia(this.ingestion);
+     GetAddMediaStatus getStatus = new GetAddMediaStatus(this.ingestion);
     AddMediaController controller =
         new AddMediaController(
             new SearchMovieCandidates(moviesAdapter),
             new PreviewMovieCandidate(moviesAdapter),
-            new StartAddMedia(moviesAdapter, storageAdapter, this.processes, users),
+             new StartAddMedia(users, this.ingestion),
             completeProcess,
             new CancelAddMedia(this.processes, storageAdapter, moviesAdapter),
             getStatus,
@@ -122,21 +128,15 @@ class AddMediaControllerTest {
 
   @Test
   void statusRestoresFreshUploadInstructionsWhileWaiting() {
-    // Preparar proceso WAITING_FOR_UPLOAD directamente en el repo.
-    com.guille.media.bff.experience.addmedia.model.AddMediaId pid =
-        com.guille.media.bff.experience.addmedia.model.AddMediaId.newId();
-    this.processes.save(new com.guille.media.bff.experience.addmedia.model.AddMediaProcess(
-        pid, "pepe", 7L, 42L,
-        com.guille.media.bff.experience.addmedia.model.AddMediaPhase.WAITING_FOR_UPLOAD,
-        null, 2)).block();
-    when(this.storageWebClient.renewInstructions(42L))
-        .thenReturn(Mono.just(new UploadSessionDto("42", "http://minio/fresh",
-            "k.mp4", "PUT", "PENDING",
-            new UploadSessionDto.ExpectedObjectData(1024L, "video/mp4"))));
+     String pid = "11111111-1111-1111-1111-111111111111";
+     when(this.ingestion.status("pepe", pid, "add-media:" + pid))
+         .thenReturn(Mono.just(new com.guille.media.bff.experience.addmedia.application.port.MediaIngestionClient.MediaIngestionView(
+             pid, "pepe", 7L, "42", "AWAITING_UPLOAD", null, "http://minio/fresh", "k.mp4",
+             1024L, "video/mp4")));
 
     this.client
         .get()
-        .uri("/web/add-media/" + pid.value())
+         .uri("/web/add-media/" + pid)
         .exchange()
         .expectStatus()
         .isOk()
@@ -158,10 +158,11 @@ class AddMediaControllerTest {
             "k.mp4", "PUT", "PENDING",
             new UploadSessionDto.ExpectedObjectData(1024L, "video/mp4"))));
     // El GET de estado renueva instrucciones mientras esté WAITING_FOR_UPLOAD.
-    when(this.storageWebClient.renewInstructions(42L))
-        .thenReturn(Mono.just(new UploadSessionDto("42", "http://minio/fresh",
-            "k.mp4", "PUT", "PENDING",
-            new UploadSessionDto.ExpectedObjectData(1024L, "video/mp4"))));
+     when(this.ingestion.status("pepe", "00000000-0000-0000-0000-000000000004",
+         "add-media:00000000-0000-0000-0000-000000000004"))
+         .thenReturn(Mono.just(new com.guille.media.bff.experience.addmedia.application.port.MediaIngestionClient.MediaIngestionView(
+             "00000000-0000-0000-0000-000000000004", "pepe", 7L, "42", "AWAITING_UPLOAD", null,
+             "http://minio/fresh", "k.mp4", 1024L, "video/mp4")));
     String startBody = "{"
         + "\"file\": {\"filename\": \"alien.mp4\", \"sizeBytes\": 1024, "
         + "\"mimeType\": \"video/mp4\"},"
@@ -178,8 +179,10 @@ class AddMediaControllerTest {
         .expectStatus().isOk()
         .expectBody().jsonPath("$.addMediaId").isEqualTo(addMediaId);
 
-    // Otro usuario: 404 sin filtrar existencia.
-    when(this.session.currentSubject()).thenReturn(Mono.just("ana"));
+     // Otro usuario: 404 sin filtrar existencia.
+     when(this.session.currentSubject()).thenReturn(Mono.just("ana"));
+     when(this.ingestion.status("ana", addMediaId, "add-media:" + addMediaId))
+         .thenReturn(Mono.error(new com.guille.media.bff.shared.error.EntityNotFound("Proceso no encontrado")));
     this.client.get().uri("/web/add-media/" + addMediaId).exchange()
         .expectStatus().isNotFound();
   }
