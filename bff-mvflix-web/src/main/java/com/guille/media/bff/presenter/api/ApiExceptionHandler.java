@@ -15,7 +15,6 @@ import com.guille.media.bff.experience.playback.application.PlaybackForbiddenExc
 import com.guille.media.bff.experience.playback.application.PlaybackMediaNotFoundException;
 import com.guille.media.bff.experience.playback.application.PlaybackSourceUnavailableException;
 import com.guille.media.bff.shared.error.EntityNotFound;
-import com.guille.media.bff.experience.addmedia.model.InvalidAddMediaTransition;
 import com.guille.media.bff.presenter.api.dto.OrchestrationError;
 
 import lombok.extern.slf4j.Slf4j;
@@ -224,18 +223,6 @@ public class ApiExceptionHandler {
             .contentType(MediaType.APPLICATION_JSON)
             .body(new OrchestrationError(
                 HttpStatus.CONFLICT.value(), ex.getCode(), ex.getMessage())));
-  }
-
-  /** Fase del proceso incompatible con la operación pedida. */
-  @ExceptionHandler(InvalidAddMediaTransition.class)
-  public Mono<ResponseEntity<OrchestrationError>> invalidTransition(
-      InvalidAddMediaTransition ex) {
-    log.warn("Add Media transición inválida: {}", ex.getMessage());
-    return Mono.just(
-        ResponseEntity.status(HttpStatus.CONFLICT)
-            .contentType(MediaType.APPLICATION_JSON)
-            .body(new OrchestrationError(
-                HttpStatus.CONFLICT.value(), "INVALID_ADD_MEDIA_TRANSITION", ex.getMessage())));
   }
 
   /** Propaga el status y el body del servicio aguas abajo (users/storage) sin degradar a 500. */

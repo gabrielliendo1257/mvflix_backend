@@ -1,7 +1,5 @@
 package com.guille.media.bff.experience.addmedia.application;
 
-import com.guille.media.bff.app.dto.UploadSessionDto;
-import com.guille.media.bff.experience.addmedia.model.AddMediaProcess;
 import com.guille.media.bff.experience.addmedia.model.AddMediaPhase;
 
 /**
@@ -33,31 +31,4 @@ public record AddMediaResult(
     }
   }
 
-  public static AddMediaResult from(AddMediaProcess process) {
-    return new AddMediaResult(
-        process.id().value(),
-        process.ownerSubject(),
-        process.phase(),
-        process.movieId(),
-        process.uploadId() == null ? null : process.uploadId().toString(),
-        null,
-        process.failureCode());
-  }
-
-  public static AddMediaResult waitingForUpload(AddMediaProcess process, UploadSessionDto session) {
-    return new AddMediaResult(
-        process.id().value(),
-        process.ownerSubject(),
-        process.phase(),
-        process.movieId(),
-        process.uploadId() == null ? null : process.uploadId().toString(),
-        new UploadInstructions(
-            session.uploadUrl(),
-            session.method(),
-            session.storageKey(),
-            session.object() == null ? 0L : session.object().expectedSize(),
-             session.object() == null ? null : session.object().expectedMime(), session.strategy(),
-             session.partSizeBytes(), session.totalParts()),
-        null);
-  }
 }

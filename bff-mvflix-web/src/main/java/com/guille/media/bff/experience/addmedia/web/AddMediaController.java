@@ -7,7 +7,6 @@ import com.guille.media.bff.experience.addmedia.application.GetAddMediaStatus;
 import com.guille.media.bff.experience.addmedia.application.PreviewMovieCandidate;
 import com.guille.media.bff.experience.addmedia.application.SearchMovieCandidates;
 import com.guille.media.bff.experience.addmedia.application.StartAddMedia;
-import com.guille.media.bff.experience.addmedia.model.AddMediaId;
 import com.guille.media.bff.app.dto.MultipartUploadDtos;
 
 import org.springframework.http.HttpStatus;
