@@ -323,7 +323,6 @@ services:
       DB_PORT: 5432
       DB_NAME: mvflix_app
       KAFKA_BOOTSTRAP_SERVERS: kafka:9092
-      MEDIA_INGESTION_ENABLED: "true"
       MEDIA_INGESTION_URL: http://media-ingestion:8080
       SERVICES_STORAGE_URL: http://storage:6060
       SERVICES_MOVIES_URL: http://movies:4040

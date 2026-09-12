@@ -38,7 +38,3 @@ services:
     url: ${ACTIVITY_URL:http://localhost:7070}
   playback:
     url: ${PLAYBACK_URL:http://localhost:7071}
-
-features:
-  add-media:
-    media-ingestion-enabled: ${MEDIA_INGESTION_ENABLED:true}
