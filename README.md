@@ -83,6 +83,8 @@ Para evitar que el stack de desarrollo consuma toda la memoria, usa
 `./scripts/stack-dev.sh start`: cada JVM arranca con `-Xmx384m` y
 `-XX:MaxMetaspaceSize=192m`. El límite se puede ajustar con
 `MVFLIX_DEV_JVM_ARGS`, por ejemplo `MVFLIX_DEV_JVM_ARGS='-Xms256m -Xmx768m'
+./scripts/stack-dev.sh start`. También puedes sobrescribir un servicio concreto,
+por ejemplo `MVFLIX_DEV_JVM_ARGS_STORAGE='-Xms128m -Xmx768m'
 ./scripts/stack-dev.sh start`.
 
 ### 3. Probar el flujo login completo (BFF + OAuth2)
