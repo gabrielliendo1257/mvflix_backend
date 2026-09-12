@@ -8,8 +8,6 @@ import static org.mockito.Mockito.when;
 
 import com.guille.media.bff.experience.addmedia.application.port.MediaIngestionClient;
 import com.guille.media.bff.experience.addmedia.application.port.MediaIngestionClient.MediaIngestionView;
-import com.guille.media.bff.experience.addmedia.application.port.AddMediaProcessRepository;
-import com.guille.media.bff.experience.addmedia.model.AddMediaId;
 import reactor.core.publisher.Mono;
 import org.junit.jupiter.api.Test;
 

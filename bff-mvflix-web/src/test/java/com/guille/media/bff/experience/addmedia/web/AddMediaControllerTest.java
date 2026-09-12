@@ -5,13 +5,10 @@ import static org.mockito.Mockito.when;
 
 import com.guille.media.bff.app.dto.MovieEnrichmentPreviewDto;
 import com.guille.media.bff.app.dto.MovieEnrichmentSearchDto;
-import com.guille.media.bff.app.dto.UploadSessionDto;
-import com.guille.media.bff.infrastructure.persistence.InMemoryAddMediaProcessRepository;
 import com.guille.media.bff.app.ports.MoviesWebClient;
 import com.guille.media.bff.app.ports.StorageWebClient;
 import com.guille.media.bff.app.ports.UsersWebPort;
 import com.guille.media.bff.infrastructure.http.MoviesAddMediaAdapter;
-import com.guille.media.bff.infrastructure.http.StorageAddMediaAdapter;
 import com.guille.media.bff.app.service.WebSessionService;
 import com.guille.media.bff.experience.addmedia.application.CancelAddMedia;
 import com.guille.media.bff.experience.addmedia.application.CompleteProcessAddMedia;
@@ -19,7 +16,6 @@ import com.guille.media.bff.experience.addmedia.application.GetAddMediaStatus;
 import com.guille.media.bff.experience.addmedia.application.PreviewMovieCandidate;
 import com.guille.media.bff.experience.addmedia.application.SearchMovieCandidates;
 import com.guille.media.bff.experience.addmedia.application.StartAddMedia;
-import com.guille.media.bff.experience.addmedia.application.port.AddMediaProcessRepository;
 
 import org.mockito.ArgumentMatchers;
 
@@ -35,9 +31,6 @@ import reactor.core.publisher.Mono;
 class AddMediaControllerTest {
 
   private final MoviesWebClient moviesWebClient = mock(MoviesWebClient.class);
-  private final StorageWebClient storageWebClient = mock(StorageWebClient.class);
-  private final InMemoryAddMediaProcessRepository processes =
-      new InMemoryAddMediaProcessRepository();
   private final WebSessionService session = mock(WebSessionService.class);
   private final com.guille.media.bff.experience.addmedia.application.port.MediaIngestionClient ingestion =
       mock(com.guille.media.bff.experience.addmedia.application.port.MediaIngestionClient.class);
@@ -48,7 +41,6 @@ class AddMediaControllerTest {
   void setUp() {
     when(this.session.currentSubject()).thenReturn(Mono.just("pepe"));
      MoviesAddMediaAdapter moviesAdapter = new MoviesAddMediaAdapter(this.moviesWebClient);
-     StorageAddMediaAdapter storageAdapter = new StorageAddMediaAdapter(this.storageWebClient);
      UsersWebPort users = mock(UsersWebPort.class);
      when(users.me()).thenReturn(Mono.just(new com.guille.media.bff.app.dto.UserProfile(
          "u1", "pepe", null, null, "pepe@mvflix.dev", "FREE", true, 0, false)));
@@ -81,10 +73,6 @@ class AddMediaControllerTest {
         .thenReturn(Mono.just(new com.guille.media.bff.app.dto.MovieDto(7L, "DRAFT", null,
             "PRIVATE", "MOVIE", "Alien", null, 1979, List.of(), null, null, null,
             List.of(), null, null, null, null, null, null, null)));
-    when(this.storageWebClient.createUpload(ArgumentMatchers.any()))
-        .thenReturn(Mono.just(new UploadSessionDto("42", "http://minio/put",
-            "pepe/videos/a.mp4", "PUT", "PENDING",
-            new UploadSessionDto.ExpectedObjectData(1024L, "video/mp4"))));
 
     String startBody = "{"
         + "\"file\": {\"filename\": \"alien.mp4\", \"sizeBytes\": 1024, "
@@ -153,10 +141,6 @@ class AddMediaControllerTest {
         .thenReturn(Mono.just(new com.guille.media.bff.app.dto.MovieDto(7L, "DRAFT", null,
             "PRIVATE", "MOVIE", "Alien", null, 1979, List.of(), null, null, null,
             List.of(), null, null, null, null, null, null, null)));
-    when(this.storageWebClient.createUpload(ArgumentMatchers.any()))
-        .thenReturn(Mono.just(new UploadSessionDto("42", "http://minio/put",
-            "k.mp4", "PUT", "PENDING",
-            new UploadSessionDto.ExpectedObjectData(1024L, "video/mp4"))));
     // El GET de estado renueva instrucciones mientras esté WAITING_FOR_UPLOAD.
      when(this.ingestion.status("pepe", "00000000-0000-0000-0000-000000000004",
          "add-media:00000000-0000-0000-0000-000000000004"))
