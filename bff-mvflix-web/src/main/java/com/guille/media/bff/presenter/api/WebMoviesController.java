@@ -1,7 +1,6 @@
 package com.guille.media.bff.presenter.api;
 
 import com.guille.media.bff.app.dto.BulkVisibilityRequest;
-import com.guille.media.bff.app.dto.CompleteMovieRequest;
 import com.guille.media.bff.app.dto.CreateMovieRequest;
 import com.guille.media.bff.app.dto.MovieDetailDto;
 import com.guille.media.bff.app.dto.MovieDto;
@@ -13,7 +12,6 @@ import com.guille.media.bff.app.dto.MovieSharesRequest;
 import com.guille.media.bff.app.dto.MovieUpdateRequest;
 import com.guille.media.bff.app.dto.MovieVisibilityRequest;
 import com.guille.media.bff.app.service.Job;
-import com.guille.media.bff.experience.addmedia.application.UploadCompletionOutcome;
 import com.guille.media.bff.app.service.WebMoviesService;
 
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -144,33 +142,6 @@ public class WebMoviesController {
       consumes = MediaType.APPLICATION_JSON_VALUE)
   public Mono<ResponseEntity<MovieDto>> create(@RequestBody CreateMovieRequest request) {
     return this.webMoviesService.create(request).map(ResponseEntity::ok);
-  }
-
-  /**
-   * @deprecated Verificación manual por parte del front. Usar
-   *             {@code POST /web/add-media/{addMediaId}/complete}.
-   */
-  @Deprecated
-  @PostMapping(
-      value = "/{movieId}/complete",
-      produces = MediaType.APPLICATION_JSON_VALUE,
-      consumes = MediaType.APPLICATION_JSON_VALUE)
-  public Mono<ResponseEntity<?>> complete(
-      @PathVariable Long movieId, @RequestBody CompleteMovieRequest request) {
-    return this.webMoviesService
-        .complete(movieId, request)
-        .map(outcome -> {
-          if (outcome instanceof UploadCompletionOutcome.Completed completed) {
-            return ResponseEntity.ok((Object) completed.movie());
-          }
-          // PENDING no es fallo: verificación asíncrona, el front reintenta.
-          UploadCompletionOutcome.StillVerifying verifying =
-              (UploadCompletionOutcome.StillVerifying) outcome;
-          return ResponseEntity.accepted()
-              .body((Object) java.util.Map.of(
-                  "status", "VERIFYING_UPLOAD",
-                  "storageId", verifying.uploadId() == null ? "" : verifying.uploadId()));
-        });
   }
 
   /**

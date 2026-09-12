@@ -1,7 +1,6 @@
 package com.guille.media.bff.app.service;
 
 import com.guille.media.bff.app.dto.BulkVisibilityRequest;
-import com.guille.media.bff.app.dto.CompleteMovieRequest;
 import com.guille.media.bff.app.dto.CreateMovieRequest;
 import com.guille.media.bff.app.dto.MediaAssetDto;
 import com.guille.media.bff.app.dto.MovieDetailDto;
@@ -17,8 +16,6 @@ import com.guille.media.bff.app.ports.StorageWebClient;
 import com.guille.media.bff.app.ports.PublicCatalogWebClient;
 import com.guille.media.bff.app.ports.UsersWebPort;
 
-import com.guille.media.bff.experience.addmedia.application.CompleteAddMedia;
-import com.guille.media.bff.experience.addmedia.application.UploadCompletionOutcome;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -64,7 +61,7 @@ public class WebMoviesService {
       com.guille.media.bff.experience.addmedia.application.CompleteAddMedia addMediaCompletion,
       StoragePlaybackTokenProvider playbackTokenProvider, WebClient playbackWebClient) {
     this(moviesWebClient, storageWebClient, usersWebPort, streamTicketService, jobStore,
-        webSessionService, addMediaCompletion, playbackTokenProvider, playbackWebClient,
+        webSessionService, playbackTokenProvider, playbackWebClient,
         null);
   }
 
@@ -76,7 +73,6 @@ public class WebMoviesService {
       StreamTicketService streamTicketService,
       JobStore jobStore,
       WebSessionService webSessionService,
-      com.guille.media.bff.experience.addmedia.application.CompleteAddMedia addMediaCompletion,
       StoragePlaybackTokenProvider playbackTokenProvider,
       @org.springframework.beans.factory.annotation.Qualifier("playbackWebClient")
       WebClient playbackWebClient,
@@ -87,7 +83,6 @@ public class WebMoviesService {
     this.streamTicketService = streamTicketService;
     this.jobStore = jobStore;
     this.webSessionService = webSessionService;
-    this.addMediaCompletion = addMediaCompletion;
     this.playbackTokenProvider = playbackTokenProvider;
     this.playbackWebClient = playbackWebClient;
     this.publicCatalogWebClient = publicCatalogWebClient;
@@ -108,8 +103,6 @@ public class WebMoviesService {
   private final StreamTicketService streamTicketService;
   private final JobStore jobStore;
   private final WebSessionService webSessionService;
-  @Deprecated(forRemoval = true)
-  private final CompleteAddMedia addMediaCompletion;
   private final StoragePlaybackTokenProvider playbackTokenProvider;
   private final @Qualifier("playbackWebClient")
       WebClient playbackWebClient;
@@ -460,13 +453,5 @@ public class WebMoviesService {
           return this.moviesWebClient.createMovie(request);
         });
   }
-
-  /** Legacy completion endpoint. The canonical add-media flow uses Media Ingestion. */
-  @Deprecated(forRemoval = true)
-  public Mono<UploadCompletionOutcome>
-      complete(Long movieId, CompleteMovieRequest request) {
-    return this.addMediaCompletion.complete(movieId, request);
-  }
-
 
 }
