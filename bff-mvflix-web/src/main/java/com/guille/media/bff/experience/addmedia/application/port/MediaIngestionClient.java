@@ -19,6 +19,32 @@ public interface MediaIngestionClient {
   record MediaIngestionView(String ingestionId, String actorId, Long catalogItemId, String uploadId,
       String phase, String failureCode, String uploadUrl, String storageKey, long fileSize,
       String mimeType, String strategy, Long partSizeBytes, Integer totalParts) {
+    public Phase phaseType() {
+      return Phase.from(phase);
+    }
+
+    public Strategy strategyType() {
+      return Strategy.from(strategy);
+    }
+
+    public enum Phase {
+      COMPLETED,
+      UNKNOWN;
+
+      static Phase from(String value) {
+        return "COMPLETED".equals(value) ? COMPLETED : UNKNOWN;
+      }
+    }
+
+    public enum Strategy {
+      PRESIGNED_MULTIPART,
+      OTHER;
+
+      static Strategy from(String value) {
+        return "PRESIGNED_MULTIPART".equals(value) ? PRESIGNED_MULTIPART : OTHER;
+      }
+    }
+
     public MediaIngestionView(String ingestionId, String actorId, Long catalogItemId, String uploadId,
         String phase, String failureCode, String uploadUrl, String storageKey, long fileSize,
         String mimeType) {

@@ -25,10 +25,11 @@ public class CompleteProcessAddMedia {
       Long reportedSizeBytes, List<CompletedPart> parts, String correlationId) {
     return ingestion.status(ownerSubject, addMediaId, correlationId)
         .flatMap(view -> {
-          if (!"PRESIGNED_MULTIPART".equals(view.strategy()) || view.uploadId() == null) {
+          if (view.strategyType() != MediaIngestionClient.MediaIngestionView.Strategy.PRESIGNED_MULTIPART
+              || view.uploadId() == null) {
             return Mono.error(new IllegalArgumentException("add-media upload is not multipart"));
           }
-          if ("COMPLETED".equals(view.phase())) {
+          if (view.phaseType() == MediaIngestionClient.MediaIngestionView.Phase.COMPLETED) {
             return Mono.just(MediaIngestionResultMapper.map(view));
           }
           return ingestion.complete(ownerSubject, addMediaId, reportedSizeBytes, correlationId, parts)
