@@ -49,6 +49,7 @@ MINIO_TARGET_URL="${MINIO_URL:-http://127.0.0.1:9000}"
 KAFKA_TARGET_HOST="${KAFKA_HOST:-127.0.0.1}"
 KAFKA_TARGET_PORT="${KAFKA_EXTERNAL_PORT:-9094}"
 KAFKA_REQUIRED="${MVFLIX_MESSAGING_KAFKA_ENABLED:-true}"
+DEV_JVM_ARGS="${MVFLIX_DEV_JVM_ARGS:--Xms128m -Xmx384m -XX:MaxMetaspaceSize=192m}"
 STATE_DIR="${XDG_STATE_HOME:-$HOME/.local/state}/mvflix-dev"
 LOG_DIR="${STATE_DIR}/logs"
 PID_DIR="${STATE_DIR}/pids"
@@ -183,15 +184,17 @@ start_one() {
   echo "  [START] ${name} (dev) en :${port} ..."
   local extra_args=()
   if [ "${name}" = "mvflix-media-ingestion" ]; then
-    extra_args+=("-Dspring-boot.run.jvmArguments=-DMEDIA_INGESTION_PORT_INTERNAL=${MEDIA_INGESTION_PORT} -DMVFLIX_INTERNAL_TOKEN_URI=http://127.0.0.1:${AUTH_PORT}/oauth2/token -DSECURITY_OAUTH2_JWK_SET_URI=http://127.0.0.1:${AUTH_PORT}/oauth2/jwks")
+    extra_args+=("-Dspring-boot.run.jvmArguments=${DEV_JVM_ARGS} -DMEDIA_INGESTION_PORT_INTERNAL=${MEDIA_INGESTION_PORT} -DMVFLIX_INTERNAL_TOKEN_URI=http://127.0.0.1:${AUTH_PORT}/oauth2/token -DSECURITY_OAUTH2_JWK_SET_URI=http://127.0.0.1:${AUTH_PORT}/oauth2/jwks")
   elif [ "${name}" = "mvflix-playback" ]; then
-    extra_args+=("-Dspring-boot.run.jvmArguments=-DPLAYBACK_PORT_INTERNAL=${PLAYBACK_PORT} -DSERVICES_MOVIES_URL=http://127.0.0.1:${MOVIES_PORT} -DSERVICES_STORAGE_URL=http://127.0.0.1:${STORAGE_PORT} -DSERVICES_AUTHORIZATION_URL=http://127.0.0.1:${AUTH_PORT} -DSECURITY_OAUTH2_JWK_SET_URI=http://127.0.0.1:${AUTH_PORT}/oauth2/jwks -DKAFKA_BOOTSTRAP_SERVERS=${KAFKA_BOOTSTRAP_SERVERS:-127.0.0.1:9094}")
+    extra_args+=("-Dspring-boot.run.jvmArguments=${DEV_JVM_ARGS} -DPLAYBACK_PORT_INTERNAL=${PLAYBACK_PORT} -DSERVICES_MOVIES_URL=http://127.0.0.1:${MOVIES_PORT} -DSERVICES_STORAGE_URL=http://127.0.0.1:${STORAGE_PORT} -DSERVICES_AUTHORIZATION_URL=http://127.0.0.1:${AUTH_PORT} -DSECURITY_OAUTH2_JWK_SET_URI=http://127.0.0.1:${AUTH_PORT}/oauth2/jwks -DKAFKA_BOOTSTRAP_SERVERS=${KAFKA_BOOTSTRAP_SERVERS:-127.0.0.1:9094}")
   elif [ "${name}" = "mvflix-activity" ]; then
-    extra_args+=("-Dspring-boot.run.jvmArguments=-DACTIVITY_PORT_INTERNAL=${ACTIVITY_PORT} -DSECURITY_OAUTH2_JWK_SET_URI=http://127.0.0.1:${AUTH_PORT}/oauth2/jwks -DKAFKA_BOOTSTRAP_SERVERS=${KAFKA_BOOTSTRAP_SERVERS:-127.0.0.1:9094} -DMVFLIX_MESSAGING_KAFKA_ENABLED=true")
+    extra_args+=("-Dspring-boot.run.jvmArguments=${DEV_JVM_ARGS} -DACTIVITY_PORT_INTERNAL=${ACTIVITY_PORT} -DSECURITY_OAUTH2_JWK_SET_URI=http://127.0.0.1:${AUTH_PORT}/oauth2/jwks -DKAFKA_BOOTSTRAP_SERVERS=${KAFKA_BOOTSTRAP_SERVERS:-127.0.0.1:9094} -DMVFLIX_MESSAGING_KAFKA_ENABLED=true")
   elif [ "${name}" = "bff-mvflix-web" ]; then
-    extra_args+=("-Dspring-boot.run.jvmArguments=-DMEDIA_INGESTION_URL=http://127.0.0.1:${MEDIA_INGESTION_PORT} -DMEDIA_INGESTION_ENABLED=true -DPLAYBACK_URL=http://127.0.0.1:${PLAYBACK_PORT} -DACTIVITY_URL=http://127.0.0.1:${ACTIVITY_PORT}")
+    extra_args+=("-Dspring-boot.run.jvmArguments=${DEV_JVM_ARGS} -DMEDIA_INGESTION_URL=http://127.0.0.1:${MEDIA_INGESTION_PORT} -DPLAYBACK_URL=http://127.0.0.1:${PLAYBACK_PORT} -DACTIVITY_URL=http://127.0.0.1:${ACTIVITY_PORT}")
   elif [ "${name}" = "mvflix-users" ]; then
-    extra_args+=("-Dspring-boot.run.jvmArguments=-DDB_HOST=${DB_TARGET_HOST} -DDB_PORT=${DB_TARGET_PORT}")
+    extra_args+=("-Dspring-boot.run.jvmArguments=${DEV_JVM_ARGS} -DDB_HOST=${DB_TARGET_HOST} -DDB_PORT=${DB_TARGET_PORT}")
+  else
+    extra_args+=("-Dspring-boot.run.jvmArguments=${DEV_JVM_ARGS}")
   fi
   TMDB_API_TOKEN="${TMDB_API_TOKEN:-}" nohup "${MVN_CMD}" -q -pl "${name}" spring-boot:run \
     "${extra_args[@]}" \

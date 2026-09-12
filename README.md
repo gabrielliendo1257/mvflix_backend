@@ -79,6 +79,12 @@ para Docker y para las aplicaciones Java.
 
 Equivalent with env var: `SPRING_PROFILES_ACTIVE=dev ./mvnw -pl mvflix-storage spring-boot:run`.
 
+Para evitar que el stack de desarrollo consuma toda la memoria, usa
+`./scripts/stack-dev.sh start`: cada JVM arranca con `-Xmx384m` y
+`-XX:MaxMetaspaceSize=192m`. El límite se puede ajustar con
+`MVFLIX_DEV_JVM_ARGS`, por ejemplo `MVFLIX_DEV_JVM_ARGS='-Xms256m -Xmx768m'
+./scripts/stack-dev.sh start`.
+
 ### 3. Probar el flujo login completo (BFF + OAuth2)
 
 1. `GET http://localhost:9091/web/session` -> devuelve `{"authenticated":false}` (o 401 JSON si no hay sesion).
