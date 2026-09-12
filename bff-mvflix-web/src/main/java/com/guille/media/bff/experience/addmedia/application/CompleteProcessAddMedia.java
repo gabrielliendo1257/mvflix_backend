@@ -1,6 +1,7 @@
 package com.guille.media.bff.experience.addmedia.application;
 
 import com.guille.media.bff.app.dto.CompleteMovieRequest;
+import com.guille.media.bff.app.dto.MultipartUploadDtos.CompletedPart;
 import com.guille.media.bff.experience.addmedia.application.UploadCompletionOutcome.Completed;
 import com.guille.media.bff.experience.addmedia.application.port.AddMediaProcessRepository;
 import com.guille.media.bff.experience.addmedia.application.port.MediaIngestionClient;
@@ -8,12 +9,14 @@ import com.guille.media.bff.experience.addmedia.model.AddMediaId;
 import com.guille.media.bff.experience.addmedia.model.AddMediaPhase;
 import com.guille.media.bff.experience.addmedia.model.AddMediaProcess;
 import com.guille.media.bff.experience.addmedia.model.InvalidAddMediaTransition;
-import com.guille.media.bff.experience.addmedia.application.AddMediaResult;
 import com.guille.media.bff.app.dto.MultipartUploadDtos;
 import com.guille.media.bff.app.ports.StorageWebClient;
 
+import java.util.List;
 import lombok.extern.slf4j.Slf4j;
 
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import reactor.core.publisher.Mono;
@@ -49,10 +52,10 @@ public class CompleteProcessAddMedia {
     this(processes, completion, ingestion, ingestionEnabled, null);
   }
 
-  @org.springframework.beans.factory.annotation.Autowired
+  @Autowired
   public CompleteProcessAddMedia(AddMediaProcessRepository processes, CompleteAddMedia completion,
       MediaIngestionClient ingestion,
-      @org.springframework.beans.factory.annotation.Value("${features.add-media.media-ingestion-enabled:false}") boolean ingestionEnabled,
+      @Value("${features.add-media.media-ingestion-enabled:false}") boolean ingestionEnabled,
       StorageWebClient storage) {
     this.processes = processes; this.completion = completion; this.ingestion = ingestion;
     this.storage = storage;
@@ -61,7 +64,7 @@ public class CompleteProcessAddMedia {
 
   /** Completes storage multipart before allowing ingestion to finalize the catalog item. */
   public Mono<AddMediaResult> handleMultipart(String ownerSubject, String addMediaId,
-      Long reportedSizeBytes, java.util.List<MultipartUploadDtos.CompletedPart> parts,
+      Long reportedSizeBytes, List<CompletedPart> parts,
       String correlationId) {
     if (!this.ingestionEnabled || this.ingestion == null || this.storage == null) {
       return Mono.error(new IllegalStateException("multipart add-media is unavailable"));
@@ -87,11 +90,8 @@ public class CompleteProcessAddMedia {
   public Mono<AddMediaResult> handle(String ownerSubject, String addMediaId, Long reportedSizeBytes,
       String correlationId) {
     if (this.ingestionEnabled) {
-      return this.processes.findById(new AddMediaId(addMediaId))
-          .filter(process -> process.ownedBy(ownerSubject))
-          .flatMap(process -> this.legacyHandle(process, reportedSizeBytes))
-          .switchIfEmpty(Mono.defer(() -> this.ingestion.complete(ownerSubject, addMediaId, reportedSizeBytes,
-              correlationId).map(MediaIngestionResultMapper::map)));
+      return this.ingestion.complete(ownerSubject, addMediaId, reportedSizeBytes, correlationId)
+          .map(MediaIngestionResultMapper::map);
     }
     return this.processes
         .findById(new AddMediaId(addMediaId))
