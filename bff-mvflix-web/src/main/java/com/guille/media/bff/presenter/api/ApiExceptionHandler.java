@@ -4,9 +4,7 @@ import com.guille.media.bff.app.service.StreamTicketException;
 import com.guille.media.bff.experience.addmedia.application.DownstreamRejectionException;
 import com.guille.media.bff.experience.addmedia.application.DownstreamUnavailableException;
 import com.guille.media.bff.experience.addmedia.application.InvalidIntentException;
-import com.guille.media.bff.experience.addmedia.application.InvalidStorageResponseException;
 import com.guille.media.bff.experience.addmedia.application.UserBlockedException;
-import com.guille.media.bff.experience.addmedia.application.VerdictAppliedException;
 import com.guille.media.bff.experience.playback.application.AssetNotPlayableException;
 import com.guille.media.bff.experience.playback.application.LocalStreamTokenException;
 import com.guille.media.bff.experience.playback.application.PlaybackContractViolationException;
@@ -138,17 +136,6 @@ public class ApiExceptionHandler {
                 HttpStatus.NOT_FOUND.value(), "NOT_FOUND", ex.getMessage())));
   }
 
-  /** Veredicto definitivo ya aplicado (rollback ejecutado). */
-  @ExceptionHandler(VerdictAppliedException.class)
-  public Mono<ResponseEntity<OrchestrationError>> verdict(VerdictAppliedException ex) {
-    log.warn("Veredicto aplicado: code={} message={}", ex.getCode(), ex.getMessage());
-    return Mono.just(
-        ResponseEntity.status(HttpStatus.CONFLICT)
-            .contentType(MediaType.APPLICATION_JSON)
-            .body(new OrchestrationError(
-                HttpStatus.CONFLICT.value(), ex.getCode(), ex.getMessage())));
-  }
-
   /**
    * Rechazo 4xx de un servicio aguas abajo (validación, no encontrado,
     * conflicto): se propaga el status con un mensaje estable sin filtrar
@@ -187,18 +174,6 @@ public class ApiExceptionHandler {
             .contentType(MediaType.APPLICATION_JSON)
             .body(new OrchestrationError(
                 HttpStatus.FORBIDDEN.value(), "USER_BLOCKED", ex.getMessage())));
-  }
-
-  /** Contrato violado por un servicio aguas abajo. */
-  @ExceptionHandler(InvalidStorageResponseException.class)
-  public Mono<ResponseEntity<OrchestrationError>> invalidStorage(
-      InvalidStorageResponseException ex) {
-    log.error("Respuesta inválida de storage: {}", ex.getMessage());
-    return Mono.just(
-        ResponseEntity.status(HttpStatus.BAD_GATEWAY)
-            .contentType(MediaType.APPLICATION_JSON)
-            .body(new OrchestrationError(
-                HttpStatus.BAD_GATEWAY.value(), "INVALID_UPLOAD_RESPONSE", ex.getMessage())));
   }
 
   /** Intención incompleta: faltan datos obligatorios del candidato. */
