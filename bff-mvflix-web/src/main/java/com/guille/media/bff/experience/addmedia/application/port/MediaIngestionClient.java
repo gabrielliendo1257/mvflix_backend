@@ -2,12 +2,18 @@ package com.guille.media.bff.experience.addmedia.application.port;
 
 import com.guille.media.bff.experience.addmedia.application.StartAddMediaCommand;
 import reactor.core.publisher.Mono;
+import java.util.List;
+import com.guille.media.bff.app.dto.MultipartUploadDtos.CompletedPart;
 
 /** HTTP boundary for the new ingestion owner. It never accepts an actor from the request. */
 public interface MediaIngestionClient {
   Mono<MediaIngestionView> create(String ownerSubject, StartAddMediaCommand command, String correlationId);
   Mono<MediaIngestionView> status(String ownerSubject, String ingestionId, String correlationId);
   Mono<MediaIngestionView> complete(String ownerSubject, String ingestionId, Long sizeBytes, String correlationId);
+  default Mono<MediaIngestionView> complete(String ownerSubject, String ingestionId, Long sizeBytes,
+      String correlationId, List<CompletedPart> parts) {
+    return complete(ownerSubject, ingestionId, sizeBytes, correlationId);
+  }
   Mono<MediaIngestionView> cancel(String ownerSubject, String ingestionId, String correlationId);
 
   record MediaIngestionView(String ingestionId, String actorId, Long catalogItemId, String uploadId,

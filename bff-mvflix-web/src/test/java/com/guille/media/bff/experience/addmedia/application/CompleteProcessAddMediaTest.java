@@ -192,9 +192,7 @@ class CompleteProcessAddMediaTest {
     var parts = List.of(new MultipartUploadDtos.CompletedPart(1, "etag-1"),
         new MultipartUploadDtos.CompletedPart(2, "etag-2"));
     when(this.ingestion.status("pepe", id, "corr")).thenReturn(Mono.just(view));
-    when(this.storage.completeMultipart("multipart-1", new MultipartUploadDtos.Complete(parts)))
-        .thenReturn(Mono.empty());
-    when(this.ingestion.complete("pepe", id, 1024L, "corr"))
+    when(this.ingestion.complete("pepe", id, 1024L, "corr", parts))
         .thenReturn(Mono.just(new MediaIngestionClient.MediaIngestionView(id, "pepe", 7L,
             "multipart-1", "COMPLETED", null, null, "pepe/video.mp4", 1024L, "video/mp4",
             "PRESIGNED_MULTIPART", 512L, 2)));
@@ -202,9 +200,7 @@ class CompleteProcessAddMediaTest {
     StepVerifier.create(this.useCase.handleMultipart("pepe", id, 1024L, parts, "corr"))
         .assertNext(result -> assertThat(result.phase()).isEqualTo(AddMediaPhase.READY))
         .verifyComplete();
-    org.mockito.InOrder order = org.mockito.Mockito.inOrder(this.storage, this.ingestion);
-    order.verify(this.storage).completeMultipart("multipart-1", new MultipartUploadDtos.Complete(parts));
-    order.verify(this.ingestion).complete("pepe", id, 1024L, "corr");
+    verify(this.ingestion).complete("pepe", id, 1024L, "corr", parts);
   }
 
   @Test

@@ -12,6 +12,8 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Mono;
+import java.util.List;
+import com.guille.media.bff.app.dto.MultipartUploadDtos.CompletedPart;
 
 @Component
 @Slf4j
@@ -50,9 +52,17 @@ public class MediaIngestionWebClientAdapter implements MediaIngestionClient {
 
   @Override
   public Mono<MediaIngestionView> complete(String ownerSubject, String id, Long sizeBytes, String correlationId) {
-    var body = sizeBytes == null ? Map.of() : Map.of("size_bytes", sizeBytes);
+    return this.complete(ownerSubject, id, sizeBytes, correlationId, List.of());
+  }
+
+  @Override
+  public Mono<MediaIngestionView> complete(String ownerSubject, String id, Long sizeBytes,
+      String correlationId, List<CompletedPart> parts) {
+    var payload = new java.util.HashMap<String, Object>();
+    if (sizeBytes != null) payload.put("size_bytes", sizeBytes);
+    if (parts != null && !parts.isEmpty()) payload.put("parts", parts);
     return this.client.post().uri(API + "/{id}/complete", UUID.fromString(id)).contentType(MediaType.APPLICATION_JSON)
-        .header("X-Correlation-ID", correlationId).bodyValue(body).retrieve()
+        .header("X-Correlation-ID", correlationId).bodyValue(payload).retrieve()
         .bodyToMono(MediaIngestionWire.class).map(MediaIngestionWebClientAdapter::view).transform(this::translate);
   }
 

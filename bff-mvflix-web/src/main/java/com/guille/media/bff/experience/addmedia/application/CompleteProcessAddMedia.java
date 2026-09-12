@@ -10,7 +10,6 @@ import com.guille.media.bff.experience.addmedia.model.AddMediaPhase;
 import com.guille.media.bff.experience.addmedia.model.AddMediaProcess;
 import com.guille.media.bff.experience.addmedia.model.InvalidAddMediaTransition;
 import com.guille.media.bff.app.dto.MultipartUploadDtos;
-import com.guille.media.bff.app.ports.StorageWebClient;
 
 import java.util.List;
 import lombok.extern.slf4j.Slf4j;
@@ -42,7 +41,6 @@ public class CompleteProcessAddMedia {
   @Deprecated(forRemoval = true)
   private final CompleteAddMedia completion;
   private final MediaIngestionClient ingestion;
-  private final StorageWebClient storage;
   private final boolean ingestionEnabled;
 
   public CompleteProcessAddMedia(AddMediaProcessRepository processes, CompleteAddMedia completion) {
@@ -58,9 +56,8 @@ public class CompleteProcessAddMedia {
   public CompleteProcessAddMedia(AddMediaProcessRepository processes, CompleteAddMedia completion,
       MediaIngestionClient ingestion,
       @Value("${features.add-media.media-ingestion-enabled:false}") boolean ingestionEnabled,
-      StorageWebClient storage) {
+      com.guille.media.bff.app.ports.StorageWebClient storage) {
     this.processes = processes; this.completion = completion; this.ingestion = ingestion;
-    this.storage = storage;
     this.ingestionEnabled = ingestionEnabled;
   }
 
@@ -68,7 +65,7 @@ public class CompleteProcessAddMedia {
   public Mono<AddMediaResult> handleMultipart(String ownerSubject, String addMediaId,
       Long reportedSizeBytes, List<CompletedPart> parts,
       String correlationId) {
-    if (!this.ingestionEnabled || this.ingestion == null || this.storage == null) {
+    if (!this.ingestionEnabled || this.ingestion == null) {
       return Mono.error(new IllegalStateException("multipart add-media is unavailable"));
     }
     return this.ingestion.status(ownerSubject, addMediaId, correlationId)
@@ -79,9 +76,8 @@ public class CompleteProcessAddMedia {
           if ("COMPLETED".equals(view.phase())) {
             return Mono.just(MediaIngestionResultMapper.map(view));
           }
-          return this.storage.completeMultipart(view.uploadId(), new MultipartUploadDtos.Complete(parts))
-              .then(this.ingestion.complete(ownerSubject, addMediaId, reportedSizeBytes, correlationId))
-              .map(MediaIngestionResultMapper::map);
+           return this.ingestion.complete(ownerSubject, addMediaId, reportedSizeBytes, correlationId, parts)
+               .map(MediaIngestionResultMapper::map);
         });
   }
 
