@@ -208,6 +208,24 @@ class CompleteProcessAddMediaTest {
   }
 
   @Test
+  void enabledCompletionDelegatesToIngestionWithoutUsingLegacyCompletion() {
+    this.useCase = new CompleteProcessAddMedia(this.processes, this.completion(),
+        this.ingestion, true, this.storage);
+    String id = AddMediaId.newId().value();
+    when(this.ingestion.complete("pepe", id, 1024L, "corr"))
+        .thenReturn(Mono.just(new MediaIngestionClient.MediaIngestionView(
+            id, "pepe", 7L, "42", "COMPLETED", null, null, "pepe/video.mp4", 1024L,
+            "video/mp4")));
+
+    StepVerifier.create(this.useCase.handle("pepe", id, 1024L, "corr"))
+        .assertNext(result -> assertThat(result.phase()).isEqualTo(AddMediaPhase.READY))
+        .verifyComplete();
+
+    verify(this.ingestion).complete("pepe", id, 1024L, "corr");
+    verify(this.completion, never()).complete(anyLong(), any());
+  }
+
+  @Test
   void foreignOrMissingProcessesAreNotFound() {
     AddMediaId id = AddMediaId.newId();
     this.processes.save(
