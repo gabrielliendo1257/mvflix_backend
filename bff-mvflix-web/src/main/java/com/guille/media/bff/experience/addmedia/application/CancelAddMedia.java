@@ -28,6 +28,14 @@ import reactor.core.publisher.Mono;
 @Slf4j
 @Service
 public class CancelAddMedia {
+  public CancelAddMedia(MediaIngestionClient ingestion) {
+    this.processes = null;
+    this.storage = null;
+    this.movies = null;
+    this.compensations = null;
+    this.ingestion = ingestion;
+    this.ingestionEnabled = true;
+  }
 
   private final AddMediaProcessRepository processes;
   private final AddMediaStorage storage;
