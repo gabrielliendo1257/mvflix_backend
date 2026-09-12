@@ -61,7 +61,10 @@ public class MediaIngestionController {
       @AuthenticationPrincipal Jwt jwt) {
     return service
         .complete(id, actor(jwt), r == null ? null : r.objectId(),
-            r == null ? null : r.objectKey(), r == null ? null : r.sizeBytes())
+            r == null ? null : r.objectKey(), r == null ? null : r.sizeBytes(),
+            r == null || r.parts() == null ? List.of() : r.parts().stream()
+                .map(p -> new com.gcorp.service.app.mvflix_media_ingestion.application.DownstreamClients.CompletedPart(
+                    p.partNumber(), p.etag())).toList())
         .map(ResponseEntity::ok)
         .defaultIfEmpty(ResponseEntity.notFound().build());
   }
@@ -99,5 +102,8 @@ public class MediaIngestionController {
       @JsonProperty("object_id") Long objectId,
       @JsonProperty("object_key") String objectKey,
       @Positive
-      @JsonProperty("size_bytes") Long sizeBytes) {}
+      @JsonProperty("size_bytes") Long sizeBytes,
+      List<Part> parts) {}
+
+  public record Part(@Positive int partNumber, @NotBlank String etag) {}
 }

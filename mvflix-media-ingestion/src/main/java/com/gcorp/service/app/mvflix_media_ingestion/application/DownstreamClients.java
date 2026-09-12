@@ -1,6 +1,7 @@
 package com.gcorp.service.app.mvflix_media_ingestion.application;
 
 import java.util.Map;
+import java.util.List;
 import reactor.core.publisher.Mono;
 
 public interface DownstreamClients {
@@ -16,6 +17,11 @@ public interface DownstreamClients {
   default Mono<Void> requestUploadCompletion(String uploadId, String actor, String idempotencyKey,
       String strategy) {
     return requestUploadCompletion(uploadId, actor, idempotencyKey);
+  }
+
+  default Mono<Void> requestUploadCompletion(String uploadId, String actor, String idempotencyKey,
+      String strategy, List<CompletedPart> parts) {
+    return requestUploadCompletion(uploadId, actor, idempotencyKey, strategy);
   }
 
   Mono<Void> completeCatalog(long catalogItemId, String objectKey, long objectId, String actor);
@@ -48,4 +54,6 @@ public interface DownstreamClients {
   record CatalogStatus(String status) {}
 
   record MediaIngestionEligibility(boolean allowed) {}
+
+  record CompletedPart(int partNumber, String etag) {}
 }

@@ -2,6 +2,7 @@ package com.gcorp.service.app.mvflix_media_ingestion.infrastructure.http;
 
 import com.gcorp.service.app.mvflix_media_ingestion.application.DownstreamClients;
 import java.util.Map;
+import java.util.List;
 import java.time.Duration;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -134,6 +135,22 @@ public class WebClientDownstreamClients implements DownstreamClients {
       return requestUploadCompletion(uploadId, actor, idempotencyKey);
     }
     return Mono.empty();
+  }
+
+  @Override
+  public Mono<Void> requestUploadCompletion(String uploadId, String actor, String idempotencyKey,
+      String strategy, List<DownstreamClients.CompletedPart> parts) {
+    if (!"PRESIGNED_MULTIPART".equals(strategy)) {
+      return requestUploadCompletion(uploadId, actor, idempotencyKey, strategy);
+    }
+    return storage.post()
+        .uri("/api/v1/uploads/{uploadId}/complete", uploadId)
+        .header("X-Actor-Id", actor)
+        .header("Idempotency-Key", idempotencyKey)
+        .contentType(MediaType.APPLICATION_JSON)
+        .bodyValue(Map.of("parts", parts))
+        .retrieve()
+        .bodyToMono(Void.class);
   }
 
   @Override

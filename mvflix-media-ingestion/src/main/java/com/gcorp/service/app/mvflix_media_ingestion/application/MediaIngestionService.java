@@ -247,6 +247,12 @@ public class MediaIngestionService {
 
   public Mono<MediaIngestion> complete(
       UUID id, String actor, Long objectId, String objectKey, Long reportedSize) {
+    return complete(id, actor, objectId, objectKey, reportedSize, java.util.List.of());
+  }
+
+  public Mono<MediaIngestion> complete(
+      UUID id, String actor, Long objectId, String objectKey, Long reportedSize,
+      java.util.List<DownstreamClients.CompletedPart> parts) {
     return get(id, actor)
         .flatMap(
             i -> {
@@ -269,7 +275,7 @@ public class MediaIngestionService {
                   .flatMap(
                       ok ->
                           ok
-                               ? completeUpload(i, actor, id + ":complete-upload")
+                               ? completeUpload(i, actor, id + ":complete-upload", parts)
                                    .then(repository.find(id))
                               : Mono.error(new IllegalStateException("CAS failed")));
             });
@@ -311,10 +317,14 @@ public class MediaIngestionService {
                     : Mono.error(new IllegalStateException("CAS failed")));
   }
 
-  private Mono<Void> completeUpload(MediaIngestion i, String actor, String key) {
-    return "PRESIGNED_MULTIPART".equals(i.uploadStrategy())
-        ? Mono.empty()
-        : clients.requestUploadCompletion(i.uploadId(), actor, key);
+  private Mono<Void> completeUpload(MediaIngestion i, String actor, String key,
+      java.util.List<DownstreamClients.CompletedPart> parts) {
+    if (parts.isEmpty()) {
+      return "PRESIGNED_MULTIPART".equals(i.uploadStrategy())
+          ? Mono.empty()
+          : clients.requestUploadCompletion(i.uploadId(), actor, key);
+    }
+    return clients.requestUploadCompletion(i.uploadId(), actor, key, i.uploadStrategy(), parts);
   }
 
   private Mono<Void> cancelUpload(MediaIngestion i, String actor, String key) {
