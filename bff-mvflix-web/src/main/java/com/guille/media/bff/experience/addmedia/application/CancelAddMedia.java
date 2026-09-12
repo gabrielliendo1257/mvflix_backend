@@ -65,10 +65,8 @@ public class CancelAddMedia {
 
   public Mono<AddMediaResult> handle(String ownerSubject, String addMediaId, String correlationId) {
     if (this.ingestionEnabled) {
-      return this.processes.findById(new AddMediaId(addMediaId)).filter(p -> p.ownedBy(ownerSubject))
-          .flatMap(this::cancelIfAllowed)
-          .switchIfEmpty(Mono.defer(() -> this.ingestion.cancel(ownerSubject, addMediaId, correlationId)
-              .map(MediaIngestionResultMapper::map)));
+      return this.ingestion.cancel(ownerSubject, addMediaId, correlationId)
+          .map(MediaIngestionResultMapper::map);
     }
     return this.processes
         .findById(new AddMediaId(addMediaId))
