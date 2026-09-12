@@ -9,6 +9,8 @@ public interface DownstreamClients {
 
   Mono<MediaIngestionEligibility> mediaIngestionEligibility(String actor);
 
+  Mono<Void> reportViolation(String actor, String reason);
+
   Mono<Upload> prepareUpload(
       String fileName, long fileSize, String mimeType, String actor, String key);
 

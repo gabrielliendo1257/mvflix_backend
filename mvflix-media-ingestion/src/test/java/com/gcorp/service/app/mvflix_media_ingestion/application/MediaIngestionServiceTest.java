@@ -71,12 +71,29 @@ class MediaIngestionServiceTest {
     when(fixture.repo.find(fixture.ingestion.ingestionId()))
         .thenReturn(Mono.just(fixture.ingestion));
 
-    assertThat(fixture.service.complete(fixture.ingestion.ingestionId(), "a", 9L).block().phase())
+     assertThat(fixture.service.complete(fixture.ingestion.ingestionId(), "a", 1L).block().phase())
         .isEqualTo(MediaIngestion.Phase.AWAITING_UPLOAD);
     verify(fixture.clients)
         .requestUploadCompletion(
             "upload", "a", fixture.ingestion.ingestionId() + ":complete-upload");
     verifyNoInteractions(fixture.outbox);
+  }
+
+  @Test
+  void completeRejectsReportedSizeMismatchAndPenalizesUser() {
+    var fixture = fixture(MediaIngestion.Phase.AWAITING_UPLOAD);
+    when(fixture.repo.compareAndSet(eq(fixture.ingestion), any())).thenReturn(Mono.just(true));
+    when(fixture.repo.find(fixture.ingestion.ingestionId())).thenReturn(Mono.just(fixture.ingestion));
+    when(fixture.compensations.schedule(any(), any())).thenReturn(Mono.empty());
+    when(fixture.clients.reportViolation(eq("a"), contains("UPLOAD_INCONSISTENT")))
+        .thenReturn(Mono.empty());
+    when(fixture.outbox.failed(any())).thenReturn(Mono.empty());
+
+    assertThatThrownBy(() -> fixture.service
+        .complete(fixture.ingestion.ingestionId(), "a", 9L).block())
+        .isInstanceOf(UploadInconsistentException.class);
+    verify(fixture.clients).reportViolation(eq("a"), contains("UPLOAD_INCONSISTENT"));
+    verify(fixture.compensations, times(2)).schedule(eq(fixture.ingestion.ingestionId()), any());
   }
 
   @Test
@@ -197,6 +214,7 @@ class MediaIngestionServiceTest {
         repo,
         clients,
         outbox,
+        compensation,
         new MediaIngestionService(repo, clients, outbox, compensation, transactions),
         ingestion);
   }
@@ -205,6 +223,7 @@ class MediaIngestionServiceTest {
       MediaIngestionRepository repo,
       DownstreamClients clients,
       Outbox outbox,
+       CompensationRepository compensations,
       MediaIngestionService service,
       MediaIngestion ingestion) {}
 }

@@ -93,6 +93,17 @@ public class WebClientDownstreamClients implements DownstreamClients {
   }
 
   @Override
+  public Mono<Void> reportViolation(String actor, String reason) {
+    return users
+        .post()
+        .uri("/api/v1/users/me/violations")
+        .contentType(MediaType.APPLICATION_JSON)
+        .bodyValue(Map.of("reason", reason))
+        .retrieve()
+        .bodyToMono(Void.class);
+  }
+
+  @Override
   public Mono<Upload> prepareUpload(String name, long size, String mime, String actor, String key) {
     return storage
         .post()

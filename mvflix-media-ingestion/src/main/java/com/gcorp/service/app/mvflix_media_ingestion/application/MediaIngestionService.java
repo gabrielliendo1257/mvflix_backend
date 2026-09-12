@@ -261,9 +261,12 @@ public class MediaIngestionService {
                 return Mono.error(
                     new IllegalStateException("cannot complete ingestion in phase " + i.phase()));
               }
-              if (i.uploadId() == null)
-                return Mono.error(new IllegalStateException("upload session unavailable"));
-              if (objectId != null && i.storageId() != null && !objectId.equals(i.storageId()))
+               if (i.uploadId() == null)
+                 return Mono.error(new IllegalStateException("upload session unavailable"));
+               if (reportedSize != null && !reportedSize.equals(i.fileSize())) {
+                 return rejectInconsistentSize(i, actor, reportedSize);
+               }
+               if (objectId != null && i.storageId() != null && !objectId.equals(i.storageId()))
                 return Mono.error(new IllegalArgumentException("object_id does not match upload"));
               if (objectKey != null && i.storageKey() != null && !objectKey.equals(i.storageKey()))
                 return Mono.error(new IllegalArgumentException("object_key does not match upload"));
@@ -334,16 +337,19 @@ public class MediaIngestionService {
   }
 
   private Mono<MediaIngestion> fail(MediaIngestion i, Throwable e) {
+    return fail(i, "DOWNSTREAM_UNAVAILABLE",
+        e.getClass().getSimpleName() + ":" + String.valueOf(e.getMessage()));
+  }
+
+  private Mono<MediaIngestion> fail(MediaIngestion i, String code, String detail) {
     return repository
         .find(i.ingestionId())
         .flatMap(
             current -> {
               if (current.phase() == Phase.COMPLETED || current.phase() == Phase.CANCELLED)
                 return Mono.just(current);
-              var x =
-                   current.failed(
-                       "DOWNSTREAM_UNAVAILABLE",
-                       e.getClass().getSimpleName() + ":" + String.valueOf(e.getMessage()));
+               var x =
+                    current.failed(code, detail);
                Mono<Void> cleanup = scheduleCompensations(current);
               return inTransaction(
                   repository
@@ -355,7 +361,17 @@ public class MediaIngestionService {
                                       .then(repository.find(current.ingestionId()))
                                       .flatMap(saved -> outbox.failed(saved).thenReturn(saved))
                                   : Mono.error(new IllegalStateException("CAS failed"))));
-            });
+             });
+  }
+
+  private Mono<MediaIngestion> rejectInconsistentSize(
+      MediaIngestion i, String actor, long reportedSize) {
+    String reason = "El tamaño reportado no coincide con el tamaño esperado: expected="
+        + i.fileSize() + ", reported=" + reportedSize;
+    return Mono.justOrEmpty(clients.reportViolation(actor, "UPLOAD_INCONSISTENT: " + reason))
+            .onErrorResume(error -> Mono.empty())
+        .then(fail(i, "UPLOAD_INCONSISTENT", reason))
+        .then(Mono.error(new UploadInconsistentException(reason)));
   }
 
    private Mono<Void> scheduleCompensations(MediaIngestion i) {
