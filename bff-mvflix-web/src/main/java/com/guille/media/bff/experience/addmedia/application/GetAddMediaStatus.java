@@ -47,10 +47,8 @@ public class GetAddMediaStatus {
 
   public Mono<AddMediaResult> handle(String ownerSubject, String addMediaId, String correlationId) {
     if (this.ingestionEnabled) {
-      return this.processes.findById(new AddMediaId(addMediaId)).filter(p -> p.ownedBy(ownerSubject))
-          .flatMap(this::withFreshInstructions)
-          .switchIfEmpty(Mono.defer(() -> this.ingestion.status(ownerSubject, addMediaId, correlationId)
-              .map(MediaIngestionResultMapper::map)));
+      return this.ingestion.status(ownerSubject, addMediaId, correlationId)
+          .map(MediaIngestionResultMapper::map);
     }
     return this.processes
         .findById(new AddMediaId(addMediaId))
