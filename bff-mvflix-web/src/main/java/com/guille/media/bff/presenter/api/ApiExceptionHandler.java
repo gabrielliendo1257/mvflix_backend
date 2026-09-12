@@ -3,7 +3,6 @@ package com.guille.media.bff.presenter.api;
 import com.guille.media.bff.app.service.StreamTicketException;
 import com.guille.media.bff.experience.addmedia.application.DownstreamRejectionException;
 import com.guille.media.bff.experience.addmedia.application.DownstreamUnavailableException;
-import com.guille.media.bff.experience.addmedia.application.IdempotencyConflictException;
 import com.guille.media.bff.experience.addmedia.application.InvalidIntentException;
 import com.guille.media.bff.experience.addmedia.application.InvalidStorageResponseException;
 import com.guille.media.bff.experience.addmedia.application.UserBlockedException;
@@ -211,18 +210,6 @@ public class ApiExceptionHandler {
             .contentType(MediaType.APPLICATION_JSON)
             .body(new OrchestrationError(
                 HttpStatus.BAD_REQUEST.value(), "INVALID_INTENT", ex.getMessage())));
-  }
-
-  /** Misma idempotencyKey con payload distinto: conflicto, no silencio. */
-  @ExceptionHandler(IdempotencyConflictException.class)
-  public Mono<ResponseEntity<OrchestrationError>> idempotencyConflict(
-      IdempotencyConflictException ex) {
-    log.warn("Conflicto de idempotencia: {}", ex.getMessage());
-    return Mono.just(
-        ResponseEntity.status(HttpStatus.CONFLICT)
-            .contentType(MediaType.APPLICATION_JSON)
-            .body(new OrchestrationError(
-                HttpStatus.CONFLICT.value(), ex.getCode(), ex.getMessage())));
   }
 
   /** Propaga el status y el body del servicio aguas abajo (users/storage) sin degradar a 500. */
