@@ -2,6 +2,7 @@ package com.guille.media.bff.experience.addmedia.application;
 
 import com.guille.media.bff.app.dto.CompleteMovieRequest;
 import com.guille.media.bff.app.dto.MovieDto;
+import com.guille.media.bff.app.dto.UploadStatusDto;
 import com.guille.media.bff.experience.addmedia.application.port.AddMediaMovies;
 import com.guille.media.bff.experience.addmedia.application.port.AddMediaStorage;
 
@@ -22,6 +23,7 @@ import reactor.core.publisher.Mono;
  */
 @Slf4j
 @Service
+@Deprecated(forRemoval = true)
 public class CompleteAddMedia {
 
   private static final int PENDING_RETRIES = 3;
@@ -70,7 +72,7 @@ public class CompleteAddMedia {
   }
 
   private Mono<UploadCompletionOutcome> evaluateStatus(Long movieId,
-      CompleteMovieRequest request, com.guille.media.bff.app.dto.UploadStatusDto status) {
+      CompleteMovieRequest request, UploadStatusDto status) {
     String state = status.status() == null ? "" : status.status();
     log.debug("add-media complete: movie={} estado storage={} key={}",
         movieId, state, status.storageKey());
@@ -103,7 +105,7 @@ public class CompleteAddMedia {
   }
 
   private Mono<UploadCompletionOutcome> persistReady(Long movieId, CompleteMovieRequest request,
-      com.guille.media.bff.app.dto.UploadStatusDto status) {
+      UploadStatusDto status) {
     log.info("complete: movie={} veredicto OK, persistiendo READY con object_key={}",
         movieId, status.storageKey());
     return this.movies
@@ -111,9 +113,9 @@ public class CompleteAddMedia {
         .doOnSuccess(movie -> log.info("complete: movie={} READY persistida", movieId))
         .map((MovieDto movie) -> (UploadCompletionOutcome)
             new UploadCompletionOutcome.Completed(movie))
-        .onErrorResume(com.guille.media.bff.experience.addmedia.application.DownstreamUnavailableException.class,
+        .onErrorResume(DownstreamUnavailableException.class,
             ex -> this.onMoviesDownstreamError(movieId, ex))
-        .onErrorResume(com.guille.media.bff.experience.addmedia.application.DownstreamRejectionException.class,
+        .onErrorResume(DownstreamRejectionException.class,
             ex -> this.onMoviesCompleteError(movieId, request, ex.status()));
   }
 

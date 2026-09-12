@@ -17,6 +17,8 @@ import com.guille.media.bff.app.ports.StorageWebClient;
 import com.guille.media.bff.app.ports.PublicCatalogWebClient;
 import com.guille.media.bff.app.ports.UsersWebPort;
 
+import com.guille.media.bff.experience.addmedia.application.CompleteAddMedia;
+import com.guille.media.bff.experience.addmedia.application.UploadCompletionOutcome;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -106,9 +108,10 @@ public class WebMoviesService {
   private final StreamTicketService streamTicketService;
   private final JobStore jobStore;
   private final WebSessionService webSessionService;
-  private final com.guille.media.bff.experience.addmedia.application.CompleteAddMedia addMediaCompletion;
+  @Deprecated(forRemoval = true)
+  private final CompleteAddMedia addMediaCompletion;
   private final StoragePlaybackTokenProvider playbackTokenProvider;
-  private final @org.springframework.beans.factory.annotation.Qualifier("playbackWebClient")
+  private final @Qualifier("playbackWebClient")
       WebClient playbackWebClient;
   private final PublicCatalogWebClient publicCatalogWebClient;
 
@@ -458,10 +461,9 @@ public class WebMoviesService {
         });
   }
 
-  /**
-   * Complete orquestado del alta: delegado en {@link com.guille.media.bff.experience.addmedia.application.CompleteAddMedia}.
-   */
-  public Mono<com.guille.media.bff.experience.addmedia.application.UploadCompletionOutcome>
+  /** Legacy completion endpoint. The canonical add-media flow uses Media Ingestion. */
+  @Deprecated(forRemoval = true)
+  public Mono<UploadCompletionOutcome>
       complete(Long movieId, CompleteMovieRequest request) {
     return this.addMediaCompletion.complete(movieId, request);
   }

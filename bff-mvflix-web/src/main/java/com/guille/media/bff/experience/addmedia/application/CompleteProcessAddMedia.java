@@ -38,6 +38,8 @@ import reactor.core.publisher.Mono;
 public class CompleteProcessAddMedia {
 
   private final AddMediaProcessRepository processes;
+  /** Temporary compatibility dependency for the disabled legacy mode. */
+  @Deprecated(forRemoval = true)
   private final CompleteAddMedia completion;
   private final MediaIngestionClient ingestion;
   private final StorageWebClient storage;
@@ -87,6 +89,7 @@ public class CompleteProcessAddMedia {
     return handle(ownerSubject, addMediaId, reportedSizeBytes, "add-media:" + addMediaId);
   }
 
+  /** Uses ingestion when enabled; legacy mode remains only as an explicit compatibility fallback. */
   public Mono<AddMediaResult> handle(String ownerSubject, String addMediaId, Long reportedSizeBytes,
       String correlationId) {
     if (this.ingestionEnabled) {
