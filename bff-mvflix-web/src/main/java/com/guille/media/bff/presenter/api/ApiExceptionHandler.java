@@ -5,6 +5,7 @@ import com.guille.media.bff.experience.addmedia.application.DownstreamRejectionE
 import com.guille.media.bff.experience.addmedia.application.DownstreamUnavailableException;
 import com.guille.media.bff.experience.addmedia.application.InvalidIntentException;
 import com.guille.media.bff.experience.addmedia.application.UserBlockedException;
+import com.guille.media.bff.experience.addmedia.application.UnknownMediaIngestionPhaseException;
 import com.guille.media.bff.experience.playback.application.AssetNotPlayableException;
 import com.guille.media.bff.experience.playback.application.LocalStreamTokenException;
 import com.guille.media.bff.experience.playback.application.PlaybackContractViolationException;
@@ -134,6 +135,17 @@ public class ApiExceptionHandler {
             .contentType(MediaType.APPLICATION_JSON)
             .body(new OrchestrationError(
                 HttpStatus.NOT_FOUND.value(), "NOT_FOUND", ex.getMessage())));
+  }
+
+  @ExceptionHandler(UnknownMediaIngestionPhaseException.class)
+  public Mono<ResponseEntity<OrchestrationError>> unknownIngestionPhase(
+      UnknownMediaIngestionPhaseException ex) {
+    log.error("Contrato de media-ingestion incompatible: {}", ex.getMessage());
+    return Mono.just(
+        ResponseEntity.status(HttpStatus.BAD_GATEWAY)
+            .contentType(MediaType.APPLICATION_JSON)
+            .body(new OrchestrationError(
+                HttpStatus.BAD_GATEWAY.value(), "INGESTION_CONTRACT_VIOLATION", ex.getMessage())));
   }
 
   /**

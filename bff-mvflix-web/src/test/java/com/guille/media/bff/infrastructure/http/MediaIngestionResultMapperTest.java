@@ -1,6 +1,7 @@
 package com.guille.media.bff.infrastructure.http;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.guille.media.bff.experience.addmedia.application.port.MediaIngestionClient.MediaIngestionView;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -24,6 +25,17 @@ class MediaIngestionResultMapperTest {
     var result = com.guille.media.bff.experience.addmedia.application.MediaIngestionResultMapper.map(view);
 
     assertThat(result.phase().name()).isEqualTo("FINALIZING");
+  }
+
+  @Test
+  void rejectsUnknownUpstreamPhaseAsContractViolation() {
+    var view = new MediaIngestionView("id", "actor", 7L, "42", "NEW_PHASE", null,
+        null, "key", 12, "video/mp4");
+
+    assertThatThrownBy(() -> com.guille.media.bff.experience.addmedia.application.MediaIngestionResultMapper
+        .map(view))
+        .isInstanceOf(com.guille.media.bff.experience.addmedia.application.UnknownMediaIngestionPhaseException.class)
+        .hasMessageContaining("NEW_PHASE");
   }
 
   @Test
